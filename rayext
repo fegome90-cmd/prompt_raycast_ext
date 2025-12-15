@@ -1,0 +1,86 @@
+#!/bin/sh
+set -eu
+
+# Raycast extension directory (where the Raycast extension `package.json` lives).
+# You can override it per-run:
+#   RAYEXT_DIR="/path/to/extension" rayext
+EXT_DIR="${RAYEXT_DIR:-/Users/felipe_gonzalez/Developer/raycast_ext/dashboard}"
+
+# Ollama settings (local LLM).
+# - RAYEXT_MODEL: model to ensure is available locally
+# - RAYEXT_OLLAMA_BASEURL: base url for the Ollama daemon
+# - RAYEXT_PULL: set to 0 to skip auto-pull (default: 1)
+MODEL="${RAYEXT_MODEL:-qwen3-coder:30b}"
+FALLBACK_MODEL="${RAYEXT_FALLBACK_MODEL:-devstral:24b}"
+OLLAMA_BASEURL="${RAYEXT_OLLAMA_BASEURL:-http://127.0.0.1:11434}"
+AUTO_PULL="${RAYEXT_PULL:-1}"
+
+if [ ! -d "$EXT_DIR" ]; then
+  echo "Extension dir not found: $EXT_DIR" >&2
+  exit 1
+fi
+
+need_cmd() {
+  command -v "$1" >/dev/null 2>&1 || { echo "Missing required command: $1" >&2; exit 1; }
+}
+
+need_cmd npm
+need_cmd ollama
+need_cmd curl
+
+ollama_ready() {
+  curl -fsS --max-time 1 "$OLLAMA_BASEURL/api/version" >/dev/null 2>&1
+}
+
+start_ollama() {
+  if ollama_ready; then
+    return 0
+  fi
+
+  echo "[rayext] Ollama not reachable at $OLLAMA_BASEURL; starting 'ollama serve'..." >&2
+  # Start in background; keep it independent from this terminal session.
+  nohup ollama serve >/tmp/rayext-ollama.log 2>&1 &
+
+  # Wait up to ~10s.
+  i=0
+  while [ $i -lt 20 ]; do
+    if ollama_ready; then
+      echo "[rayext] Ollama is up." >&2
+      return 0
+    fi
+    i=$((i + 1))
+    sleep 0.5
+  done
+
+  echo "[rayext] Failed to start Ollama. Check /tmp/rayext-ollama.log" >&2
+  exit 1
+}
+
+ensure_model() {
+  local want="$1"
+  if ollama list 2>/dev/null | awk 'NR>1{print $1}' | grep -Fxq "$want"; then
+    return 0
+  fi
+
+  echo "[rayext] Model not found locally: $want" >&2
+  if [ "$AUTO_PULL" = "1" ]; then
+    echo "[rayext] Pulling model (this can take a while): ollama pull $want" >&2
+    ollama pull "$want"
+  else
+    echo "[rayext] Auto-pull disabled. Run: ollama pull $want" >&2
+    exit 1
+  fi
+}
+
+start_ollama
+ensure_model "$MODEL"
+ensure_model "$FALLBACK_MODEL"
+
+echo "[rayext] Starting dev loop in: $EXT_DIR"
+echo "[rayext] Ctrl+C to stop."
+
+while :; do
+  (cd "$EXT_DIR" && npm run dev) || true
+  echo "[rayext] dev process exited; restarting in 2s..." >&2
+  sleep 2
+done

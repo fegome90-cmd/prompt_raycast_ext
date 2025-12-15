@@ -1,0 +1,87 @@
+{
+  "$schema": "https://www.raycast.com/schemas/extension.json",
+  "name": "prompt-renderer-local",
+  "title": "Prompt Renderer Local",
+  "description": "Convert selected/clipboard text into deterministic prompts using local templates and Ollama.",
+  "icon": "icon.png",
+  "author": "thomas",
+  "categories": [
+    "Productivity"
+  ],
+  "license": "MIT",
+  "commands": [
+    {
+      "name": "promptify-quick",
+      "title": "Prompt Improver (Local)",
+      "description": "Improve a rough prompt into a ready-to-paste prompt using local Ollama",
+      "mode": "view",
+      "preferences": [
+        {
+          "name": "ollamaBaseUrl",
+          "description": "Base URL for Ollama",
+          "type": "text",
+          "required": false,
+          "default": "http://localhost:11434",
+          "title": "Ollama Base URL"
+        },
+        {
+          "name": "model",
+          "description": "Ollama model name",
+          "type": "text",
+          "required": false,
+          "default": "qwen3-coder:30b",
+          "title": "Model"
+        },
+        {
+          "name": "fallbackModel",
+          "description": "Fallback Ollama model name (used only if the primary model fails)",
+          "type": "text",
+          "required": false,
+          "default": "devstral:24b",
+          "title": "Fallback Model"
+        },
+        {
+          "name": "preset",
+          "description": "Improvement style preset",
+          "type": "dropdown",
+          "required": false,
+          "default": "structured",
+          "data": [
+            { "title": "Structured", "value": "structured" },
+            { "title": "Default", "value": "default" },
+            { "title": "Specific", "value": "specific" },
+            { "title": "Coding", "value": "coding" }
+          ],
+          "title": "Preset"
+        },
+        {
+          "name": "timeoutMs",
+          "description": "Timeout for Ollama calls",
+          "type": "text",
+          "required": false,
+          "default": "30000",
+          "title": "Timeout (ms)"
+        }
+      ]
+    }
+  ],
+  "dependencies": {
+    "@raycast/api": "latest",
+    "node-fetch": "^3.2.10",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@raycast/eslint-config": "^2.1.1",
+    "@types/node": "18.18.4",
+    "eslint": "^9.0.0",
+    "prettier": "^3.0.3",
+    "typescript": "^5.2.2"
+  },
+  "scripts": {
+    "build": "ray build -e dist",
+    "dev": "ray develop",
+    "fix-lint": "ray lint --fix",
+    "lint": "ray lint",
+    "publish": "ray publish"
+  }
+}
