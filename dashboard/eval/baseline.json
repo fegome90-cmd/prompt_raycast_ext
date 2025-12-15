@@ -1,0 +1,94 @@
+{
+  "timestamp": "2025-12-15T16:15:18.743Z",
+  "totalCases": 30,
+  "jsonValidPass1": 0.3333333333333333,
+  "jsonValidPass2": 0,
+  "copyableRate": 0.3333333333333333,
+  "reviewRate": 0.3333333333333333,
+  "latencyP50": 5089,
+  "latencyP95": 6256,
+  "patternsDetected": 2,
+  "failures": [
+    {
+      "caseId": "good-001",
+      "reason": "Missing required content: \"# Objetivo\""
+    },
+    {
+      "caseId": "good-002",
+      "reason": "Missing required content: \"Propósito\""
+    },
+    {
+      "caseId": "good-004",
+      "reason": "Missing required content: \"# API\""
+    },
+    {
+      "caseId": "good-005",
+      "reason": "Missing required content: \"retry\""
+    },
+    {
+      "caseId": "good-006",
+      "reason": "Missing required content: \"ISO\""
+    },
+    {
+      "caseId": "good-007",
+      "reason": "Missing required content: \"ejemplos\""
+    },
+    {
+      "caseId": "good-008",
+      "reason": "Missing required content: \"up\""
+    },
+    {
+      "caseId": "good-009",
+      "reason": "Missing required content: \"focus trap\""
+    },
+    {
+      "caseId": "good-010",
+      "reason": "Missing required content: \"regex\""
+    },
+    {
+      "caseId": "bad-001",
+      "reason": "Missing required content: \"# Objetivo\""
+    },
+    {
+      "caseId": "bad-004",
+      "reason": "Too many questions: 3 > 2"
+    },
+    {
+      "caseId": "bad-005",
+      "reason": "Missing required content: \"asistencia\""
+    },
+    {
+      "caseId": "bad-006",
+      "reason": "Contains banned pattern: \"as an ai language model\""
+    },
+    {
+      "caseId": "bad-008",
+      "reason": "Missing required content: \"helper\""
+    },
+    {
+      "caseId": "bad-009",
+      "reason": "Missing required content: \"guidelines\""
+    },
+    {
+      "caseId": "bad-010",
+      "reason": "Too many questions: 3 > 2"
+    },
+    {
+      "caseId": "ambig-001",
+      "reason": "Missing required content: \"email\""
+    },
+    {
+      "caseId": "ambig-004",
+      "reason": "Missing required content: \"función\""
+    },
+    {
+      "caseId": "ambig-005",
+      "reason": "Missing required content: \"performance\""
+    },
+    {
+      "caseId": "ambig-010",
+      "reason": "Missing required content: \"ayuda\""
+    }
+  ],
+  "skillUsed": "core"
+}

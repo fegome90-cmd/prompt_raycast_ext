@@ -47,10 +47,22 @@
           "required": false,
           "default": "structured",
           "data": [
-            { "title": "Structured", "value": "structured" },
-            { "title": "Default", "value": "default" },
-            { "title": "Specific", "value": "specific" },
-            { "title": "Coding", "value": "coding" }
+            {
+              "title": "Structured",
+              "value": "structured"
+            },
+            {
+              "title": "Default",
+              "value": "default"
+            },
+            {
+              "title": "Specific",
+              "value": "specific"
+            },
+            {
+              "title": "Coding",
+              "value": "coding"
+            }
           ],
           "title": "Preset"
         },
@@ -73,15 +85,24 @@
   "devDependencies": {
     "@raycast/eslint-config": "^2.1.1",
     "@types/node": "18.18.4",
+    "@vitest/coverage-v8": "^1.6.0",
+    "@vitest/ui": "^1.6.0",
     "eslint": "^9.0.0",
     "prettier": "^3.0.3",
-    "typescript": "^5.2.2"
+    "tsx": "^4.21.0",
+    "typescript": "^5.2.2",
+    "vitest": "^1.6.0"
   },
   "scripts": {
     "build": "ray build -e dist",
     "dev": "ray develop",
     "fix-lint": "ray lint --fix",
     "lint": "ray lint",
-    "publish": "ray publish"
+    "publish": "ray publish",
+    "eval": "tsx scripts/evaluator.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "vitest run --config=vitest.config.e2e.ts"
   }
 }

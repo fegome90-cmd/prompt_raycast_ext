@@ -2,6 +2,7 @@ import { Action, ActionPanel, Clipboard, Detail, Form, Toast, getPreferenceValue
 import { useState } from "react";
 import { improvePromptWithOllama } from "./core/llm/improvePrompt";
 import { ollamaHealthCheck } from "./core/llm/ollamaClient";
+import { loadConfig } from "./core/config";
 
 type Preferences = {
   ollamaBaseUrl?: string;
@@ -49,11 +50,26 @@ function PromptPreview(props: {
 export default function Command() {
   const preferences = getPreferenceValues<Preferences>();
 
+  // Load config and check safe mode
+  const configState = loadConfig();
+  const isInSafeMode = configState.safeMode;
+
   const [inputText, setInputText] = useState("");
   const [preview, setPreview] = useState<{
     prompt: string;
     meta?: { confidence?: number; clarifyingQuestions?: string[]; assumptions?: string[] };
   } | null>(null);
+
+  // Show diagnostic toast if safe mode activated automatically
+  const [safeModeToastShown, setSafeModeToastShown] = useState(false);
+  if (isInSafeMode && !safeModeToastShown && configState.source === "defaults") {
+    setSafeModeToastShown(true);
+    showToast({
+      style: Toast.Style.Failure,
+      title: "Invalid Configuration",
+      message: "Using safe mode (defaults). Check logs for details.",
+    });
+  }
 
   async function handleGenerateFinal(values: { inputText: string }) {
     const text = values.inputText.trim();
@@ -64,11 +80,15 @@ export default function Command() {
 
     await showToast({ style: Toast.Style.Animated, title: "Generating with Ollama…" });
     try {
-      const baseUrl = preferences.ollamaBaseUrl?.trim() || "http://localhost:11434";
-      const model = preferences.model?.trim() || "qwen3-coder:30b";
-      const fallbackModel = preferences.fallbackModel?.trim() || "devstral:24b";
-      const preset = preferences.preset ?? "structured";
-      const timeoutMs = parseTimeoutMs(preferences.timeoutMs, 30_000);
+      // Use configuration (preferences override config defaults)
+      const config = configState.config;
+
+      // Use preferences or fall back to config defaults
+      const baseUrl = preferences.ollamaBaseUrl?.trim() || config.ollama.baseUrl;
+      const model = preferences.model?.trim() || config.ollama.model;
+      const fallbackModel = preferences.fallbackModel?.trim() || config.ollama.fallbackModel || config.ollama.model;
+      const preset = preferences.preset ?? config.presets.default;
+      const timeoutMs = parseTimeoutMs(preferences.timeoutMs, config.ollama.timeoutMs);
 
       const health = await ollamaHealthCheck({ baseUrl, timeoutMs: Math.min(2_000, timeoutMs) });
       if (!health.ok) {

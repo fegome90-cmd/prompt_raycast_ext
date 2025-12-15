@@ -1,0 +1,108 @@
+{
+  "timestamp": "2025-12-15T17:18:19.576Z",
+  "totalCases": 30,
+  "buckets": {
+    "good": {
+      "total": 10,
+      "jsonValidPass1": 0.5,
+      "copyableRate": 0.5,
+      "reviewRate": 0.5
+    },
+    "bad": {
+      "total": 10,
+      "jsonValidPass1": 0.2,
+      "copyableRate": 0.2,
+      "reviewRate": 0
+    },
+    "ambiguous": {
+      "total": 10,
+      "jsonValidPass1": 1,
+      "copyableRate": 1,
+      "reviewRate": 1
+    }
+  },
+  "jsonValidPass1": 0.5666666666666667,
+  "jsonValidPass2": 0,
+  "copyableRate": 0.5666666666666667,
+  "reviewRate": 0.5,
+  "latencyP50": 4842,
+  "latencyP95": 10362,
+  "patternsDetected": 10,
+  "failureReasons": {
+    "emptyFinalPrompt": 0,
+    "unfilledPlaceholders": 2,
+    "chattyOutput": 1,
+    "bannedContent": 4,
+    "tooManyQuestions": 6,
+    "lowConfidence": 0,
+    "other": 0
+  },
+  "failures": [
+    {
+      "caseId": "good-004",
+      "reason": "Too many questions: 3 > 2",
+      "category": "tooManyQuestions"
+    },
+    {
+      "caseId": "good-006",
+      "reason": "Too many questions: 3 > 2",
+      "category": "tooManyQuestions"
+    },
+    {
+      "caseId": "good-007",
+      "reason": "Too many questions: 3 > 1",
+      "category": "tooManyQuestions"
+    },
+    {
+      "caseId": "good-008",
+      "reason": "Too many questions: 3 > 2",
+      "category": "tooManyQuestions"
+    },
+    {
+      "caseId": "good-010",
+      "reason": "Too many questions: 3 > 2",
+      "category": "tooManyQuestions"
+    },
+    {
+      "caseId": "bad-001",
+      "reason": "Contains unfilled placeholders",
+      "category": "unfilledPlaceholders"
+    },
+    {
+      "caseId": "bad-002",
+      "reason": "Contains banned pattern: \"Componente\"",
+      "category": "bannedContent"
+    },
+    {
+      "caseId": "bad-003",
+      "reason": "Contains unfilled placeholders",
+      "category": "unfilledPlaceholders"
+    },
+    {
+      "caseId": "bad-004",
+      "reason": "Contains banned pattern: \"servicio\"",
+      "category": "bannedContent"
+    },
+    {
+      "caseId": "bad-006",
+      "reason": "Contains meta/chatty content",
+      "category": "chattyOutput"
+    },
+    {
+      "caseId": "bad-007",
+      "reason": "Contains banned pattern: \"función\"",
+      "category": "bannedContent"
+    },
+    {
+      "caseId": "bad-008",
+      "reason": "Too many questions: 3 > 2",
+      "category": "tooManyQuestions"
+    },
+    {
+      "caseId": "bad-010",
+      "reason": "Contains banned pattern: \"código\"",
+      "category": "bannedContent"
+    }
+  ],
+  "skillUsed": "core"
+}
