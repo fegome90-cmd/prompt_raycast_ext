@@ -259,7 +259,7 @@ describe("T1.2.A2 — 10 Unit Tests Quirúrgicos", () => {
     const hasPlaceholders = (text: string): boolean => {
       // Detect placeholders with specific patterns
       // Avoid matching empty JSON arrays
-      const hasDoubleBraces = /\{\{[^\}]*\}\}/.test(text);
+      const hasDoubleBraces = /\{\{[^}]*\}\}/.test(text);
       const hasSingleBraces = /(?<!:) *\[[a-zA-Z_][a-zA-Z0-9_]*\]/.test(text);
       const hasAngleBraces = /<[^<]*>/.test(text);
       return hasDoubleBraces || hasSingleBraces || hasAngleBraces;
