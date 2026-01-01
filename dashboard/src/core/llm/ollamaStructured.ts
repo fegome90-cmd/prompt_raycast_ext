@@ -22,6 +22,7 @@ export interface StructuredRequest<T> {
   baseUrl: string;
   model: string;
   timeoutMs: number;
+  temperature?: number;
   /** Metadata for telemetry (optional) */
   requestMeta?: {
     feature: "improve" | "router" | "repair" | "test";
@@ -43,6 +44,9 @@ export interface StructuredResult<T> {
   extractionMethod?: "fence" | "tag" | "scan";
   parseStage?: "direct" | "extracted" | "repair";
   latencyMs: number;
+  // Optional telemetry: individual attempt latencies for debugging
+  attempt1Latency?: number;
+  attempt2Latency?: number;
   failureReason?: "timeout" | "invalid_json" | "schema_mismatch" | "unknown";
   validationError?: string;
 }
@@ -61,12 +65,12 @@ interface ParseAttempt {
  */
 export async function ollamaGenerateStructured<T>(request: StructuredRequest<T>): Promise<StructuredResult<T>> {
   const start = Date.now();
-  const { schema, prompt, mode, baseUrl, model, timeoutMs } = request;
+  const { schema, prompt, mode, baseUrl, model, timeoutMs, temperature } = request;
 
   // Attempt 1: Direct call to Ollama
-  const attempt1 = await callOllama(prompt, baseUrl, model, timeoutMs);
+  const attempt1 = await callOllama(prompt, baseUrl, model, timeoutMs, temperature);
   const raw1 = attempt1.raw;
-  const latency1 = Date.now() - start;
+  const latency1 = attempt1.latencyMs;
 
   // Try to parse attempt 1
   const parse1 = tryParseJson(raw1, mode);
@@ -87,12 +91,13 @@ export async function ollamaGenerateStructured<T>(request: StructuredRequest<T>)
         extractionMethod: parse1.extractionMethod,
         parseStage: parse1.usedExtraction ? "extracted" : "direct",
         latencyMs: latency1,
+        attempt1Latency: latency1,
       };
     }
 
     // Schema mismatch on attempt 1
     if (mode !== "extract+repair") {
-      return failResult("schema_mismatch", raw1, 1, parse1.usedExtraction, false, summarizeZodError(validation.error));
+      return failResult("schema_mismatch", raw1, 1, parse1.usedExtraction, false, summarizeZodError(validation.error), latency1, latency1, undefined);
     }
 
     // Attempt repair
@@ -103,16 +108,16 @@ export async function ollamaGenerateStructured<T>(request: StructuredRequest<T>)
       originalPrompt: prompt,
     });
 
-    const attempt2 = await callOllama(repairPrompt, baseUrl, model, timeoutMs);
+    const attempt2 = await callOllama(repairPrompt, baseUrl, model, timeoutMs, temperature);
     const raw2 = attempt2.raw;
-    const latency2 = Date.now() - start;
+    const latency2 = attempt2.latencyMs;
 
-    return parseAndValidateAttempt2(raw2, schema, raw1, latency2);
+    return parseAndValidateAttempt2(raw2, schema, raw1, latency1 + latency2, latency1, latency2);
   }
 
   // Parse failed on attempt 1
   if (mode !== "extract+repair") {
-    return failResult("invalid_json", raw1, 1, parse1.usedExtraction, false, parse1.error);
+    return failResult("invalid_json", raw1, 1, parse1.usedExtraction, false, parse1.error, latency1, latency1, undefined);
   }
 
   // Attempt repair
@@ -123,11 +128,11 @@ export async function ollamaGenerateStructured<T>(request: StructuredRequest<T>)
     originalPrompt: prompt,
   });
 
-  const attempt2 = await callOllama(repairPrompt, baseUrl, model, timeoutMs);
+  const attempt2 = await callOllama(repairPrompt, baseUrl, model, timeoutMs, temperature);
   const raw2 = attempt2.raw;
-  const latency2 = Date.now() - start;
+  const latency2 = attempt2.latencyMs;
 
-  return parseAndValidateAttempt2(raw2, schema, raw1, latency2);
+  return parseAndValidateAttempt2(raw2, schema, raw1, latency1 + latency2, latency1, latency2);
 }
 
 /**
@@ -239,6 +244,8 @@ function parseAndValidateAttempt2<T>(
   schema: z.ZodType<T>,
   rawAttempt1: string,
   latencyMs: number,
+  attempt1Latency: number,
+  attempt2Latency: number,
 ): StructuredResult<T> {
   // Try direct parse only (no extraction in repair)
   try {
@@ -259,11 +266,13 @@ function parseAndValidateAttempt2<T>(
         usedRepair: true,
         parseStage: "repair",
         latencyMs,
+        attempt1Latency,
+        attempt2Latency,
       };
     }
 
     // Schema mismatch after repair
-    return failResult("schema_mismatch", rawAttempt1, 2, false, true, summarizeZodError(validation.error), latencyMs);
+    return failResult("schema_mismatch", rawAttempt1, 2, false, true, summarizeZodError(validation.error), latencyMs, attempt1Latency, attempt2Latency);
   } catch (e) {
     // Invalid JSON after repair
     return failResult(
@@ -274,6 +283,8 @@ function parseAndValidateAttempt2<T>(
       true,
       e instanceof Error ? e.message : "Invalid JSON",
       latencyMs,
+      attempt1Latency,
+      attempt2Latency,
     );
   }
 }
@@ -297,7 +308,14 @@ export function getTransport(): OllamaTransport | (() => Promise<OllamaTransport
   return async () => (await import("./ollamaRaw")).fetchTransport;
 }
 
-async function callOllama(prompt: string, baseUrl: string, model: string, timeoutMs: number): Promise<{ raw: string }> {
+async function callOllama(
+  prompt: string,
+  baseUrl: string,
+  model: string,
+  timeoutMs: number,
+  temperature?: number,
+): Promise<{ raw: string; latencyMs: number }> {
+  const start = Date.now();
   try {
     const transport = await getTransportInstance();
 
@@ -306,18 +324,29 @@ async function callOllama(prompt: string, baseUrl: string, model: string, timeou
       model,
       prompt,
       timeoutMs,
+      temperature,
     });
 
     return {
       raw: result.raw,
+      latencyMs: result.latencyMs || Date.now() - start,
     };
   } catch (error) {
+    const latency = Date.now() - start;
     if (error instanceof Error) {
       if (error.message.includes("timed out") || error.message.includes("Timeout") || error.name === "AbortError") {
-        throw Object.assign(error, { failureReason: "timeout" as const });
+        throw Object.assign(error, {
+          failureReason: "timeout" as const,
+          latencyMs: latency,
+        } as Error & { failureReason: "timeout"; latencyMs: number });
       }
+      // Re-throw other errors with latency
+      throw Object.assign(error, { latencyMs: latency } as Error & { latencyMs: number });
     }
-    throw error;
+    // If it's not an Error, create a new one
+    const errorObj = new Error(String(error));
+    errorObj.stack = undefined;
+    throw Object.assign(errorObj, { latencyMs: latency });
   }
 }
 
@@ -470,6 +499,8 @@ function failResult<T>(
   usedRepair: boolean,
   validationError?: string,
   latencyMs = 0,
+  attempt1Latency?: number,
+  attempt2Latency?: number,
 ): StructuredResult<T> {
   // Log failures for debugging (especially schema mismatches)
   if (failureReason === "schema_mismatch" || failureReason === "invalid_json") {
@@ -487,6 +518,8 @@ function failResult<T>(
     usedExtraction,
     usedRepair,
     latencyMs,
+    attempt1Latency,
+    attempt2Latency,
     failureReason,
     validationError,
   };
