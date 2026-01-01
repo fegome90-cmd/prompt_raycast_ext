@@ -1,6 +1,6 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import { z } from "zod";
-import { ollamaGenerateStructured, setTransport, resetTransport } from "../ollamaStructured";
+import { ollamaGenerateStructured, setTransport, resetTransport, TEST_HELPERS } from "../ollamaStructured";
 import type { OllamaTransport } from "../ollamaRaw";
 
 // Mock transport for testing
@@ -168,5 +168,60 @@ describe("Null Array Fix", () => {
       expect(result.data?.clarifying_questions).toEqual([]);
       expect(result.data?.assumptions).toEqual([]);
     }
+  });
+});
+
+describe("coerceStringArray - Data Loss Detection", () => {
+  const { coerceStringArray } = TEST_HELPERS;
+
+  it("should log warning when non-null non-array value is dropped", async () => {
+    const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const result = coerceStringArray("a string instead of array");
+
+    expect(result).toEqual([]);
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining("[COERCION] Unexpected array type")
+    );
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining("string")
+    );
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining("a string instead of array")
+    );
+
+    consoleSpy.mockRestore();
+  });
+
+  it("should not warn for null or undefined", () => {
+    const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    expect(coerceStringArray(null)).toEqual([]);
+    expect(coerceStringArray(undefined)).toEqual([]);
+    expect(consoleSpy).not.toHaveBeenCalled();
+
+    consoleSpy.mockRestore();
+  });
+
+  it("should not warn for valid arrays", () => {
+    const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    expect(coerceStringArray(["a", "b"])).toEqual(["a", "b"]);
+    expect(consoleSpy).not.toHaveBeenCalled();
+
+    consoleSpy.mockRestore();
+  });
+
+  it("should handle numbers", () => {
+    const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    expect(coerceStringArray(42)).toEqual([]);
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("number"));
+
+    consoleSpy.mockRestore();
+  });
+
+  it("should filter out non-string items from arrays", () => {
+    expect(coerceStringArray(["a", 42, null, "b"])).toEqual(["a", "b"]);
   });
 });

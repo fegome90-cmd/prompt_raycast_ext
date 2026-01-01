@@ -232,6 +232,14 @@ function coerceStringArray(value: unknown): string[] {
   if (Array.isArray(value)) {
     return value.filter((x): x is string => typeof x === "string");
   }
+
+  // Log warning when dropping non-null, non-undefined, non-object values
+  if (value !== null && value !== undefined && typeof value !== "object") {
+    console.warn(
+      `[COERCION] Unexpected array type: ${typeof value}, value: ${String(value).slice(0, 100)}`
+    );
+  }
+
   return []; // null, undefined, or other types → empty array
 }
 
@@ -532,4 +540,5 @@ export const TEST_HELPERS = {
   summarizeZodError,
   getSchemaFields,
   failResult,
+  coerceStringArray,
 };
