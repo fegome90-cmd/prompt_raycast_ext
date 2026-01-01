@@ -46,6 +46,28 @@ export const DEFAULTS = {
   },
 
   /**
+   * DSPy backend settings
+   */
+  dspy: {
+    /**
+     * Base URL for DSPy backend
+     * Default: localhost:8000 (FastAPI)
+     */
+    baseUrl: "http://localhost:8000",
+
+    /**
+     * Default request timeout (ms)
+     * 30s keeps parity with Ollama timeouts
+     */
+    timeoutMs: 30_000,
+
+    /**
+     * Enable DSPy backend first, fallback to Ollama if unavailable
+     */
+    enabled: true,
+  },
+
+  /**
    * Pipeline behavior settings
    */
   pipeline: {

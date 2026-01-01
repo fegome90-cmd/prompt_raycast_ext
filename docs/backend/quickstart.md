@@ -1,6 +1,23 @@
 # 🚀 Quick Start - DSPy PromptImprover Backend
 
-**Tiempo estimado para tener el backend corriendo: ~5 minutos**
+**Tiempo estimado para tener el backend corriendo: ~2 minutos**
+
+---
+
+## ⚡️ TL;DR (Fish)
+
+```fish
+cd /Users/felipe_gonzalez/Developer/raycast_ext/.worktrees/dspy-ollama-hf-pipeline
+./setup_dspy_backend.sh
+ollama pull hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M
+uv run python main.py
+```
+
+```fish
+curl -s http://localhost:8000/api/v1/improve-prompt \
+  -H 'Content-Type: application/json' \
+  -d '{"idea":"Design ADR process"}'
+```
 
 ---
 
@@ -8,59 +25,55 @@
 
 ### Paso 1: Instalar y Configurar (2 min)
 
-```bash
+```fish
 # Ejecutar script automatizado
-bash ../../scripts/setup_dspy_backend.sh
+./scripts/setup_dspy_backend.sh
 
 # Si el script falla, hacerlo manual:
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+uv sync --all-extras
 cp .env.example .env
 ```
 
 ### Paso 2: Iniciar Ollama (1 min)
 
-```bash
+```fish
 # Si ya tienes Ollama instalado, solo iniciar:
 ollama serve
 
 # Si no, instalar primero:
 curl -fsSL https://ollama.ai/install.sh | sh
-ollama pull llama3.1
+ollama pull hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M
 ```
 
 ### Paso 3: Configurar Backend (1 min)
 
-```bash
+```fish
 # Editar .env si necesitas cambiar algo
 nano .env
 
 # Valores por defecto (ya deberían funcionar):
 LLM_PROVIDER=ollama
-LLM_MODEL=llama3.1
+LLM_MODEL=hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M
 LLM_BASE_URL=http://localhost:11434
 ```
 
 ### Paso 4: Iniciar Backend (1 min)
 
-```bash
-# Activar venv y iniciar
-source venv/bin/activate
-python main.py
+```fish
+uv run python main.py
 ```
 
 **Output esperado:**
 ```
 🚀 Starting DSPy Prompt Improver API...
 📍 Server: http://0.0.0.0:8000
-🧠 LLM: ollama/llama3.1
-✅ DSPy configured with ollama/llama3.1
+🧠 LLM: ollama/hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M
+✅ DSPy configured with ollama/hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M
 ```
 
 ### Paso 5: Probar (30 segundos)
 
-```bash
+```fish
 # Health check
 curl http://localhost:8000/health
 
@@ -76,17 +89,15 @@ curl -X POST "http://localhost:8000/api/v1/improve-prompt" \
 
 ### Opción 1: Test Manual con Python
 
-```bash
-source venv/bin/activate
-
+```fish
 # Test 1: Import signature
-python -c "from hemdov.domain.dspy_modules.prompt_improver import PromptImproverSignature; print('✅ Signature OK')"
+uv run python -c "from hemdov.domain.dspy_modules.prompt_improver import PromptImproverSignature; print('✅ Signature OK')"
 
 # Test 2: Import module
-python -c "from eval.src.dspy_prompt_improver import PromptImprover; print('✅ Module OK')"
+uv run python -c "from eval.src.dspy_prompt_improver import PromptImprover; print('✅ Module OK')"
 
 # Test 3: Import FastAPI app
-python -c "from main import app; print('✅ App OK')"
+uv run python -c "from main import app; print('✅ App OK')"
 ```
 
 **Output esperado:**
@@ -98,9 +109,9 @@ python -c "from main import app; print('✅ App OK')"
 
 ### Opción 2: Verificar Tests
 
-```bash
-source venv/bin/activate
-PYTHONPATH=/Users/felipe_gonzalez/Developer/raycast_ext pytest tests/test_dspy_prompt_improver.py::TestPromptImprover::test_load_prompt_improvement_examples -v
+```fish
+set -x PYTHONPATH /Users/felipe_gonzalez/Developer/raycast_ext
+uv run pytest tests/test_dspy_prompt_improver.py::TestPromptImprover::test_load_prompt_improvement_examples -v
 ```
 
 **Output esperado:**
@@ -131,19 +142,18 @@ tests/...::test_load_prompt_improvement_examples PASSED [100%]
 ### Problema: "ModuleNotFoundError: No module named 'dspy'"
 
 **Solución:**
-```bash
+```fish
 # Instalar dependencias
-source venv/bin/activate
-pip install -r requirements.txt
+uv sync --all-extras
 
 # Verificar instalación
-python -c "import dspy; print(f'DSPy version: {dspy.__version__}')"
+uv run python -c "import dspy; print(f'DSPy version: {dspy.__version__}')"
 ```
 
 ### Problema: "Ollama request timed out"
 
 **Solución:**
-```bash
+```fish
 # Verificar que Ollama está corriendo
 curl http://localhost:11434/api/tags
 
@@ -152,18 +162,18 @@ ollama serve
 
 # En otra terminal, verificar modelo:
 ollama list
-ollama pull llama3.1
+ollama pull hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M
 ```
 
 ### Problema: "Port 8000 already in use"
 
 **Solución:**
-```bash
+```fish
 # Cambiar puerto en .env
 echo "API_PORT=8001" >> .env
 
 # O matar proceso usando puerto 8000
-lsof -ti:8000 | xargs kill -9
+kill -9 (lsof -ti:8000)
 ```
 
 ### Problema: "DSPy backend not available" (en frontend Raycast)

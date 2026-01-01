@@ -25,6 +25,22 @@
           "title": "Ollama Base URL"
         },
         {
+          "name": "dspyBaseUrl",
+          "description": "Base URL for DSPy backend",
+          "type": "text",
+          "required": false,
+          "default": "http://localhost:8000",
+          "title": "DSPy Base URL"
+        },
+        {
+          "name": "dspyEnabled",
+          "description": "Enable DSPy backend (fallbacks to Ollama if off)",
+          "type": "checkbox",
+          "required": false,
+          "default": true,
+          "title": "DSPy Enabled"
+        },
+        {
           "name": "model",
           "description": "Ollama model name",
           "type": "text",

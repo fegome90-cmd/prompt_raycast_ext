@@ -50,6 +50,23 @@ export const OllamaConfigSchema = z
   });
 
 /**
+ * DSPy backend configuration
+ * Separate endpoint for prompt improvement backend
+ */
+export const DspyConfigSchema = z
+  .object({
+    baseUrl: z.string().url("dspy.baseUrl must be a valid URL (e.g., http://localhost:8000)"),
+    timeoutMs: z
+      .number()
+      .int()
+      .positive("dspy.timeoutMs must be positive")
+      .min(1_000, "dspy.timeoutMs must be at least 1s (1000ms)")
+      .max(120_000, "dspy.timeoutMs must not exceed 2 minutes (120000ms)"),
+    enabled: z.boolean(),
+  })
+  .strict();
+
+/**
  * Pipeline behavior configuration
  * Controls retry logic and output limits
  */
@@ -208,6 +225,7 @@ export const EvalConfigSchema = z
 export const AppConfigSchema = z
   .object({
     ollama: OllamaConfigSchema,
+    dspy: DspyConfigSchema,
     pipeline: PipelineConfigSchema,
     quality: QualityConfigSchema,
     features: FeaturesConfigSchema,
@@ -222,6 +240,7 @@ export const AppConfigSchema = z
  */
 export type AppConfig = z.infer<typeof AppConfigSchema>;
 export type OllamaConfig = z.infer<typeof OllamaConfigSchema>;
+export type DspyConfig = z.infer<typeof DspyConfigSchema>;
 export type PipelineConfig = z.infer<typeof PipelineConfigSchema>;
 export type FeaturesConfig = z.infer<typeof FeaturesConfigSchema>;
 
@@ -266,6 +285,10 @@ export function validatePartialConfig(partial: unknown): Partial<AppConfig> {
 
     if (configObj.ollama) {
       partialConfig.ollama = OllamaConfigSchema.parse(configObj.ollama);
+    }
+
+    if (configObj.dspy) {
+      partialConfig.dspy = DspyConfigSchema.parse(configObj.dspy);
     }
 
     if (configObj.pipeline) {

@@ -14,7 +14,7 @@ class Settings(BaseSettings):
 
     # LLM Provider Settings
     LLM_PROVIDER: str = "ollama"  # ollama, gemini, deepseek, openai
-    LLM_MODEL: str = "llama3.1"
+    LLM_MODEL: str = "hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M"
     LLM_BASE_URL: Optional[str] = "http://localhost:11434"
     LLM_API_KEY: Optional[str] = None
     GEMINI_API_KEY: Optional[str] = None
