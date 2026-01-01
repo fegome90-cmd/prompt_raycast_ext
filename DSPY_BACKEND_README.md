@@ -37,20 +37,30 @@ The backend transforms raw user ideas into structured, high-quality prompts usin
 
 ## 🚀 Quick Start
 
+### TL;DR (Fish)
+
+```fish
+cd /Users/felipe_gonzalez/Developer/raycast_ext/.worktrees/dspy-ollama-hf-pipeline
+./setup_dspy_backend.sh
+ollama pull hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M
+uv run python main.py
+```
+
+```fish
+curl -s http://localhost:8000/api/v1/improve-prompt \
+  -H 'Content-Type: application/json' \
+  -d '{"idea":"Design ADR process"}'
+```
+
 ### 1. Install Dependencies
 
-```bash
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
+```fish
+./setup_dspy_backend.sh
 ```
 
 ### 2. Configure Environment
 
-```bash
+```fish
 # Copy environment template
 cp .env.example .env
 
@@ -60,37 +70,37 @@ nano .env
 
 Key settings:
 - `LLM_PROVIDER=ollama` (or gemini, deepseek, openai)
-- `LLM_MODEL=llama3.1`
+- `LLM_MODEL=hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M`
 - `LLM_BASE_URL=http://localhost:11434`
 
 ### 3. Start Ollama (if using local models)
 
-```bash
+```fish
 # Install and start Ollama
 curl -fsSL https://ollama.ai/install.sh | sh
 ollama serve
 
 # Pull model
-ollama pull llama3.1
+ollama pull hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M
 ```
 
 ### 4. Start DSPy Backend
 
-```bash
-python main.py
+```fish
+uv run python main.py
 ```
 
 Expected output:
 ```
 🚀 Starting DSPy Prompt Improver API...
 📍 Server: http://0.0.0.0:8000
-🧠 LLM: ollama/llama3.1
-✅ DSPy configured with ollama/llama3.1
+🧠 LLM: ollama/hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M
+✅ DSPy configured with ollama/hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M
 ```
 
 ### 5. Test the Backend
 
-```bash
+```fish
 # Health check
 curl http://localhost:8000/health
 
@@ -136,7 +146,7 @@ curl -X POST "http://localhost:8000/api/v1/improve-prompt" \
 #### Ollama (Local - Recommended)
 ```env
 LLM_PROVIDER=ollama
-LLM_MODEL=llama3.1
+LLM_MODEL=hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M
 LLM_BASE_URL=http://localhost:11434
 ```
 
@@ -169,15 +179,12 @@ DEEPSEEK_API_KEY=your_deepseek_api_key
 
 ### Running Tests
 
-```bash
-# Install test dependencies
-pip install pytest pytest-asyncio
-
+```fish
 # Run tests
-pytest tests/ -v
+uv run pytest tests/ -v
 
 # Run with coverage
-pytest tests/ --cov=hemdov --cov-report=html
+uv run pytest tests/ --cov=hemdov --cov-report=html
 ```
 
 ### DSPy Development
@@ -254,18 +261,18 @@ Following HemDov patterns, prompts must have:
 ### Common Issues
 
 1. **"Import dspy not found"**
-   ```bash
-   pip install dspy-ai
+   ```fish
+   uv sync --all-extras
    ```
 
 2. **"DSPy backend not available"**
    - Check if Ollama is running: `ollama list`
-   - Verify model is pulled: `ollama pull llama3.1`
+   - Verify model is pulled: `ollama pull hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M`
    - Check backend health: `curl http://localhost:8000/health`
 
 3. **"ModuleNotFoundError: hemdov"**
    - Ensure you're running from project root
-   - Check Python path: `export PYTHONPATH=$PYTHONPATH:$(pwd)`
+   - Check Python path: `set -x PYTHONPATH (pwd)`
 
 4. **Slow Response Times**
    - Try faster model: `LLM_MODEL=mistral`
@@ -283,8 +290,8 @@ LOG_LEVEL=DEBUG
 
 Or run with verbose output:
 
-```bash
-python main.py --log-level DEBUG
+```fish
+uv run python main.py --log-level DEBUG
 ```
 
 ## 📈 Roadmap

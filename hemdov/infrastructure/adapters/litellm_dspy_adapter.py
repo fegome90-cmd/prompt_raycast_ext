@@ -80,7 +80,9 @@ class LiteLLMDSPyAdapter(dspy.LM):
 
 # Factory functions for common providers
 def create_ollama_adapter(
-    model: str = "llama3.1", base_url: str = "http://localhost:11434", **kwargs
+    model: str = "hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M",
+    base_url: str = "http://localhost:11434",
+    **kwargs,
 ) -> LiteLLMDSPyAdapter:
     """Create Ollama adapter for local models."""
     return LiteLLMDSPyAdapter(model=f"ollama/{model}", api_base=base_url, **kwargs)

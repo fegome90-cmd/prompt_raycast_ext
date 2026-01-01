@@ -267,18 +267,16 @@
 
 ### 1. Verificar Tests
 
-```bash
-source .venv/bin/activate
-pytest tests/test_dspy_prompt_improver.py::TestPromptImprover -v
+```fish
+uv run pytest tests/test_dspy_prompt_improver.py::TestPromptImprover -v
 ```
 
 **Resultado esperado:** ✅ 4 passed (100%)
 
 ### 2. Verificar Imports
 
-```bash
-source .venv/bin/activate
-python -c "
+```fish
+uv run python -c "
 from hemdov.domain.dspy_modules.prompt_improver import PromptImproverSignature
 from eval.src.dspy_prompt_improver import PromptImprover
 from eval.src.prompt_improvement_dataset import load_prompt_improvement_examples
@@ -293,7 +291,7 @@ print('✅ Todos los imports Python exitosos')
 
 ### 3. Iniciar Ollama
 
-```bash
+```fish
 # Verificar si está corriendo
 curl http://localhost:11434/api/tags
 
@@ -301,28 +299,27 @@ curl http://localhost:11434/api/tags
 ollama serve
 
 # Asegurar modelo disponible
-ollama pull llama3.1
+ollama pull hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M
 ```
 
 ### 4. Iniciar Backend DSPy
 
-```bash
-source .venv/bin/activate
-python main.py
+```fish
+uv run python main.py
 ```
 
 **Resultado esperado:**
 ```
 🚀 Starting DSPy Prompt Improver API...
 📍 Server: http://0.0.0.0:8000
-🧠 LLM: ollama/llama3.1
-✅ DSPy configured with ollama/llama3.1
+🧠 LLM: ollama/hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M
+✅ DSPy configured with ollama/hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M
 INFO: Uvicorn running on http://0.0.0.0:8000
 ```
 
 ### 5. Probar Endpoint
 
-```bash
+```fish
 # Health check
 curl http://localhost:8000/health
 
@@ -450,19 +447,17 @@ tests/
 
 ### 1. Setup Inicial (5 minutos)
 
-```bash
+```fish
 # Ejecutar script automatizado
-bash setup_dspy_backend.sh
+./setup_dspy_backend.sh
 
 # O manual
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+uv sync --all-extras
 cp .env.example .env
 
 # Iniciar Ollama
 ollama serve
-ollama pull llama3.1
+ollama pull hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M
 
 # Configurar .env (si necesitas cambiar algo)
 nano .env
@@ -470,23 +465,22 @@ nano .env
 
 ### 2. Iniciar Backend
 
-```bash
-source .venv/bin/activate
-python main.py
+```fish
+uv run python main.py
 ```
 
 **Expected output:**
 ```
 🚀 Starting DSPy Prompt Improver API...
 📍 Server: http://0.0.0.0:8000
-🧠 LLM: ollama/llama3.1
-✅ DSPy configured with ollama/llama3.1
+🧠 LLM: ollama/hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M
+✅ DSPy configured with ollama/hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M
 INFO: Uvicorn running on http://0.0.0.0:8000
 ```
 
 ### 3. Verificar Funcionamiento
 
-```bash
+```fish
 # Test 1: Health check
 curl http://localhost:8000/health
 

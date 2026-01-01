@@ -223,53 +223,51 @@ Se ha creado la estructura de directorios siguiendo el patrón HemDov:
 
 ### 1. Setup Inicial
 
-```bash
+```fish
 # Ejecutar script de setup
-bash setup_dspy_backend.sh
+./setup_dspy_backend.sh
 
 # O setup manual
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+uv sync --all-extras
 cp .env.example .env
 ```
 
 ### 2. Iniciar Ollama (si se usa local)
 
-```bash
+```fish
 ollama serve
-ollama pull llama3.1
+ollama pull hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M
 ```
 
 ### 3. Configurar Backend
 
-```bash
+```fish
 # Editar .env
 nano .env
 
 # Configurar provider
 LLM_PROVIDER=ollama
-LLM_MODEL=llama3.1
+LLM_MODEL=hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M
 LLM_BASE_URL=http://localhost:11434
 ```
 
 ### 4. Iniciar Backend
 
-```bash
-python main.py
+```fish
+uv run python main.py
 ```
 
 Output esperado:
 ```
 🚀 Starting DSPy Prompt Improver API...
 📍 Server: http://0.0.0.0:8000
-🧠 LLM: ollama/llama3.1
-✅ DSPy configured with ollama/llama3.1
+🧠 LLM: ollama/hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M
+✅ DSPy configured with ollama/hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M
 ```
 
 ### 5. Probar Backend
 
-```bash
+```fish
 # Health check
 curl http://localhost:8000/health
 
@@ -292,7 +290,7 @@ const result = await improvePromptWithHybrid({
   preset: "default",
   options: {
     baseUrl: "http://localhost:11434",
-    model: "llama3.1",
+    model: "hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M",
     timeoutMs: 30000
   },
   enableDSPyFallback: true // Intenta DSPy primero, fallback a Ollama
@@ -331,15 +329,15 @@ console.log("Backend usado:", result._metadata?.backend);
 
 ### Tests
 
-```bash
-pytest tests/test_dspy_prompt_improver.py::TestPromptImprover::test_load_prompt_improvement_examples -v
+```fish
+uv run pytest tests/test_dspy_prompt_improver.py::TestPromptImprover::test_load_prompt_improvement_examples -v
 ```
 
 **Resultado:** ✅ 1 passed, 18 warnings
 
 ### Imports
 
-```bash
+```text
 ✅ Signature imports successfully
 ✅ Module imports successfully
 ✅ FastAPI app initializes successfully

@@ -1,39 +1,36 @@
-#!/bin/bash
+#!/usr/bin/env fish
 # DSPy Backend Setup Script
 # Quick setup for DSPy Prompt Improver backend
 
 echo "🚀 Setting up DSPy Prompt Improver Backend..."
 
 # Check if Python is installed
-if ! command -v python3 &> /dev/null; then
+if not command -v python3 >/dev/null
     echo "❌ Python 3 is required. Please install Python 3.8+"
     exit 1
 fi
 
-# Create virtual environment
-echo "📦 Creating virtual environment..."
-python3 -m venv venv
-source venv/bin/activate
-
-# Upgrade pip
-echo "⬆️ Upgrading pip..."
-pip install --upgrade pip
+# Check if uv is installed
+if not command -v uv >/dev/null
+    echo "❌ uv is required. Install it with: brew install uv"
+    exit 1
+fi
 
 # Install dependencies
 echo "📚 Installing dependencies..."
-pip install -r requirements.txt
+uv sync --all-extras
 
 # Create environment file
-if [ ! -f .env ]; then
+if not test -f .env
     echo "📝 Creating environment configuration..."
     cp .env.example .env
     echo "✅ Created .env file - please review and update as needed"
 fi
 
 # Check if Ollama is installed and running
-if command -v ollama &> /dev/null; then
+if command -v ollama >/dev/null
     echo "🦙 Ollama found"
-    if curl -s http://localhost:11434/api/tags > /dev/null 2>&1; then
+    if curl -s http://localhost:11434/api/tags >/dev/null 2>&1
         echo "✅ Ollama is running"
     else
         echo "⚠️ Ollama installed but not running. Start with: ollama serve"
@@ -44,7 +41,7 @@ fi
 
 # Test imports
 echo "🧪 Testing DSPy imports..."
-python3 -c "
+uv run python -c "
 try:
     import dspy
     import fastapi
@@ -57,7 +54,7 @@ except ImportError as e:
     exit(1)
 "
 
-if [ $? -eq 0 ]; then
+if test $status -eq 0
     echo ""
     echo "🎉 Setup complete!"
     echo ""
