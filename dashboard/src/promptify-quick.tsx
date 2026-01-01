@@ -1,6 +1,6 @@
 import { Action, ActionPanel, Clipboard, Detail, Form, Toast, getPreferenceValues, showToast } from "@raycast/api";
 import { useState } from "react";
-import { improvePromptWithOllama } from "./core/llm/improvePrompt";
+import { improvePromptWithHybrid } from "./core/llm/improvePrompt";
 import { ollamaHealthCheck } from "./core/llm/ollamaClient";
 import { loadConfig } from "./core/config";
 import { getCustomPatternSync } from "./core/templates/pattern";
@@ -11,6 +11,8 @@ type Preferences = {
   fallbackModel?: string;
   preset?: "default" | "specific" | "structured" | "coding";
   timeoutMs?: string;
+  dspyBaseUrl?: string;
+  dspyEnabled?: boolean;
 };
 
 function PromptPreview(props: {
@@ -79,7 +81,7 @@ export default function Command() {
       return;
     }
 
-    await showToast({ style: Toast.Style.Animated, title: "Generating with Ollama…" });
+    await showToast({ style: Toast.Style.Animated, title: "Generating prompt…" });
     try {
       // Use configuration (preferences override config defaults)
       const config = configState.config;
@@ -91,26 +93,34 @@ export default function Command() {
       const preset = preferences.preset ?? config.presets.default;
       const timeoutMs = parseTimeoutMs(preferences.timeoutMs, config.ollama.timeoutMs);
       const temperature = config.ollama.temperature ?? 0.1;
+      const dspyBaseUrl = preferences.dspyBaseUrl?.trim() || config.dspy.baseUrl;
+      const dspyEnabled = preferences.dspyEnabled ?? config.dspy.enabled;
 
-      const health = await ollamaHealthCheck({ baseUrl, timeoutMs: Math.min(2_000, timeoutMs) });
-      if (!health.ok) {
-        await showToast({
-          style: Toast.Style.Failure,
-          title: "Ollama is not reachable",
-          message: `${baseUrl} (${health.error})`,
-        });
-        return;
+      if (!dspyEnabled) {
+        const health = await ollamaHealthCheck({ baseUrl, timeoutMs: Math.min(2_000, timeoutMs) });
+        if (!health.ok) {
+          await showToast({
+            style: Toast.Style.Failure,
+            title: "Ollama is not reachable",
+            message: `${baseUrl} (${health.error})`,
+          });
+          return;
+        }
       }
 
-      const result = await runWithModelFallback({
-        baseUrl,
-        model,
-        fallbackModel,
-        timeoutMs,
-        temperature,
+      const result = await improvePromptWithHybrid({
         rawInput: text,
         preset,
-        systemPattern: getCustomPatternSync(),
+        options: {
+          baseUrl,
+          model,
+          timeoutMs,
+          temperature,
+          systemPattern: getCustomPatternSync(),
+          dspyBaseUrl,
+          dspyTimeoutMs: config.dspy.timeoutMs,
+        },
+        enableDSPyFallback: dspyEnabled,
       });
 
       const finalPrompt = result.improved_prompt.trim();
@@ -140,7 +150,7 @@ export default function Command() {
 
       await showToast({
         style: Toast.Style.Failure,
-        title: "Ollama failed",
+        title: "Prompt improvement failed",
         message: `${e instanceof Error ? e.message : String(e)} (${model} @ ${baseUrl})${hint ? ` — ${hint}` : ""}`,
       });
     }

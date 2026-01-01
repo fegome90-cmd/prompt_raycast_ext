@@ -21,6 +21,30 @@ EXISTE (HemDov)              NECESITAS (Raycast)
 
 ---
 
+## ✅ Estado Actual (Repositorio)
+
+El pipeline DSPy + Ollama ya esta operativo en la extension Raycast.
+
+```
+Raycast Extension (TS)
+     ↓ DSPy-first
+FastAPI /api/v1/improve-prompt
+     ↓
+PromptImprover DSPy Module
+     ↓
+LiteLLM Adapter → Ollama (HF model)
+```
+
+Config recomendado (Ollama + HF):
+
+```
+LLM_PROVIDER=ollama
+LLM_MODEL=hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M
+LLM_BASE_URL=http://localhost:11434
+```
+
+---
+
 ## 📊 Análisis ROI por Componente
 
 | Componente | Estado | Esfuerzo | ROI | Acción |

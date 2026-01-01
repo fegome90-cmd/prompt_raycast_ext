@@ -8,6 +8,8 @@ export type ImprovePromptOptions = {
   timeoutMs: number;
   temperature?: number;
   systemPattern?: string;
+  dspyBaseUrl?: string;
+  dspyTimeoutMs?: number;
 };
 
 export type ImprovePromptPreset = "default" | "specific" | "structured" | "coding";
@@ -90,8 +92,8 @@ export async function improvePromptWithHybrid(args: {
   if (args.enableDSPyFallback !== false) {
     try {
       const dspyClient = createDSPyClient({
-        baseUrl: args.options.baseUrl.replace('/api/chat', ''), // Convert Ollama URL to backend URL
-        timeoutMs: args.options.timeoutMs
+        baseUrl: args.options.dspyBaseUrl ?? "http://localhost:8000",
+        timeoutMs: args.options.dspyTimeoutMs ?? args.options.timeoutMs,
       });
 
       // Check if DSPy backend is available
