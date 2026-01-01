@@ -3,9 +3,9 @@
  * Valida heurística robusta con casos edge
  */
 
-import { describe, it, expect } from "vitest";
-import { extractJsonFromText, extractFirstJsonObject, validateExtractedJson } from "../jsonExtractor";
+import { describe, expect, it } from "vitest";
 import { z } from "zod";
+import { extractFirstJsonObject, extractJsonFromText, validateExtractedJson } from "../jsonExtractor";
 
 describe("T1.2.B1 - JSON Extractor Tests", () => {
   describe("Fence extraction", () => {
@@ -222,13 +222,16 @@ Let me know if you need anything else!`;
       value: z.number(),
     });
 
+    type TestSchemaType = z.infer<typeof testSchema>;
+
     it("valida JSON extraído contra schema", () => {
       const json = '{"name": "test", "value": 42}';
       const result = validateExtractedJson(json, testSchema);
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.name).toBe("test");
-        expect(result.data.value).toBe(42);
+        const data = result.data as TestSchemaType;
+        expect(data.name).toBe("test");
+        expect(data.value).toBe(42);
       }
     });
 

@@ -16,12 +16,12 @@ export const OllamaConfigSchema = z
     model: z
       .string()
       .min(1, "model cannot be empty")
-      .regex(/^[a-z0-9][a-z0-9\-._:]*$/i, "model must be a valid Ollama model name (e.g., qwen3-coder:30b)"),
+      .regex(/^[a-z0-9][a-z0-9\-._:/]*$/i, "model must be a valid Ollama model name (e.g., hf.co/namespace/model:tag)"),
 
     fallbackModel: z
       .string()
       .min(1, "fallbackModel cannot be empty")
-      .regex(/^[a-z0-9][a-z0-9\-._:]*$/i, "fallbackModel must be a valid Ollama model name")
+      .regex(/^[a-z0-9][a-z0-9\-._:/]*$/i, "fallbackModel must be a valid Ollama model name")
       .optional(),
 
     timeoutMs: z
@@ -30,6 +30,11 @@ export const OllamaConfigSchema = z
       .positive("timeoutMs must be positive")
       .min(1_000, "timeoutMs must be at least 1s (1000ms)")
       .max(120_000, "timeoutMs must not exceed 2 minutes (120000ms)"),
+
+    temperature: z
+      .number()
+      .min(0, "temperature must be between 0 and 2")
+      .max(2, "temperature must be between 0 and 2"),
 
     healthCheckTimeoutMs: z
       .number()

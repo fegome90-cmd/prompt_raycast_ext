@@ -1,0 +1,65 @@
+{
+  "tasks": {
+    "run_quality_gates": {
+      "label": "Run Quality Gates (evaluator.ts)",
+      "command": "tsx",
+      "args": [
+        "scripts/evaluator.ts",
+        "--dataset",
+        "testdata/cases.jsonl",
+        "--output",
+        "eval/quality-gates.json",
+      ],
+      "cwd": "dashboard",
+    },
+    "fix_linting": {
+      "label": "Fix Linting Issues",
+      "command": "npm",
+      "args": ["run", "fix-lint"],
+      "cwd": "dashboard",
+    },
+    "build_and_test": {
+      "label": "Build & Test",
+      "command": "npm",
+      "args": ["run", "build"],
+      "cwd": "dashboard",
+    },
+    "test": {
+      "label": "Run Tests",
+      "command": "npm",
+      "args": ["run", "test"],
+      "cwd": "dashboard",
+    },
+    "test_watch": {
+      "label": "Watch Tests",
+      "command": "npm",
+      "args": ["run", "test:watch"],
+      "cwd": "dashboard",
+    },
+    "evaluator_verbose": {
+      "label": "Run Evaluator (Verbose)",
+      "command": "tsx",
+      "args": [
+        "scripts/evaluator.ts",
+        "--dataset",
+        "testdata/cases.jsonl",
+        "--output",
+        "eval/verbose-results.json",
+        "--verbose",
+      ],
+      "cwd": "dashboard",
+    },
+    "format_check": {
+      "label": "Check Formatting",
+      "command": "npx",
+      "args": ["prettier", "--check", "src/", "--config", ".prettierrc"],
+      "cwd": "dashboard",
+    },
+    "format": {
+      "label": "Format Code",
+      "command": "npx",
+      "args": ["prettier", "--write", "src/", "--config", ".prettierrc"],
+      "cwd": "dashboard",
+    },
+  },
+}

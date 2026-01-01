@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { callOllamaChat } from "./ollamaChat";
+import { improvePromptWithDSPy, createDSPyClient } from "./dspyPromptImprover";
 
 export type ImprovePromptOptions = {
   baseUrl: string;
@@ -65,6 +66,75 @@ const improvePromptSchemaZod = z
   })
   .strict();
 
+/**
+ * Improved prompt function that tries DSPy backend first, falls back to Ollama
+ */
+export async function improvePromptWithHybrid(args: {
+  rawInput: string;
+  preset: ImprovePromptPreset;
+  options: ImprovePromptOptions;
+  enableDSPyFallback?: boolean; // New option to control DSPy usage
+}): Promise<
+  z.infer<typeof improvePromptSchemaZod> & {
+    _metadata?: {
+      usedExtraction: boolean;
+      usedRepair: boolean;
+      attempt: 1 | 2;
+      extractionMethod?: string;
+      latencyMs: number;
+      backend: "dspy" | "ollama"; // Track which backend was used
+    };
+  }
+> {
+  // Try DSPy backend first if enabled
+  if (args.enableDSPyFallback !== false) {
+    try {
+      const dspyClient = createDSPyClient({
+        baseUrl: args.options.baseUrl.replace('/api/chat', ''), // Convert Ollama URL to backend URL
+        timeoutMs: args.options.timeoutMs
+      });
+
+      // Check if DSPy backend is available
+      const health = await dspyClient.healthCheck();
+      if (health.status === 'healthy' && health.dspy_configured) {
+        const startTime = Date.now();
+        
+        // Call DSPy backend
+        const dspyResult = await dspyClient.improvePrompt({
+          idea: args.rawInput,
+          context: "" // Could be added as parameter in future
+        });
+
+        const latencyMs = Date.now() - startTime;
+
+        // Convert DSPy result to match existing schema
+        return {
+          improved_prompt: dspyResult.improved_prompt,
+          clarifying_questions: [], // DSPy doesn't provide these yet
+          assumptions: [], // DSPy doesn't provide these yet
+          confidence: dspyResult.confidence || 0.8,
+          _metadata: {
+            usedExtraction: false,
+            usedRepair: false,
+            attempt: 1,
+            latencyMs,
+            backend: "dspy"
+          }
+        };
+      }
+    } catch (error) {
+      console.warn('DSPy backend not available, falling back to Ollama:', error);
+      // Fall through to Ollama implementation
+    }
+  }
+
+  // Fallback to original Ollama implementation
+  return improvePromptWithOllama(args);
+}
+
+/**
+ * Legacy function for backward compatibility - calls Ollama directly
+ */
 export async function improvePromptWithOllama(args: {
   rawInput: string;
   preset: ImprovePromptPreset;
@@ -77,6 +147,7 @@ export async function improvePromptWithOllama(args: {
       attempt: 1 | 2;
       extractionMethod?: string;
       latencyMs: number;
+      backend: "dspy" | "ollama";
     };
   }
 > {
@@ -102,6 +173,7 @@ export async function improvePromptWithOllama(args: {
           usedRepair: attempt1.metadata.usedRepair,
           attempt: attempt1.metadata.attempt,
           latencyMs: attempt1.metadata.latencyMs,
+          backend: "ollama",
         },
       };
     }
@@ -115,6 +187,7 @@ export async function improvePromptWithOllama(args: {
           usedRepair: attempt1.metadata.usedRepair,
           attempt: attempt1.metadata.attempt,
           latencyMs: attempt1.metadata.latencyMs,
+          backend: "ollama",
         },
       };
     }
@@ -140,6 +213,7 @@ export async function improvePromptWithOllama(args: {
         usedRepair: true, // Second attempt is always a repair
         attempt: 2, // Second attempt
         latencyMs: attempt2.metadata.latencyMs,
+        backend: "ollama",
       },
     };
   } catch (e) {

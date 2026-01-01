@@ -3,9 +3,8 @@
  * ollamaGenerateJson now uses ollamaGenerateRaw under the hood
  */
 
-import { z } from "zod";
-import { makeOllamaGenerateRaw } from "./ollamaRaw";
 import type { OllamaTransport } from "./ollamaRaw";
+import { makeOllamaGenerateRaw } from "./ollamaRaw";
 
 export class OllamaError extends Error {
   constructor(

@@ -16,6 +16,7 @@ export interface OllamaRawRequest {
   model: string;
   prompt: string;
   timeoutMs: number;
+  temperature?: number;
   format?: unknown; // Ollama format parameter if needed
 }
 
@@ -39,6 +40,9 @@ export async function fetchTransport(req: OllamaRawRequest): Promise<OllamaRawRe
         model: req.model,
         prompt: req.prompt,
         stream: false,
+        options: {
+          temperature: req.temperature ?? 0.1,
+        },
         ...(req.format ? { format: req.format } : {}),
       }),
     });

@@ -16,9 +16,9 @@ export const DEFAULTS = {
 
     /**
      * Primary model for prompt improvement
-     * qwen3-coder:30b offers good balance of quality and speed
+     * Novaeus-Promptist-7B: Specialized prompt engineering model
      */
-    model: "qwen3-coder:30b",
+    model: "hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M",
 
     /**
      * Fallback model when primary fails
@@ -31,6 +31,12 @@ export const DEFAULTS = {
      * 30s allows for complex prompts while preventing hangs
      */
     timeoutMs: 30_000,
+
+    /**
+     * Temperature for Ollama generation
+     * 0.1 = deterministic, high quality for structured output
+     */
+    temperature: 0.1,
 
     /**
      * Health check timeout (ms)

@@ -5,7 +5,7 @@
 
 import { getPreferenceValues } from "@raycast/api";
 import { DEFAULTS } from "./defaults";
-import { AppConfig, validateConfig, validatePartialConfig } from "./schema";
+import { AppConfig, validateConfig } from "./schema";
 
 /**
  * Raw preferences from Raycast (untyped)

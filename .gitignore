@@ -25,3 +25,6 @@ tmp/
 
 # Raycast
 tryray.json
+
+# MCP server (unused for now)
+mcp-server/

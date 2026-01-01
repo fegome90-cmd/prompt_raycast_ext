@@ -29,7 +29,7 @@
           "description": "Ollama model name",
           "type": "text",
           "required": false,
-          "default": "qwen3-coder:30b",
+          "default": "hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M",
           "title": "Model"
         },
         {
@@ -94,6 +94,7 @@
     "vitest": "^1.6.0"
   },
   "scripts": {
+    "setup": "./setup.sh",
     "build": "ray build -e dist",
     "dev": "ray develop",
     "fix-lint": "ray lint --fix",

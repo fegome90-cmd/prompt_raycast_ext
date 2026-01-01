@@ -4,11 +4,11 @@
  * Measures baseline metrics and detects regressions
  */
 
-import { promises as fs } from 'fs';
-import { join } from 'path';
-import { z } from 'zod';
-import { improvePromptWithOllama } from '../src/core/llm/improvePrompt';
-import { ollamaHealthCheck } from '../src/core/llm/ollamaClient';
+import { promises as fs } from "fs";
+import { join } from "path";
+import { z } from "zod";
+import { improvePromptWithOllama } from "../src/core/llm/improvePrompt";
+import { ollamaHealthCheck } from "../src/core/llm/ollamaClient";
 
 // Schema for test cases - Soft asserts instead of hard content matching
 const TestCaseSchema = z.object({
@@ -71,11 +71,13 @@ const MetricsSchema = z.object({
 
   // New metrics for wrapper tracking
   extractionUsedRate: z.number().default(0),
-  extractionMethodBreakdown: z.object({
-    fence: z.number().default(0),
-    tag: z.number().default(0),
-    scan: z.number().default(0),
-  }).default({}),
+  extractionMethodBreakdown: z
+    .object({
+      fence: z.number().default(0),
+      tag: z.number().default(0),
+      scan: z.number().default(0),
+    })
+    .default({}),
   repairTriggerRate: z.number().default(0),
   repairSuccessRate: z.number().default(0),
   repairJsonParseOkRate: z.number().default(0),
@@ -94,13 +96,15 @@ const MetricsSchema = z.object({
     other: z.number(),
   }),
 
-  failures: z.array(z.object({
-    caseId: z.string(),
-    reason: z.string(),
-    category: z.string(),
-  })),
+  failures: z.array(
+    z.object({
+      caseId: z.string(),
+      reason: z.string(),
+      category: z.string(),
+    }),
+  ),
 
-  skillUsed: z.string().default('core'),
+  skillUsed: z.string().default("core"),
 });
 
 type Metrics = z.infer<typeof MetricsSchema>;
@@ -133,16 +137,17 @@ class Evaluator {
   private totalCasesRun = 0;
 
   async run(options: EvalOptions): Promise<Metrics> {
-    console.log('🎯 Starting evaluation...');
+    console.log("🎯 Starting evaluation...");
 
     // Ensure Ollama is available
     const health = await ollamaHealthCheck({
-      baseUrl: options.config?.baseUrl || 'http://localhost:11434',
+      baseUrl: options.config?.baseUrl || "http://localhost:11434",
       timeoutMs: 2000,
     });
 
     if (!health.ok) {
-      throw new Error(`Ollama not available: ${health.error}`);
+      const errorMsg = health.ok === false ? health.error : "Unknown error";
+      throw new Error(`Ollama not available: ${errorMsg}`);
     }
 
     // Load test cases
@@ -157,12 +162,13 @@ class Evaluator {
     };
 
     const failureReasons = {
+      invalidJson: 0,
+      schemaMismatch: 0,
       emptyFinalPrompt: 0,
       unfilledPlaceholders: 0,
       chattyOutput: 0,
       bannedContent: 0,
       tooManyQuestions: 0,
-      lowConfidence: 0,
       other: 0,
     };
 
@@ -171,14 +177,13 @@ class Evaluator {
 
     // Run each case
     for (const testCase of cases) {
-      const bucket = testCase.id.startsWith('good-') ? 'good' :
-                     testCase.id.startsWith('bad-') ? 'bad' : 'ambiguous';
+      const bucket = testCase.id.startsWith("good-") ? "good" : testCase.id.startsWith("bad-") ? "bad" : "ambiguous";
       buckets[bucket].total++;
 
       try {
         const result = await this.runCase(testCase, options);
 
-        if (result.category === 'success') {
+        if (result.category === "success") {
           totalValid++;
           buckets[bucket].success++;
           buckets[bucket].jsonValid++;
@@ -187,10 +192,31 @@ class Evaluator {
         } else {
           // Count failure
           const category = result.category;
-          if (category in failureReasons) {
-            failureReasons[category as keyof typeof failureReasons]++;
-          } else {
-            failureReasons.other++;
+          switch (category) {
+            case "invalidJson":
+              failureReasons.invalidJson++;
+              break;
+            case "schemaMismatch":
+              failureReasons.schemaMismatch++;
+              break;
+            case "emptyFinalPrompt":
+              failureReasons.emptyFinalPrompt++;
+              break;
+            case "unfilledPlaceholders":
+              failureReasons.unfilledPlaceholders++;
+              break;
+            case "chattyOutput":
+              failureReasons.chattyOutput++;
+              break;
+            case "bannedContent":
+              failureReasons.bannedContent++;
+              break;
+            case "tooManyQuestions":
+              failureReasons.tooManyQuestions++;
+              break;
+            default:
+              failureReasons.other++;
+              break;
           }
 
           this.failures.push({
@@ -206,18 +232,18 @@ class Evaluator {
         const patterns = this.detectPatterns(testCase.input);
         this.patternsDetected += patterns.length;
 
-        if (options.verbose && result.category === 'success') {
+        if (options.verbose && result.category === "success") {
           console.log(`✅ ${testCase.id}: ${result.latency}ms, copyable: ${result.isCopyable}`);
         }
       } catch (error) {
         const reason = error instanceof Error ? error.message : String(error);
         failureReasons.other++;
-        this.failures.push({ caseId: testCase.id, reason, category: 'exception' });
+        this.failures.push({ caseId: testCase.id, reason, category: "exception" });
         console.error(`❌ ${testCase.id}: ${reason}`);
 
         // Extract metadata from ImprovePromptError if present
-        if (error instanceof Error && error.name === 'ImprovePromptError' && 'meta' in error) {
-          const meta = (error as any).meta;
+        if (error instanceof Error && error.name === "ImprovePromptError" && "meta" in error) {
+          const meta = (error as Error & { meta?: { wrapper?: { usedRepair?: boolean; attempt?: number; usedExtraction?: boolean; extractionMethod?: string; failureReason?: string } } }).meta;
           if (meta?.wrapper) {
             const wrapper = meta.wrapper;
 
@@ -230,7 +256,7 @@ class Evaluator {
               this.repairJsonParseOk++; // We know repair was attempted (parse OK)
 
               // If failureReason is not schema_mismatch, it means repair produced JSON but failed quality checks
-              if (wrapper.failureReason !== 'schema_mismatch') {
+              if (wrapper.failureReason !== "schema_mismatch") {
                 this.repairSchemaValid++; // Repair passed schema validation
               }
             }
@@ -238,7 +264,7 @@ class Evaluator {
             // Track extraction if used
             if (wrapper.usedExtraction) {
               this.extractionUsed++;
-              const method = wrapper.extractionMethod || 'scan';
+              const method = wrapper.extractionMethod || "scan";
               if (method in this.extractionMethods) {
                 this.extractionMethods[method as keyof typeof this.extractionMethods]++;
               }
@@ -294,8 +320,12 @@ class Evaluator {
       // Overall metrics
       jsonValidPass1: totalCases > 0 ? totalValid / totalCases : 0,
       jsonValidPass2: 0, // Not used yet
-      copyableRate: totalCases > 0 ? (buckets.good.copyable + buckets.bad.copyable + buckets.ambiguous.copyable) / totalCases : 0,
-      reviewRate: totalCases > 0 ? (buckets.good.reviewable + buckets.bad.reviewable + buckets.ambiguous.reviewable) / totalCases : 0,
+      copyableRate:
+        totalCases > 0 ? (buckets.good.copyable + buckets.bad.copyable + buckets.ambiguous.copyable) / totalCases : 0,
+      reviewRate:
+        totalCases > 0
+          ? (buckets.good.reviewable + buckets.bad.reviewable + buckets.ambiguous.reviewable) / totalCases
+          : 0,
       latencyP50: this.percentile(this.latencies, 50),
       latencyP95: this.percentile(this.latencies, 95),
       patternsDetected: this.patternsDetected,
@@ -305,22 +335,21 @@ class Evaluator {
       extractionMethodBreakdown: wrapperMetrics.extractionMethodBreakdown,
       repairTriggerRate: wrapperMetrics.repairTriggerRate,
       repairSuccessRate: wrapperMetrics.repairSuccessRate,
+      repairJsonParseOkRate: wrapperMetrics.repairJsonParseOkRate,
+      repairSchemaValidRate: wrapperMetrics.repairSchemaValidRate,
       attempt2Rate: wrapperMetrics.attempt2Rate,
 
       // Failure reasons breakdown
       failureReasons: failureReasons,
 
       failures: this.failures,
-      skillUsed: 'core',
+      skillUsed: "core",
     };
 
     // Save results
     if (options.outputPath) {
-      await fs.mkdir(join(options.outputPath, '..'), { recursive: true });
-      await fs.writeFile(
-        options.outputPath,
-        JSON.stringify(metrics, null, 2)
-      );
+      await fs.mkdir(join(options.outputPath, ".."), { recursive: true });
+      await fs.writeFile(options.outputPath, JSON.stringify(metrics, null, 2));
       console.log(`💾 Results saved to ${options.outputPath}`);
     }
 
@@ -331,8 +360,11 @@ class Evaluator {
   }
 
   private async loadCases(path: string): Promise<TestCase[]> {
-    const content = await fs.readFile(path, 'utf-8');
-    const lines = content.trim().split('\n').filter(line => line);
+    const content = await fs.readFile(path, "utf-8");
+    const lines = content
+      .trim()
+      .split("\n")
+      .filter((line) => line);
 
     return lines.map((line, idx) => {
       try {
@@ -350,10 +382,10 @@ class Evaluator {
 
     const result = await improvePromptWithOllama({
       rawInput: testCase.input,
-      preset: 'default',
+      preset: "default",
       options: {
-        baseUrl: options.config?.baseUrl || 'http://localhost:11434',
-        model: options.config?.model || 'qwen3-coder:30b',
+        baseUrl: options.config?.baseUrl || "http://localhost:11434",
+        model: options.config?.model || "qwen3-coder:30b",
         timeoutMs: options.config?.timeoutMs || 30000,
       },
     });
@@ -362,12 +394,12 @@ class Evaluator {
     const output = result.improved_prompt;
 
     // Track wrapper metadata
-    const metadata = (result as any)._metadata;
+    const metadata = (result as { _metadata?: { usedExtraction?: boolean; extractionMethod?: string; usedRepair?: boolean; attempt?: number; failureReason?: string } })._metadata;
     if (metadata) {
       // Track extraction
       if (metadata.usedExtraction) {
         this.extractionUsed++;
-        const method = metadata.extractionMethod || 'scan';
+        const method = metadata.extractionMethod || "scan";
         if (method in this.extractionMethods) {
           this.extractionMethods[method as keyof typeof this.extractionMethods]++;
         }
@@ -380,11 +412,11 @@ class Evaluator {
 
         // Count honest repair success: only if final result was OK
         // (meaning repair produced JSON that passed schema validation)
-        if (result && typeof result === 'object' && 'improved_prompt' in result) {
+        if (result && typeof result === "object" && "improved_prompt" in result) {
           this.repairJsonParseOk++; // Repair produced parseable JSON
           // If we got here, repair at least produced valid JSON syntax
           // Now check if the final result passed quality checks
-          const issues = this.qualityIssues(result.improved_prompt);
+          const issues = this.checkQualityIssues(result.improved_prompt);
           if (issues.length === 0) {
             this.repairSchemaValid++; // Repair passed all validation
           }
@@ -399,7 +431,7 @@ class Evaluator {
       return {
         success: false,
         reason: `Final prompt too short: ${output?.length || 0} < ${testCase.asserts.minFinalPromptLength}`,
-        category: 'emptyFinalPrompt',
+        category: "emptyFinalPrompt",
         latency,
       };
     }
@@ -410,8 +442,8 @@ class Evaluator {
       if (hasPlaceholders) {
         return {
           success: false,
-          reason: 'Contains unfilled placeholders',
-          category: 'unfilledPlaceholders',
+          reason: "Contains unfilled placeholders",
+          category: "unfilledPlaceholders",
           latency,
         };
       }
@@ -429,12 +461,12 @@ class Evaluator {
         /i improved your prompt/gi,
       ];
 
-      const isChatty = chattyPatterns.some(p => p.test(output));
+      const isChatty = chattyPatterns.some((p) => p.test(output));
       if (isChatty) {
         return {
           success: false,
-          reason: 'Contains meta/chatty content',
-          category: 'chattyOutput',
+          reason: "Contains meta/chatty content",
+          category: "chattyOutput",
           latency,
         };
       }
@@ -446,7 +478,7 @@ class Evaluator {
         return {
           success: false,
           reason: `Contains banned pattern: "${banned}"`,
-          category: 'bannedContent',
+          category: "bannedContent",
           latency,
         };
       }
@@ -457,7 +489,7 @@ class Evaluator {
       return {
         success: false,
         reason: `Too many questions: ${result.clarifying_questions.length} > ${testCase.asserts.maxQuestions}`,
-        category: 'tooManyQuestions',
+        category: "tooManyQuestions",
         latency,
       };
     }
@@ -467,40 +499,68 @@ class Evaluator {
       return {
         success: false,
         reason: `Confidence too low: ${result.confidence} < ${testCase.asserts.minConfidence}`,
-        category: 'lowConfidence',
+        category: "other",
         latency,
       };
     }
 
     // 7. OPTIONAL HINTS (soft asserts - warnings only)
     if (testCase.asserts.shouldContain && testCase.asserts.shouldContain.length > 0) {
-      const missingHints = testCase.asserts.shouldContain.filter(hint =>
-        !output.toLowerCase().includes(hint.toLowerCase())
+      const missingHints = testCase.asserts.shouldContain.filter(
+        (hint) => !output.toLowerCase().includes(hint.toLowerCase()),
       );
 
-      if (missingHints.length > 0 && testCase.id.startsWith('good-')) {
+      if (missingHints.length > 0 && testCase.id.startsWith("good-")) {
         // Only warn for good cases, don't fail
-        console.warn(`⚠️  ${testCase.id}: Missing hints: ${missingHints.join(', ')}`);
+        console.warn(`⚠️  ${testCase.id}: Missing hints: ${missingHints.join(", ")}`);
       }
     }
 
     // == SUCCESS: Determine if copyable and reviewable
-    const isCopyable = output.length > 50 &&
-      result.clarifying_questions.length <= 3 &&
-      !output.includes('{{') &&
-      !output.includes('[');
+    const isCopyable =
+      output.length > 50 && result.clarifying_questions.length <= 3 && !output.includes("{{") && !output.includes("[");
 
-    const hasMetadata = result.clarifying_questions.length > 0 ||
-                       result.assumptions.length > 0;
+    const hasMetadata = result.clarifying_questions.length > 0 || result.assumptions.length > 0;
 
     return {
       success: true,
-      reason: 'OK',
-      category: 'success',
+      reason: "OK",
+      category: "success",
       isCopyable,
       hasMetadata,
       latency,
     };
+  }
+
+  private checkQualityIssues(improvedPrompt: string): string[] {
+    const issues: string[] = [];
+
+    // Check for unfilled placeholders
+    if (/\{\{.*\}\}|\[.*\]/.test(improvedPrompt)) {
+      issues.push("unfilled_placeholders");
+    }
+
+    // Check for chatty content
+    const chattyPatterns = [
+      /as an ai/gi,
+      /as a language model/gi,
+      /hard rules/gi,
+      /output rules/gi,
+      /let me explain/gi,
+      /i will help you/gi,
+      /i improved your prompt/gi,
+    ];
+
+    if (chattyPatterns.some((p) => p.test(improvedPrompt))) {
+      issues.push("chatty_output");
+    }
+
+    // Check if empty or too short
+    if (!improvedPrompt || improvedPrompt.trim().length < 50) {
+      issues.push("empty_or_too_short");
+    }
+
+    return issues;
   }
 
   private detectPatterns(input: string): string[] {
@@ -508,9 +568,9 @@ class Evaluator {
 
     // Check for common anti-patterns
     const antiPatterns = [
-      { id: 'DEP001', pattern: /as an ai|as a language model/i },
-      { id: 'DEP002', pattern: /hard rules|output rules/i },
-      { id: 'DEP003', pattern: /guidelines:/i },
+      { id: "DEP001", pattern: /as an ai|as a language model/i },
+      { id: "DEP002", pattern: /hard rules|output rules/i },
+      { id: "DEP003", pattern: /guidelines:/i },
     ];
 
     for (const { id, pattern } of antiPatterns) {
@@ -531,7 +591,7 @@ class Evaluator {
   }
 
   private printSummary(metrics: Metrics) {
-    console.log('\n📊 Evaluation Summary', '\n====================');
+    console.log("\n📊 Evaluation Summary", "\n====================");
 
     // Overall numbers
     console.log(`Total cases: ${metrics.totalCases}`);
@@ -543,37 +603,58 @@ class Evaluator {
     console.log(`Failures: ${metrics.failures.length}`);
 
     // Wrapper metrics (honest version)
-    console.log('\n🛠️  Wrapper Metrics:');
+    console.log("\n🛠️  Wrapper Metrics:");
     console.log(`  Extraction used: ${(metrics.extractionUsedRate * 100).toFixed(1)}%`);
     console.log(`  Repair triggered: ${(metrics.repairTriggerRate * 100).toFixed(1)}%`);
     console.log(`  Repair JSON parse OK: ${(metrics.repairJsonParseOkRate * 100).toFixed(1)}%`);
     console.log(`  Repair schema valid: ${(metrics.repairSchemaValidRate * 100).toFixed(1)}%`);
     console.log(`  Attempt 2 rate: ${(metrics.attempt2Rate * 100).toFixed(1)}%`);
-    if (metrics.extractionMethodBreakdown.fence > 0 || metrics.extractionMethodBreakdown.tag > 0 || metrics.extractionMethodBreakdown.scan > 0) {
-      console.log(`  Extraction methods: fence=${metrics.extractionMethodBreakdown.fence}, tag=${metrics.extractionMethodBreakdown.tag}, scan=${metrics.extractionMethodBreakdown.scan}`);
+    if (
+      metrics.extractionMethodBreakdown.fence > 0 ||
+      metrics.extractionMethodBreakdown.tag > 0 ||
+      metrics.extractionMethodBreakdown.scan > 0
+    ) {
+      console.log(
+        `  Extraction methods: fence=${metrics.extractionMethodBreakdown.fence}, tag=${metrics.extractionMethodBreakdown.tag}, scan=${metrics.extractionMethodBreakdown.scan}`,
+      );
     }
 
     // Gate status
-    console.log('\n🚦 Gate Status:');
+    console.log("\n🚦 Gate Status:");
     const gates = [
-      { name: 'jsonValidPass1 ≥ 54%', pass: metrics.jsonValidPass1 >= 0.54 },
-      { name: 'copyableRate ≥ 54%', pass: metrics.copyableRate >= 0.54 },
-      { name: 'latencyP95 ≤ 12000ms', pass: metrics.latencyP95 <= 12000 },
-      { name: 'repairSchemaValidRate ≥ 50%', pass: metrics.repairSchemaValidRate >= 0.5 || metrics.repairTriggerRate === 0 },
+      { name: "jsonValidPass1 ≥ 54%", pass: metrics.jsonValidPass1 >= 0.54 },
+      { name: "copyableRate ≥ 54%", pass: metrics.copyableRate >= 0.54 },
+      { name: "latencyP95 ≤ 12000ms", pass: metrics.latencyP95 <= 12000 },
+      {
+        name: "repairSchemaValidRate ≥ 50%",
+        pass: metrics.repairSchemaValidRate >= 0.5 || metrics.repairTriggerRate === 0,
+      },
     ];
-    gates.forEach(gate => {
-      console.log(`  ${gate.pass ? '✅' : '❌'} ${gate.name}`);
+    gates.forEach((gate) => {
+      console.log(`  ${gate.pass ? "✅" : "❌"} ${gate.name}`);
     });
 
     // Breakdown by bucket
-    console.log('\n📦 Breakdown by Bucket:');
-    console.log(`Good:     ${(metrics.buckets.good.jsonValidPass1 * 100).toFixed(1)}% JSON valid, ${(metrics.buckets.good.copyableRate * 100).toFixed(1)}% copyable (${metrics.buckets.good.total} cases)`);
-    console.log(`Bad:      ${(metrics.buckets.bad.jsonValidPass1 * 100).toFixed(1)}% JSON valid, ${(metrics.buckets.bad.copyableRate * 100).toFixed(1)}% copyable (${metrics.buckets.bad.total} cases)`);
-    console.log(`Ambiguous: ${(metrics.buckets.ambiguous.jsonValidPass1 * 100).toFixed(1)}% JSON valid, ${(metrics.buckets.ambiguous.copyableRate * 100).toFixed(1)}% copyable (${metrics.buckets.ambiguous.total} cases)`);
+    console.log("\n📦 Breakdown by Bucket:");
+    console.log(
+      `Good:     ${(metrics.buckets.good.jsonValidPass1 * 100).toFixed(1)}% JSON valid, ${(
+        metrics.buckets.good.copyableRate * 100
+      ).toFixed(1)}% copyable (${metrics.buckets.good.total} cases)`,
+    );
+    console.log(
+      `Bad:      ${(metrics.buckets.bad.jsonValidPass1 * 100).toFixed(1)}% JSON valid, ${(
+        metrics.buckets.bad.copyableRate * 100
+      ).toFixed(1)}% copyable (${metrics.buckets.bad.total} cases)`,
+    );
+    console.log(
+      `Ambiguous: ${(metrics.buckets.ambiguous.jsonValidPass1 * 100).toFixed(1)}% JSON valid, ${(
+        metrics.buckets.ambiguous.copyableRate * 100
+      ).toFixed(1)}% copyable (${metrics.buckets.ambiguous.total} cases)`,
+    );
 
     // Top failure reasons
     if (metrics.failures.length > 0) {
-      console.log('\n❌ Top Failure Reasons:');
+      console.log("\n❌ Top Failure Reasons:");
       Object.entries(metrics.failureReasons)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5)
@@ -585,13 +666,13 @@ class Evaluator {
 // CLI interface
 async function main() {
   const args = process.argv.slice(2);
-  const datasetIdx = args.indexOf('--dataset');
-  const outputIdx = args.indexOf('--output');
-  const verbose = args.includes('--verbose');
-  const configIdx = args.indexOf('--config');
+  const datasetIdx = args.indexOf("--dataset");
+  const outputIdx = args.indexOf("--output");
+  const verbose = args.includes("--verbose");
+  const configIdx = args.indexOf("--config");
 
   if (datasetIdx === -1) {
-    console.error('Usage: npm run eval -- --dataset <path> [--output <path>] [--verbose] [--config <json>]');
+    console.error("Usage: npm run eval -- --dataset <path> [--output <path>] [--verbose] [--config <json>]");
     process.exit(1);
   }
 
@@ -602,8 +683,8 @@ async function main() {
   if (configIdx !== -1) {
     try {
       config = JSON.parse(args[configIdx + 1]);
-    } catch (e) {
-      console.error('Invalid config JSON');
+    } catch {
+      console.error("Invalid config JSON");
       process.exit(1);
     }
   }
@@ -617,7 +698,7 @@ async function main() {
       verbose,
     });
   } catch (error) {
-    console.error('❌ Evaluation failed:', error);
+    console.error("❌ Evaluation failed:", error);
     process.exit(1);
   }
 }

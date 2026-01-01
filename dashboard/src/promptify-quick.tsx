@@ -3,6 +3,7 @@ import { useState } from "react";
 import { improvePromptWithOllama } from "./core/llm/improvePrompt";
 import { ollamaHealthCheck } from "./core/llm/ollamaClient";
 import { loadConfig } from "./core/config";
+import { getCustomPatternSync } from "./core/templates/pattern";
 
 type Preferences = {
   ollamaBaseUrl?: string;
@@ -89,6 +90,7 @@ export default function Command() {
       const fallbackModel = preferences.fallbackModel?.trim() || config.ollama.fallbackModel || config.ollama.model;
       const preset = preferences.preset ?? config.presets.default;
       const timeoutMs = parseTimeoutMs(preferences.timeoutMs, config.ollama.timeoutMs);
+      const temperature = config.ollama.temperature ?? 0.1;
 
       const health = await ollamaHealthCheck({ baseUrl, timeoutMs: Math.min(2_000, timeoutMs) });
       if (!health.ok) {
@@ -105,8 +107,10 @@ export default function Command() {
         model,
         fallbackModel,
         timeoutMs,
+        temperature,
         rawInput: text,
         preset,
+        systemPattern: getCustomPatternSync(),
       });
 
       const finalPrompt = result.improved_prompt.trim();
@@ -121,9 +125,19 @@ export default function Command() {
         },
       });
     } catch (e) {
-      const baseUrl = preferences.ollamaBaseUrl?.trim() || "http://localhost:11434";
-      const model = preferences.model?.trim() || "qwen3-coder:30b";
+      const config = configState.config;
+      const baseUrl = preferences.ollamaBaseUrl?.trim() || config.ollama.baseUrl;
+      const model = preferences.model?.trim() || config.ollama.model;
       const hint = buildErrorHint(e);
+
+      // Debug logging
+      console.error("[Promptify] Error details:", {
+        error: e instanceof Error ? e.message : String(e),
+        preferencesModel: preferences.model,
+        configModel: config.ollama.model,
+        finalModel: model,
+      });
+
       await showToast({
         style: Toast.Style.Failure,
         title: "Ollama failed",
@@ -185,14 +199,22 @@ async function runWithModelFallback(args: {
   model: string;
   fallbackModel: string;
   timeoutMs: number;
+  temperature: number;
   rawInput: string;
   preset: "default" | "specific" | "structured" | "coding";
+  systemPattern?: string;
 }) {
   try {
     return await improvePromptWithOllama({
       rawInput: args.rawInput,
       preset: args.preset,
-      options: { baseUrl: args.baseUrl, model: args.model, timeoutMs: args.timeoutMs },
+      options: {
+        baseUrl: args.baseUrl,
+        model: args.model,
+        timeoutMs: args.timeoutMs,
+        temperature: args.temperature,
+        systemPattern: args.systemPattern,
+      },
     });
   } catch (e) {
     if (!args.fallbackModel || args.fallbackModel === args.model) throw e;
@@ -207,7 +229,13 @@ async function runWithModelFallback(args: {
     return await improvePromptWithOllama({
       rawInput: args.rawInput,
       preset: args.preset,
-      options: { baseUrl: args.baseUrl, model: args.fallbackModel, timeoutMs: args.timeoutMs },
+      options: {
+        baseUrl: args.baseUrl,
+        model: args.fallbackModel,
+        timeoutMs: args.timeoutMs,
+        temperature: args.temperature,
+        systemPattern: args.systemPattern,
+      },
     });
   }
 }
