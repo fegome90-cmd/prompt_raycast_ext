@@ -225,7 +225,7 @@ Se ha creado la estructura de directorios siguiendo el patrón HemDov:
 
 ```bash
 # Ejecutar script de setup
-bash setup_dspy_backend.sh
+bash ../../scripts/setup_dspy_backend.sh
 
 # O setup manual
 python3 -m venv venv

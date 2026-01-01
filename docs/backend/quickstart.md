@@ -10,7 +10,7 @@
 
 ```bash
 # Ejecutar script automatizado
-bash setup_dspy_backend.sh
+bash ../../scripts/setup_dspy_backend.sh
 
 # Si el script falla, hacerlo manual:
 python3 -m venv venv

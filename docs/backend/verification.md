@@ -282,7 +282,7 @@ INFO: Uvicorn running on http://0.0.0.0:8000
 
 ```bash
 # 1. Setup
-bash setup_dspy_backend.sh
+bash ../../scripts/setup_dspy_backend.sh
 
 # 2. Iniciar Ollama
 ollama serve

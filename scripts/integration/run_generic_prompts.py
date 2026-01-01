@@ -154,7 +154,11 @@ def main():
 
     # Calidad - outputs deben ser significativamente más largos que inputs
     print(f"\n✨ Mejora de Calidad:")
-    if successful_results:
+    if successes > 0:
+        successful_results = [r for r in results if r["success"]]
+        avg_length = sum(r["improved_length"] for r in successful_results) / len(
+            successful_results
+        )
         avg_improvement = avg_length / sum(
             len(test_case["prompt"]) for test_case in test_cases
         )

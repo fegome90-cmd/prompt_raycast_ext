@@ -452,7 +452,7 @@ tests/
 
 ```bash
 # Ejecutar script automatizado
-bash setup_dspy_backend.sh
+bash ../../scripts/setup_dspy_backend.sh
 
 # O manual
 python3 -m venv venv
