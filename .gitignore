@@ -28,3 +28,6 @@ tryray.json
 
 # MCP server (unused for now)
 mcp-server/
+
+# Git worktrees
+.worktrees/
