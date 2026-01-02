@@ -18,3 +18,17 @@ def test_load_phase2_datasets():
     assert len(val) == 2, f"Expected 2 val examples, got {len(val)}"
     assert len(test) == 3, f"Expected 3 test examples, got {len(test)}"
     assert all('question' in ex for ex in train), "All examples must have 'question' field"
+
+
+def test_dspy_signature_creation():
+    """Should create DSPy signature from example"""
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+    from scripts.phase3_dspy.optimizer import DSPySignature
+
+    signature = DSPySignature()
+    compiled = signature.compile("test query")
+
+    assert compiled is not None, "Compiled signature should not be None"
+    assert 'question' in signature.input_fields, "input_fields should contain 'question'"

@@ -2,6 +2,7 @@
 from pathlib import Path
 import json
 from typing import List, Dict
+import dspy
 
 
 class DatasetLoader:
@@ -25,3 +26,24 @@ class DatasetLoader:
             test = json.load(f)['examples']
 
         return train, val, test
+
+
+class DSPySignature:
+    """DSPy signature wrapper for prompt optimization."""
+
+    def __init__(self):
+        self.input_fields = ['question', 'metadata']
+        self.output_fields = ['answer']
+
+    def compile(self, query: str) -> dspy.Predict:
+        """Compile DSPy signature for query.
+
+        Args:
+            query: Query string to optimize prompt for
+
+        Returns:
+            Compiled DSPy predictor
+        """
+        # DSPy 3.x uses string format: "input1, input2 -> output1, output2"
+        signature = dspy.Signature("question, metadata -> answer")
+        return dspy.Predict(signature)
