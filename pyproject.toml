@@ -2,7 +2,7 @@
 name = "raycast-dspy-backend"
 version = "0.1.0"
 description = "DSPy backend for Raycast prompt improver"
-readme = "DSPY_BACKEND_README.md"
+readme = "docs/backend/README.md"
 requires-python = ">=3.10"
 dependencies = [
   "dspy-ai>=3.0.0",
@@ -12,6 +12,7 @@ dependencies = [
   "pydantic-settings>=2.1.0",
   "litellm>=1.0.0",
   "python-dotenv>=1.0.0",
+  "requests>=2.32.0",
 ]
 
 [dependency-groups]

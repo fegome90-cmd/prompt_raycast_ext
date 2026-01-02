@@ -129,7 +129,7 @@
 ## 📚 Archivos de Documentación
 
 ```
-✅ DSPY_BACKEND_README.md
+✅ docs/backend/README.md
    - Documentación completa del backend
    - Arquitectura, Quick Start, Troubleshooting
    - 400+ líneas de documentación
@@ -172,7 +172,7 @@
 
 | Archivo | Líneas | Secciones |
 |----------|---------|-----------|
-| DSPY_BACKEND_README.md | 420 | 12 |
+| docs/backend/README.md | 420 | 12 |
 | IMPLEMENTATION_SUMMARY.md | 550 | 15 |
 | ARCHIVOS_CREADOS.md | 250 | 8 |
 | **TOTAL** | **1,220** | **35** |
@@ -343,7 +343,7 @@ Flow:
 - [x] requirements.txt actualizado
 - [x] .env.example con documentación completa
 - [x] setup_dspy_backend.sh script automatizado
-- [x] DSPY_BACKEND_README.md documentado
+- [x] docs/backend/README.md documentado
 - [x] IMPLEMENTATION_SUMMARY.md con criterios de éxito
 - [x] ARCHIVOS_CREADOS.md índice completo
 - [x] Verificación de imports exitosa

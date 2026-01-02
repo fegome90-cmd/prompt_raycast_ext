@@ -310,7 +310,7 @@ open http://localhost:8000/docs
 
 ## 📞 Referencias
 
-- **DSPy Backend README:** `DSPY_BACKEND_README.md`
+- **DSPy Backend README:** `docs/backend/README.md`
 - **Implementation Summary:** `IMPLEMENTATION_SUMMARY.md`
 - **Quick Start Guide:** `QUICKSTART.md`
 - **Files Index:** `ARCHIVOS_CREADOS.md`

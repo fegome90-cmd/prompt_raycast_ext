@@ -150,7 +150,7 @@
      - MIN_CONFIDENCE_THRESHOLD, MAX_LATENCY_MS
 
 14. **Backend Documentation** ✅
-   - Archivo: `DSPY_BACKEND_README.md`
+   - Archivo: `docs/backend/README.md`
    - Estado: Documentación completa (~420 líneas)
    - Contenido:
      - Arquitectura del sistema
@@ -377,7 +377,7 @@ dashboard/src/core/llm/
 ```
 requirements.txt                            ✅ Dependencias actualizadas
 .env.example                               ✅ Plantilla completa
-DSPY_BACKEND_README.md                     ✅ Documentación backend
+docs/backend/README.md                     ✅ Documentación backend
 IMPLEMENTATION_SUMMARY.md                    ✅ Resumen implementación
 ARCHIVOS_CREADOS.md                      ✅ Índice de archivos
 QUICKSTART.md                             ✅ Guía 5 minutos
@@ -504,7 +504,7 @@ curl -X POST "http://localhost:8000/api/v1/improve-prompt" \
 | **Legacy Analysis** | `07-legacy-prompts-analysis.md` | 1,188 prompts convertibles |
 | **Template Library** | `02-template-library-analysis.md` | 174+ templates analizados |
 | **Quick Start** | `QUICKSTART.md` | Guía de 5 minutos |
-| **Backend Docs** | `DSPY_BACKEND_README.md` | Arquitectura y troubleshooting |
+| **Backend Docs** | `docs/backend/README.md` | Arquitectura y troubleshooting |
 | **Status** | `VERIFICACION_FINAL.md` (este archivo) | Estado real actual |
 
 ---

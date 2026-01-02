@@ -285,7 +285,7 @@ Usuario Raycast UI
 
 | Necesitas | Archivo |
 |------------|----------|
-| Documentación completa | `DSPY_BACKEND_README.md` |
+| Documentación completa | `docs/backend/README.md` |
 | Resumen de implementación | `IMPLEMENTATION_SUMMARY.md` |
 | Índice de archivos | `ARCHIVOS_CREADOS.md` |
 | Guía DSPy (especificación) | `docs/research/wizard/03-dspy-integration-guide.md` |

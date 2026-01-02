@@ -65,7 +65,7 @@ if test $status -eq 0
     echo "4. Start backend: python main.py"
     echo "5. Test with: curl http://localhost:8000/health"
     echo ""
-    echo "📚 Full documentation: DSPY_BACKEND_README.md"
+    echo "📚 Full documentation: docs/backend/README.md"
 else
     echo "❌ Setup failed. Please check error messages above."
     exit 1

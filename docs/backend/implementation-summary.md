@@ -187,7 +187,7 @@ Se ha creado la estructura de directorios siguiendo el patrón HemDov:
 
 #### Documentación
 
-- ✅ `DSPY_BACKEND_README.md` - Documentación completa del backend
+- ✅ `docs/backend/README.md` - Documentación completa del backend
   - Arquitectura del sistema
   - Quick start instructions
   - Configuración de múltiples providers
