@@ -136,11 +136,41 @@ if __name__ == "__main__":
     if not (1024 <= settings.API_PORT <= 65535):
         raise ValueError(f"Invalid API_PORT: {settings.API_PORT}. Must be between 1024-65535.")
 
+    # Validate API key for cloud providers
+    if settings.LLM_PROVIDER.lower() == "deepseek":
+        if not settings.DEEPSEEK_API_KEY:
+            raise ValueError(
+                "DEEPSEEK_API_KEY is required when LLM_PROVIDER=deepseek. "
+                "Get your API key from https://platform.deepseek.com/"
+            )
+        if not settings.DEEPSEEK_API_KEY.startswith("sk-"):
+            raise ValueError(
+                f"Invalid DEEPSEEK_API_KEY format. "
+                f"Expected 'sk-...', got: {settings.DEEPSEEK_API_KEY[:10]}..."
+            )
+        # Log key preview for verification
+        key_preview = settings.DEEPSEEK_API_KEY[:10] + "..." + settings.DEEPSEEK_API_KEY[-4:]
+        logger.info(f"✓ DeepSeek API Key configured: {key_preview}")
+
+    elif settings.LLM_PROVIDER.lower() == "gemini":
+        if not settings.GEMINI_API_KEY and not settings.LLM_API_KEY:
+            raise ValueError(
+                "GEMINI_API_KEY is required when LLM_PROVIDER=gemini"
+            )
+
+    elif settings.LLM_PROVIDER.lower() == "openai":
+        if not settings.OPENAI_API_KEY and not settings.LLM_API_KEY:
+            raise ValueError(
+                "OPENAI_API_KEY is required when LLM_PROVIDER=openai"
+            )
+
     logger.info("Starting DSPy Prompt Improver API...")
     logger.info(f"✓ Configuration loaded from .env")
     logger.info(f"✓ API_PORT: {settings.API_PORT} (validated)")
     logger.info(f"Server: http://{settings.API_HOST}:{settings.API_PORT}")
     logger.info(f"LLM: {settings.LLM_PROVIDER}/{settings.LLM_MODEL}")
+    if settings.LLM_PROVIDER.lower() in ["deepseek", "gemini", "openai"]:
+        logger.info(f"✓ Cloud provider configured - API validation passed")
 
     uvicorn.run(
         "main:app",
