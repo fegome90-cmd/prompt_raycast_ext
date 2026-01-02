@@ -14,6 +14,8 @@ import { ollamaHealthCheck } from "../src/core/llm/ollamaClient";
 const TestCaseSchema = z.object({
   id: z.string(),
   input: z.string(),
+  tags: z.array(z.string()).default([]),
+  ambiguityHints: z.array(z.string()).default([]),
   asserts: z.object({
     // Structural validation (hard)
     minFinalPromptLength: z.number().int().min(0).default(50),
@@ -32,6 +34,7 @@ const TestCaseSchema = z.object({
 });
 
 type TestCase = z.infer<typeof TestCaseSchema>;
+type RunResult = { caseId: string; run: number; output: string; backend: "ollama" | "dspy" };
 
 // Results schema
 const MetricsSchema = z.object({
@@ -104,10 +107,77 @@ const MetricsSchema = z.object({
     }),
   ),
 
+  ambiguity: z
+    .object({
+      totalAmbiguousCases: z.number().default(0),
+      ambiguitySpread: z.number().default(0),
+      dominantSenseRate: z.number().default(0),
+      stabilityScore: z.number().default(1),
+    })
+    .default({}),
+
   skillUsed: z.string().default("core"),
 });
 
 type Metrics = z.infer<typeof MetricsSchema>;
+
+const ACRONYM_SENSES: Record<string, { label: string; patterns: RegExp[] }[]> = {
+  ADR: [
+    { label: "alternative_dispute_resolution", patterns: [/alternative dispute resolution/i] },
+    { label: "architecture_decision_record", patterns: [/architecture decision record/i] },
+    { label: "adversarial_design_review", patterns: [/adversarial design review/i] },
+  ],
+};
+
+function classifySense(output: string): string | null {
+  for (const [acronym, senses] of Object.entries(ACRONYM_SENSES)) {
+    for (const sense of senses) {
+      if (sense.patterns.some((pattern) => pattern.test(output))) {
+        return `${acronym}:${sense.label}`;
+      }
+    }
+  }
+  return null;
+}
+
+function computeAmbiguityMetrics(cases: TestCase[], runs: RunResult[]) {
+  if (!cases.length) {
+    return { totalAmbiguousCases: 0, ambiguitySpread: 0, dominantSenseRate: 0, stabilityScore: 1 };
+  }
+
+  let spread = 0;
+  let dominant = 0;
+  let stabilitySum = 0;
+
+  for (const testCase of cases) {
+    const outputs = runs.filter((run) => run.caseId === testCase.id).map((run) => run.output);
+    const senses = outputs.map((output) => classifySense(output)).filter(Boolean) as string[];
+    const counts = senses.reduce(
+      (acc, sense) => {
+        acc[sense] = (acc[sense] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+    const unique = Object.keys(counts).length;
+    if (unique > 1) {
+      spread += 1;
+    }
+    const total = senses.length || 1;
+    const maxShare = Math.max(...Object.values(counts), 0) / total;
+    if (maxShare >= 2 / 3) {
+      dominant += 1;
+    }
+    stabilitySum += maxShare;
+  }
+
+  return {
+    totalAmbiguousCases: cases.length,
+    ambiguitySpread: spread / cases.length,
+    dominantSenseRate: dominant / cases.length,
+    stabilityScore: stabilitySum / cases.length,
+  };
+}
 
 interface EvalOptions {
   datasetPath: string;
@@ -180,7 +250,7 @@ class Evaluator {
     let totalValid = 0;
 
     const repeat = Math.max(1, options.repeat ?? 1);
-    const runs: Array<{ caseId: string; run: number; output: string; backend: "ollama" | "dspy" }> = [];
+    const runs: RunResult[] = [];
 
     // Run each case
     for (const testCase of cases) {
@@ -304,6 +374,9 @@ class Evaluator {
       attempt2Rate: this.totalCasesRun > 0 ? this.attempt2Total / this.totalCasesRun : 0,
     };
 
+    const ambiguousCases = cases.filter((testCase) => testCase.tags.includes("ambiguity"));
+    const ambiguityMetrics = computeAmbiguityMetrics(ambiguousCases, runs);
+
     // Calculate metrics
     const totalCases = buckets.good.total + buckets.bad.total + buckets.ambiguous.total;
     const metrics: Metrics = {
@@ -358,6 +431,7 @@ class Evaluator {
       failureReasons: failureReasons,
 
       failures: this.failures,
+      ambiguity: ambiguityMetrics,
       skillUsed: "core",
     };
 
