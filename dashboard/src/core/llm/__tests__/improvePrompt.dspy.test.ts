@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { improvePromptWithHybrid } from "../improvePrompt";
+import { improvePromptWithHybrid, ImprovePromptError } from "../improvePrompt";
 import * as ollamaChatModule from "../ollamaChat";
 
 vi.mock("../ollamaChat", () => ({
@@ -57,5 +57,26 @@ describe("dspy hybrid config", () => {
 
     expect(result._metadata?.backend).toBe("ollama");
     expect(mockCallOllamaChat).toHaveBeenCalledTimes(1);
+  });
+
+  it("throws when DSPy fails and fallback disabled", async () => {
+    const fetchMock = globalThis.fetch as ReturnType<typeof vi.fn>;
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 503, statusText: "down", json: async () => ({}) });
+
+    await expect(
+      improvePromptWithHybrid({
+        rawInput: "x",
+        preset: "default",
+        options: {
+          baseUrl: "http://localhost:11434",
+          model: "x",
+          timeoutMs: 30000,
+          dspyBaseUrl: "http://localhost:8000",
+        },
+        enableDSPyFallback: false,
+      }),
+    ).rejects.toBeInstanceOf(ImprovePromptError);
+
+    expect(mockCallOllamaChat).not.toHaveBeenCalled();
   });
 });

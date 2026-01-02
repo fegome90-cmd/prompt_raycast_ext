@@ -88,46 +88,64 @@ export async function improvePromptWithHybrid(args: {
     };
   }
 > {
-  // Try DSPy backend first if enabled
-  if (args.enableDSPyFallback !== false) {
-    try {
-      const dspyClient = createDSPyClient({
-        baseUrl: args.options.dspyBaseUrl ?? "http://localhost:8000",
-        timeoutMs: args.options.dspyTimeoutMs ?? args.options.timeoutMs,
+  const dspyRequired = args.enableDSPyFallback === false;
+  const dspyFailureMeta = {
+    wrapper: {
+      attempt: 1 as const,
+      usedRepair: false,
+      usedExtraction: false,
+      failureReason: "dspy_unavailable",
+      latencyMs: 0,
+    },
+  };
+
+  try {
+    const dspyClient = createDSPyClient({
+      baseUrl: args.options.dspyBaseUrl ?? "http://localhost:8000",
+      timeoutMs: args.options.dspyTimeoutMs ?? args.options.timeoutMs,
+    });
+
+    // Check if DSPy backend is available
+    const health = await dspyClient.healthCheck();
+    if (health.status === "healthy" && health.dspy_configured) {
+      const startTime = Date.now();
+
+      // Call DSPy backend
+      const dspyResult = await dspyClient.improvePrompt({
+        idea: args.rawInput,
+        context: "", // Could be added as parameter in future
       });
 
-      // Check if DSPy backend is available
-      const health = await dspyClient.healthCheck();
-      if (health.status === 'healthy' && health.dspy_configured) {
-        const startTime = Date.now();
-        
-        // Call DSPy backend
-        const dspyResult = await dspyClient.improvePrompt({
-          idea: args.rawInput,
-          context: "" // Could be added as parameter in future
-        });
+      const latencyMs = Date.now() - startTime;
 
-        const latencyMs = Date.now() - startTime;
-
-        // Convert DSPy result to match existing schema
-        return {
-          improved_prompt: dspyResult.improved_prompt,
-          clarifying_questions: [], // DSPy doesn't provide these yet
-          assumptions: [], // DSPy doesn't provide these yet
-          confidence: dspyResult.confidence || 0.8,
-          _metadata: {
-            usedExtraction: false,
-            usedRepair: false,
-            attempt: 1,
-            latencyMs,
-            backend: "dspy"
-          }
-        };
-      }
-    } catch (error) {
-      console.warn('DSPy backend not available, falling back to Ollama:', error);
-      // Fall through to Ollama implementation
+      // Convert DSPy result to match existing schema
+      return {
+        improved_prompt: dspyResult.improved_prompt,
+        clarifying_questions: [], // DSPy doesn't provide these yet
+        assumptions: [], // DSPy doesn't provide these yet
+        confidence: dspyResult.confidence || 0.8,
+        _metadata: {
+          usedExtraction: false,
+          usedRepair: false,
+          attempt: 1,
+          latencyMs,
+          backend: "dspy",
+        },
+      };
     }
+
+    if (dspyRequired) {
+      throw new ImprovePromptError("DSPy backend not available", undefined, dspyFailureMeta);
+    }
+  } catch (error) {
+    if (dspyRequired) {
+      if (error instanceof ImprovePromptError) {
+        throw error;
+      }
+      throw new ImprovePromptError("DSPy backend not available", error, dspyFailureMeta);
+    }
+    console.warn("DSPy backend not available, falling back to Ollama:", error);
+    // Fall through to Ollama implementation
   }
 
   // Fallback to original Ollama implementation
