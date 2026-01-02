@@ -47,6 +47,8 @@ PromptImprover DSPy Module
 LiteLLM Adapter → Ollama (HF model)
 ```
 
+**Note:** When DSPy is enabled in Raycast, it is mandatory and there is no automatic fallback to Ollama. Disable DSPy in preferences to use Ollama directly.
+
 ## 🚀 Quick Start
 
 ### TL;DR (Fish)
@@ -231,7 +233,7 @@ try {
   console.log(result.improved_prompt);
 } catch (error) {
   console.error('DSPy backend unavailable:', error);
-  // Fall back to existing Ollama implementation
+  // Disable DSPy in Raycast preferences to use Ollama directly
 }
 ```
 
@@ -243,7 +245,7 @@ The backend tracks:
 - **Latency**: Response time per request
 - **Success Rate**: Percentage of successful improvements
 - **Quality Score**: Based on completeness and structure
-- **Backend Used**: DSPy vs Ollama fallback
+- **Backend Used**: DSPy (or Ollama when DSPy is disabled in Raycast)
 
 ### Quality Gates
 
@@ -368,6 +370,6 @@ dspy.Example(
 
 ---
 
-**Result**: The critical GAP from HemDov audit is now filled. The Raycast extension can now provide State-of-the-Art prompt improvement using DSPy's systematic approach, with fallback to existing Ollama implementation for reliability.
+**Result**: The critical GAP from HemDov audit is now filled. The Raycast extension provides State-of-the-Art prompt improvement using DSPy's systematic approach. DSPy is mandatory when enabled; to use Ollama directly, disable DSPy in preferences.
 
 See `docs/backend/quickstart.md` for the fast setup path.

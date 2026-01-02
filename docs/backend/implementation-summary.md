@@ -293,12 +293,14 @@ const result = await improvePromptWithHybrid({
     model: "hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M",
     timeoutMs: 30000
   },
-  enableDSPyFallback: true // Intenta DSPy primero, fallback a Ollama
+  enableDSPyFallback: false // DSPy obligatorio cuando está habilitado (sin fallback)
 });
 
 console.log(result.improved_prompt);
 console.log("Backend usado:", result._metadata?.backend);
 ```
+
+**Nota:** DSPy es obligatorio cuando está habilitado; para usar Ollama directo, desactiva DSPy en preferencias.
 
 ---
 
@@ -311,14 +313,14 @@ console.log("Backend usado:", result._metadata?.backend);
 3. **HEMDOV COMPATIBLE**: Sigue todas las convenciones de código HemDov
 4. **MULTI-PROVIDER**: Soporta Ollama, Gemini, DeepSeek, OpenAI
 5. **PRODUCTION-READY**: Tests, docs, error handling completos
-6. **INTEGRADO**: Frontend TypeScript usa DSPy con fallback automático
+6. **INTEGRADO**: Frontend TypeScript usa DSPy sin fallback automático cuando está habilitado
 7. **DOCUMENTADO**: README completo + API docs + Troubleshooting
 
 ### Para el Arquitecto (Usuario)
 
 1. **CALIDAD SOTA**: Prompts estructurados (Role + Directive + Framework + Guardrails)
 2. **AUTOMÁTICO**: De idea cruda a prompt completo en ~5-10 segundos
-3. **CONFIBLE**: Fallback automático si backend no disponible
+3. **CONFIBLE**: Mensaje claro si DSPy no está disponible (sin fallback automático)
 4. **EXTENSIBLE**: Fácil añadir más ejemplos al dataset
 5. **OPTIMIZABLE**: BootstrapFewShot learning from examples
 6. **ROBUSTO**: Tests, error handling, health checks

@@ -133,7 +133,7 @@
    - Funcionalidad:
      - Intenta DSPy backend primero
      - Hace health check automático
-     - Fallback automático a Ollama si DSPy no disponible
+     - Sin fallback automático cuando DSPy está habilitado (Ollama solo si DSPy está desactivado)
      - Trackea qué backend se usó (`_metadata.backend: "dspy" | "ollama"`)
    - Verificación: ✅ Compatibilidad hacia atrás mantenida con `improvePromptWithOllama()`
 
@@ -241,7 +241,7 @@
 3. ✅ **FastAPI Backend** - Endpoint `/api/v1/improve-prompt` production-ready
 4. ✅ **Configuration** - Settings robusto con Pydantic v2
 5. ✅ **Tests** - 4/4 tests pasando (100% success rate)
-6. ✅ **Frontend Integrado** - Cliente TypeScript con fallback automático
+6. ✅ **Frontend Integrado** - Cliente TypeScript con DSPy obligatorio cuando está habilitado
 7. ✅ **Logging** - Estructurado, 0 prints en producción
 8. ✅ **Documentation** - 4 documentos completos (README + Summary + Quick Start)
 
@@ -422,7 +422,7 @@ tests/
 2. **4 LLM providers soportados** - Ollama, Gemini, DeepSeek, OpenAI
 3. **FastAPI production-ready** - Endpoint REST con health checks
 4. **Tests pasando** - 4/4 tests (100% success rate)
-5. **Frontend integrado** - Cliente TypeScript con fallback
+5. **Frontend integrado** - Cliente TypeScript con DSPy obligatorio cuando está habilitado
 6. **0 prints en producción** - Logging estructurado
 7. **100% HemDov compatible** - Patrones exactos
 8. **Documentación completa** - 4 guías (README + Summary + Quick Start + Status)
@@ -518,7 +518,7 @@ curl -X POST "http://localhost:8000/api/v1/improve-prompt" \
 1. ✅ **GAP CRÍTICO CERRADO** - HemDov ahora tiene módulo de Prompt Improvement
 2. ✅ **100% HEMDOV COMPATIBLE** - Sigue patrones exactos de código
 3. ✅ **BACKEND PRODUCTION-READY** - Tests pasando, logging estructurado, 0 errors
-4. ✅ **FRONTEND INTEGRADO** - Cliente TypeScript con fallback automático
+4. ✅ **FRONTEND INTEGRADO** - Cliente TypeScript con DSPy obligatorio cuando está habilitado
 5. ✅ **DOCUMENTACIÓN COMPLETA** - 7 guías para desarrollo y uso
 6. ✅ **10 BUGS CRÍTICOS CORREGIDOS** - Issues en config, tests, logging, dataset
 

@@ -19,6 +19,8 @@ curl -s http://localhost:8000/api/v1/improve-prompt \
   -d '{"idea":"Design ADR process"}'
 ```
 
+**Nota:** En Raycast, DSPy es obligatorio cuando está habilitado; no hay fallback automático a Ollama. Para usar Ollama directo, desactiva DSPy en preferencias.
+
 ---
 
 ## ⚡ 5 Minutos a Backend DSPy Funcional
@@ -182,6 +184,7 @@ kill -9 (lsof -ti:8000)
 1. Verificar que backend está corriendo: `curl http://localhost:8000/health`
 2. Verificar CORS (debería permitir `*`)
 3. Verificar URL base en frontend (debería ser `http://localhost:8000`)
+4. Recuerda: no hay fallback automático cuando DSPy está habilitado
 
 ---
 
@@ -268,13 +271,13 @@ Usuario Raycast UI
 }
 ```
 
-### Caso 3: Backend No Disponible (Fallback)
+### Caso 3: Backend No Disponible (DSPy obligatorio)
 
 **Behavior:**
 1. Frontend intenta DSPy backend
 2. Health check falla (backend no corriendo)
-3. Fallback automático a Ollama directo (implementación existente)
-4. Usuario recibe prompt mejorado aunque DSPy no esté disponible
+3. Se muestra error en Raycast: DSPy no disponible
+4. Para usar Ollama directo, desactiva DSPy en preferencias
 
 ---
 

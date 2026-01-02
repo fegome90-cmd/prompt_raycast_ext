@@ -35,6 +35,8 @@ PromptImprover DSPy Module
 LiteLLM Adapter → Ollama (HF model)
 ```
 
+**Nota:** En Raycast, DSPy es obligatorio cuando está habilitado; no hay fallback automático a Ollama. Para usar Ollama directo, desactiva DSPy en preferencias.
+
 Config recomendado (Ollama + HF):
 
 ```
