@@ -7,8 +7,8 @@ def test_similarity_selector_top_k():
     import sys
     sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-    from scripts.phase3_fewshot.example_pool import ExamplePool
-    from scripts.phase3_fewshot.selector import SimilaritySelector
+    from scripts.data.fewshot.example_pool import ExamplePool
+    from scripts.data.fewshot.selector import SimilaritySelector
 
     pool = ExamplePool()
     pool.build([

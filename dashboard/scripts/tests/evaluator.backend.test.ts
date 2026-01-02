@@ -15,7 +15,7 @@ vi.mock("../../src/core/llm/improvePrompt", () => ({
 vi.mock("../../src/core/llm/ollamaClient", () => ({
   ollamaHealthCheck: mocks.healthCheck,
 }));
-let EvaluatorClass: typeof import("../evaluator").Evaluator;
+let EvaluatorClass: typeof import("../eval/evaluator").Evaluator;
 
 async function writeDataset(): Promise<string> {
   const dir = await fs.mkdtemp(join(tmpdir(), "eval-backend-"));
@@ -48,7 +48,7 @@ describe("evaluator backend selection", () => {
     mocks.ollama.mockResolvedValue(mockResult);
     mocks.healthCheck.mockResolvedValue({ ok: true });
     vi.resetModules();
-    ({ Evaluator: EvaluatorClass } = await import("../evaluator"));
+    ({ Evaluator: EvaluatorClass } = await import("../eval/evaluator"));
   });
 
   it("uses improvePromptWithHybrid when backend=dspy", async () => {

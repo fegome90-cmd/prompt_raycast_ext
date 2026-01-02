@@ -17,7 +17,7 @@ vi.mock("../../src/core/llm/ollamaClient", () => ({
   ollamaHealthCheck: mocks.healthCheck,
 }));
 
-let EvaluatorClass: typeof import("../evaluator").Evaluator;
+let EvaluatorClass: typeof import("../eval/evaluator").Evaluator;
 
 async function writeDataset(cases: Array<Record<string, unknown>>): Promise<string> {
   const dir = await fs.mkdtemp(join(tmpdir(), "eval-amb-"));
@@ -41,7 +41,7 @@ describe("ambiguity metrics", () => {
     mocks.healthCheck.mockReset();
     mocks.healthCheck.mockResolvedValue({ ok: true });
     vi.resetModules();
-    ({ Evaluator: EvaluatorClass } = await import("../evaluator"));
+    ({ Evaluator: EvaluatorClass } = await import("../eval/evaluator"));
   });
 
   it("computes ambiguity spread and dominant sense", async () => {

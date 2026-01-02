@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { promises as fs } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { buildDatasets } from "../build-variance-datasets";
+import { buildDatasets } from "../data/build-variance-datasets";
 
 it("writes ambiguity and hybrid datasets", async () => {
   const dir = await fs.mkdtemp(join(tmpdir(), "variance-ds-"));

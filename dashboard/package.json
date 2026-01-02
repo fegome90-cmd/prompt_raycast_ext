@@ -116,7 +116,7 @@
     "fix-lint": "ray lint --fix",
     "lint": "ray lint",
     "publish": "ray publish",
-    "eval": "tsx scripts/evaluator.ts",
+    "eval": "tsx scripts/eval/evaluator.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

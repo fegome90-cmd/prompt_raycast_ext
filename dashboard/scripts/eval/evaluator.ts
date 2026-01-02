@@ -7,8 +7,8 @@
 import { promises as fs } from "fs";
 import { join } from "path";
 import { z } from "zod";
-import { improvePromptWithHybrid, improvePromptWithOllama } from "../src/core/llm/improvePrompt";
-import { ollamaHealthCheck } from "../src/core/llm/ollamaClient";
+import { improvePromptWithHybrid, improvePromptWithOllama } from "../../src/core/llm/improvePrompt";
+import { ollamaHealthCheck } from "../../src/core/llm/ollamaClient";
 
 // Schema for test cases - Soft asserts instead of hard content matching
 const TestCaseSchema = z.object({

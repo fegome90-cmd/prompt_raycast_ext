@@ -7,7 +7,7 @@ def test_example_pool_from_train_set():
     import sys
     sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-    from scripts.phase3_fewshot.example_pool import ExamplePool
+    from scripts.data.fewshot.example_pool import ExamplePool
 
     train = [
         {"question": "test 1", "metadata": {"domain": "SOFTDEV", "confidence": 0.8}},
