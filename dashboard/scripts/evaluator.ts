@@ -127,6 +127,16 @@ const ACRONYM_SENSES: Record<string, { label: string; patterns: RegExp[] }[]> = 
     { label: "architecture_decision_record", patterns: [/architecture decision record/i] },
     { label: "adversarial_design_review", patterns: [/adversarial design review/i] },
   ],
+  AC: [
+    { label: "access_control", patterns: [/access control/i] },
+    { label: "alternating_current", patterns: [/alternating current/i] },
+    { label: "air_conditioning", patterns: [/air conditioning/i] },
+  ],
+  PR: [
+    { label: "pull_request", patterns: [/pull request/i] },
+    { label: "public_relations", patterns: [/public relations/i] },
+    { label: "purchase_request", patterns: [/purchase request/i] },
+  ],
 };
 
 function classifySense(output: string): string | null {
@@ -213,15 +223,18 @@ class Evaluator {
   async run(options: EvalOptions): Promise<Metrics> {
     console.log("🎯 Starting evaluation...");
 
-    // Ensure Ollama is available
-    const health = await ollamaHealthCheck({
-      baseUrl: options.config?.baseUrl || "http://localhost:11434",
-      timeoutMs: 2000,
-    });
+    const backend = options.backend ?? "ollama";
+    if (backend === "ollama") {
+      // Ensure Ollama is available
+      const health = await ollamaHealthCheck({
+        baseUrl: options.config?.baseUrl || "http://localhost:11434",
+        timeoutMs: 2000,
+      });
 
-    if (!health.ok) {
-      const errorMsg = health.ok === false ? health.error : "Unknown error";
-      throw new Error(`Ollama not available: ${errorMsg}`);
+      if (!health.ok) {
+        const errorMsg = health.ok === false ? health.error : "Unknown error";
+        throw new Error(`Ollama not available: ${errorMsg}`);
+      }
     }
 
     // Load test cases

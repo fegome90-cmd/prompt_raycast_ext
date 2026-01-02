@@ -62,6 +62,7 @@ describe("evaluator backend selection", () => {
       config: { baseUrl: "http://localhost:11434", dspyBaseUrl: "http://localhost:8000" },
     });
 
+    expect(mocks.healthCheck).not.toHaveBeenCalled();
     expect(mocks.hybrid).toHaveBeenCalledTimes(1);
     expect(mocks.ollama).not.toHaveBeenCalled();
     expect(mocks.hybrid.mock.calls[0][0]).toMatchObject({ enableDSPyFallback: false });
