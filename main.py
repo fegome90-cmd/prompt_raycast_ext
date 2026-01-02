@@ -25,6 +25,14 @@ import dspy
 # Global LM instance for DSPy
 lm = None
 
+# Temperature defaults per provider (for consistency)
+DEFAULT_TEMPERATURE = {
+    "ollama": 0.1,    # Local models need some variability
+    "gemini": 0.0,    # Gemini is deterministic at 0.0
+    "deepseek": 0.0,  # CRITICAL: 0.0 for maximum consistency
+    "openai": 0.0,    # OpenAI is deterministic at 0.0
+}
+
 logger = logging.getLogger(__name__)
 
 
@@ -35,27 +43,31 @@ async def lifespan(app: FastAPI):
 
     # Initialize DSPy with appropriate LM
     provider = settings.LLM_PROVIDER.lower()
+    temp = DEFAULT_TEMPERATURE.get(provider, 0.0)
+
     if provider == "ollama":
         lm = create_ollama_adapter(
-            model=settings.LLM_MODEL, base_url=settings.LLM_BASE_URL, temperature=0.3
+            model=settings.LLM_MODEL,
+            base_url=settings.LLM_BASE_URL,
+            temperature=temp,  # Uses 0.1 from DEFAULT_TEMPERATURE
         )
     elif provider == "gemini":
         lm = create_gemini_adapter(
             model=settings.LLM_MODEL,
             api_key=settings.GEMINI_API_KEY or settings.LLM_API_KEY,
-            temperature=0.3,
+            temperature=temp,  # Uses 0.0 from DEFAULT_TEMPERATURE
         )
     elif provider == "deepseek":
         lm = create_deepseek_adapter(
             model=settings.LLM_MODEL,
             api_key=settings.DEEPSEEK_API_KEY or settings.LLM_API_KEY,
-            temperature=0.3,
+            temperature=temp,  # Uses 0.0 from DEFAULT_TEMPERATURE
         )
     elif provider == "openai":
         lm = create_openai_adapter(
             model=settings.LLM_MODEL,
             api_key=settings.OPENAI_API_KEY or settings.LLM_API_KEY,
-            temperature=0.3,
+            temperature=temp,  # Uses 0.0 from DEFAULT_TEMPERATURE
         )
     else:
         raise ValueError(f"Unsupported LLM provider: {settings.LLM_PROVIDER}")
