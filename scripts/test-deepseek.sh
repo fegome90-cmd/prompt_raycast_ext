@@ -13,6 +13,14 @@ RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Activate virtualenv
+if [ -f ".venv/bin/activate" ]; then
+    source .venv/bin/activate
+    echo -e "${GREEN}✓${NC} Virtual environment activated"
+else
+    echo -e "${YELLOW}⚠${NC}  No .venv found, using system Python"
+fi
+
 # 1. Verify .env configuration
 echo ""
 echo "1️⃣  Checking .env configuration..."
