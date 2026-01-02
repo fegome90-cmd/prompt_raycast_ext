@@ -35,3 +35,4 @@ mcp-server/
 
 # Git worktrees
 .worktrees/
+.env.backup*
