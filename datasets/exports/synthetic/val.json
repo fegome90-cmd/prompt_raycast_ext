@@ -1,0 +1,27 @@
+{
+  "dataset_name": "synthetic_examples_val",
+  "split": "validation",
+  "total_examples": 2,
+  "examples": [
+    {
+      "question": "As a research subagent working as part of a team, help with help with AI and machine learning.",
+      "metadata": {
+        "task_type": "combined_task",
+        "domain": "Domain.AIML",
+        "confidence": 0.25,
+        "source_component_id": "claude-cookbooks-main/patterns/agents/prompts/research_subagent.md:Domain.AIML",
+        "variation": "base"
+      }
+    },
+    {
+      "question": "You are a research subagent working as part of a team with deep understanding of aiml.",
+      "metadata": {
+        "task_type": "combined_task",
+        "domain": "Domain.AIML",
+        "confidence": 0.25,
+        "source_component_id": "claude-cookbooks-main/patterns/agents/prompts/research_subagent.md:Domain.AIML",
+        "variation": "base"
+      }
+    }
+  ]
+}

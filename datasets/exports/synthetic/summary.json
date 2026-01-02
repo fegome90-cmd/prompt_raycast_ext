@@ -1,0 +1,32 @@
+{
+  "pipeline_stats": {
+    "total_examples": 16,
+    "by_task_type": {
+      "combined_task": 16
+    },
+    "by_domain": {
+      "Domain.SOFTDEV": 10,
+      "Domain.AIML": 6
+    },
+    "avg_confidence": 0.3156
+  },
+  "validation_stats": {
+    "total_examples": 16,
+    "by_task_type": {
+      "combined_task": 16
+    },
+    "by_domain": {
+      "Domain.SOFTDEV": 10,
+      "Domain.AIML": 6
+    },
+    "avg_confidence": 0.3156
+  },
+  "splits": {
+    "train": 11,
+    "val": 2,
+    "test": 3
+  },
+  "total_components": 6,
+  "total_examples_generated": 18,
+  "total_valid_examples": 16
+}

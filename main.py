@@ -120,7 +120,13 @@ async def root():
 if __name__ == "__main__":
     import uvicorn
 
+    # Validate configuration on startup (fail fast)
+    if not (1024 <= settings.API_PORT <= 65535):
+        raise ValueError(f"Invalid API_PORT: {settings.API_PORT}. Must be between 1024-65535.")
+
     logger.info("Starting DSPy Prompt Improver API...")
+    logger.info(f"✓ Configuration loaded from .env")
+    logger.info(f"✓ API_PORT: {settings.API_PORT} (validated)")
     logger.info(f"Server: http://{settings.API_HOST}:{settings.API_PORT}")
     logger.info(f"LLM: {settings.LLM_PROVIDER}/{settings.LLM_MODEL}")
 
