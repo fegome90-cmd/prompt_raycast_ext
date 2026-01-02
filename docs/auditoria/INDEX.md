@@ -18,7 +18,7 @@
 | **CRT-01** | [`CRT-01-puerto-dspy-inconsistente.md`](./CRT-01-puerto-dspy-inconsistente.md) | Inconsistencia de Puerto DSPy (8000 vs 8001) | 🟡 Media | ✅ Resuelto |
 | **CRT-02** | [`CRT-02-falta-persistencia-prompts.md`](./CRT-02-falta-persistencia-prompts.md) | Falta de Persistencia de Prompts | 🔴 Alta | ⚠️ Activo |
 | **CRT-03** | [`CRT-03-variabilidad-semantica-ambiguedad.md`](./CRT-03-variabilidad-semantica-ambiguedad.md) | Variabilidad Semántica por Ambigüedad | 🔴 Crítica | ⚠️ Requiere acción inmediata |
-| **CRT-04** | [`CRT-04-migracion-deepseek-chat.md`](./CRT-04-migracion-deepseek-chat.md) | Migración a DeepSeek Chat via LiteLLM | 🟢 Oportunidad | 📋 Propuesta |
+| **CRT-04** | [`CRT-04-migracion-deepseek-chat.md`](./CRT-04-migracion-deepseek-chat.md) | Migración a DeepSeek Chat via LiteLLM | 🟢 Oportunidad | 🔨 En Implementación |
 | **CRT-05** | [`CRT-05-comparativa-agent-h-raycast.md`](./CRT-05-comparativa-agent-h-raycast.md) | Comparativa Agent_H vs Raycast | 📊 Análisis | ✅ Completado |
 
 ### Seguimiento

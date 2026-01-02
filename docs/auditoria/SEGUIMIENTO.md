@@ -130,3 +130,10 @@ ollama list
 # Ejecutar evaluación
 npm run eval -- --dataset testdata/cases.jsonl --output eval/test.json
 ```
+
+### 2026-01-02 - Continuación
+- ⏳ **CRT-04: Implementación DeepSeek Chat** - Plan creado en docs/plans/2026-01-02-deepseek-chat-migration.md
+- ⏳ Configuración actualizada (.env, .env.example)
+- ⏳ Temperature por provider implementado (0.0 para DeepSeek)
+- ⏳ API key validation agregado
+- ⏳ Script de prueba creado (scripts/test-deepseek.sh)
