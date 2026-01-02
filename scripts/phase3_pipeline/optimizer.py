@@ -1,8 +1,8 @@
 """Unified DSPy + Few-Shot optimization pipeline."""
 from typing import Dict
 from scripts.phase3_dspy.optimizer import DSPOptimizer, DatasetLoader
-from scripts.phase3_fewshot.example_pool import ExamplePool
-from scripts.phase3_fewshot.selector import SimilaritySelector
+from scripts.data.fewshot.example_pool import ExamplePool
+from scripts.data.fewshot.selector import SimilaritySelector
 
 
 class UnifiedPipeline:
