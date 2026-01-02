@@ -26,6 +26,12 @@ class Settings(BaseSettings):
     DSPY_MAX_LABELED_DEMOS: int = 3
     DSPY_COMPILED_PATH: Optional[str] = None
 
+    # Few-Shot Settings
+    DSPY_FEWSHOT_ENABLED: bool = False
+    DSPY_FEWSHOT_TRAINSET_PATH: Optional[str] = None
+    DSPY_FEWSHOT_K: int = 3
+    DSPY_FEWSHOT_COMPILED_PATH: Optional[str] = "models/prompt_improver_fewshot.json"
+
     # API Settings
     API_HOST: str = "0.0.0.0"
     API_PORT: int = 8000

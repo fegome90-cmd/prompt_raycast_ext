@@ -16,3 +16,5 @@ __all__ = [
     "prompt_improver_metric",
     "load_prompt_improvement_examples",
 ]
+
+# Few-shot module is imported lazily in API to avoid long compilation times

@@ -2,6 +2,7 @@
 FastAPI endpoint for Prompt Improver.
 
 Exposes the DSPy PromptImprover module via REST API.
+Supports both zero-shot and few-shot modes.
 """
 
 from fastapi import APIRouter, HTTPException
@@ -27,36 +28,59 @@ class ImprovePromptResponse(BaseModel):
     guardrails: list[str]
     reasoning: str | None = None
     confidence: float | None = None
+    backend: str | None = None  # "zero-shot" or "few-shot"
 
 
-# Initialize module (lazy loading)
+# Initialize modules (lazy loading)
 _prompt_improver: PromptImprover | None = None
+_fewshot_improver = None  # Will be PromptImproverWithFewShot
 
 
 def get_prompt_improver(settings: Settings) -> PromptImprover:
-    """Get or initialize PromptImprover module."""
+    """Get or initialize zero-shot PromptImprover module."""
     global _prompt_improver
 
     if _prompt_improver is None:
         # Initialize module
         improver = PromptImprover()
-
-        # Load compiled version if available
-        if settings.DSPY_COMPILED_PATH:
-            improver.load(settings.DSPY_COMPILED_PATH)
-        else:
-            # Use uncompiled version
-            pass
-
         _prompt_improver = improver
 
     return _prompt_improver
+
+
+def get_fewshot_improver(settings: Settings):
+    """Get or initialize few-shot PromptImprover module."""
+    global _fewshot_improver
+
+    if _fewshot_improver is None:
+        from eval.src.dspy_prompt_improver_fewshot import (
+            PromptImproverWithFewShot,
+            load_trainset,
+            create_fewshot_improver
+        )
+
+        if settings.DSPY_FEWSHOT_TRAINSET_PATH:
+            # Load and compile with training set
+            improver = create_fewshot_improver(
+                trainset_path=settings.DSPY_FEWSHOT_TRAINSET_PATH,
+                compiled_path=settings.DSPY_FEWSHOT_COMPILED_PATH,
+                k=settings.DSPY_FEWSHOT_K
+            )
+        else:
+            # Create uncompiled few-shot improver
+            improver = PromptImproverWithFewShot(k=settings.DSPY_FEWSHOT_K)
+
+        _fewshot_improver = improver
+
+    return _fewshot_improver
 
 
 @router.post("/improve-prompt", response_model=ImprovePromptResponse)
 async def improve_prompt(request: ImprovePromptRequest):
     """
     Improve a raw idea into a high-quality structured prompt.
+
+    Uses zero-shot or few-shot mode based on DSPY_FEWSHOT_ENABLED setting.
 
     POST /api/v1/improve-prompt
     {
@@ -72,7 +96,8 @@ async def improve_prompt(request: ImprovePromptRequest):
         "framework": "chain-of-thought",
         "guardrails": ["Avoid jargon", "Prioritize pragmatism", ...],
         "reasoning": "Selected role for expertise...",
-        "confidence": 0.87
+        "confidence": 0.87,
+        "backend": "few-shot"  # or "zero-shot"
     }
     """
     # Validate input
@@ -85,7 +110,14 @@ async def improve_prompt(request: ImprovePromptRequest):
     from hemdov.interfaces import container
 
     settings = container.get(Settings)
-    improver = get_prompt_improver(settings)
+
+    # Use few-shot if enabled
+    if settings.DSPY_FEWSHOT_ENABLED:
+        improver = get_fewshot_improver(settings)
+        backend = "few-shot"
+    else:
+        improver = get_prompt_improver(settings)
+        backend = "zero-shot"
 
     # Improve prompt
     try:
@@ -101,6 +133,7 @@ async def improve_prompt(request: ImprovePromptRequest):
             else result.guardrails,
             reasoning=getattr(result, "reasoning", None),
             confidence=getattr(result, "confidence", None),
+            backend=backend,
         )
 
     except Exception as e:
