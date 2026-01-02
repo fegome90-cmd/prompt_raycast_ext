@@ -35,4 +35,11 @@ mcp-server/
 
 # Git worktrees
 .worktrees/
+raycast_ext-worktrees/
 .env.backup*
+
+# Data analysis
+data-eval/
+
+# Local Claude plugin
+.claude/
