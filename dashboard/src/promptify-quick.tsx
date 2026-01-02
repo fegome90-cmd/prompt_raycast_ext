@@ -1,6 +1,6 @@
 import { Action, ActionPanel, Clipboard, Detail, Form, Toast, getPreferenceValues, showToast } from "@raycast/api";
 import { useState } from "react";
-import { improvePromptWithHybrid } from "./core/llm/improvePrompt";
+import { improvePromptWithHybrid, improvePromptWithOllama } from "./core/llm/improvePrompt";
 import { ollamaHealthCheck } from "./core/llm/ollamaClient";
 import { loadConfig } from "./core/config";
 import { getCustomPatternSync } from "./core/templates/pattern";
@@ -108,20 +108,31 @@ export default function Command() {
         }
       }
 
-      const result = await improvePromptWithHybrid({
-        rawInput: text,
-        preset,
-        options: {
-          baseUrl,
-          model,
-          timeoutMs,
-          temperature,
-          systemPattern: getCustomPatternSync(),
-          dspyBaseUrl,
-          dspyTimeoutMs: config.dspy.timeoutMs,
-        },
-        enableDSPyFallback: dspyEnabled,
-      });
+      const result = dspyEnabled
+        ? await improvePromptWithHybrid({
+            rawInput: text,
+            preset,
+            options: {
+              baseUrl,
+              model,
+              timeoutMs,
+              temperature,
+              systemPattern: getCustomPatternSync(),
+              dspyBaseUrl,
+              dspyTimeoutMs: config.dspy.timeoutMs,
+            },
+            enableDSPyFallback: false,
+          })
+        : await runWithModelFallback({
+            baseUrl,
+            model,
+            fallbackModel,
+            timeoutMs,
+            temperature,
+            rawInput: text,
+            preset,
+            systemPattern: getCustomPatternSync(),
+          });
 
       const finalPrompt = result.improved_prompt.trim();
       await Clipboard.copy(finalPrompt);
@@ -138,7 +149,9 @@ export default function Command() {
       const config = configState.config;
       const baseUrl = preferences.ollamaBaseUrl?.trim() || config.ollama.baseUrl;
       const model = preferences.model?.trim() || config.ollama.model;
-      const hint = buildErrorHint(e);
+      const dspyBaseUrl = preferences.dspyBaseUrl?.trim() || config.dspy.baseUrl;
+      const dspyEnabled = preferences.dspyEnabled ?? config.dspy.enabled;
+      const hint = dspyEnabled ? buildDSPyHint(e) : buildErrorHint(e);
 
       // Debug logging
       console.error("[Promptify] Error details:", {
@@ -146,7 +159,17 @@ export default function Command() {
         preferencesModel: preferences.model,
         configModel: config.ollama.model,
         finalModel: model,
+        dspyEnabled,
       });
+
+      if (dspyEnabled) {
+        await showToast({
+          style: Toast.Style.Failure,
+          title: "DSPy backend not available",
+          message: `${dspyBaseUrl} (${e instanceof Error ? e.message : String(e)})${hint ? ` — ${hint}` : ""}`,
+        });
+        return;
+      }
 
       await showToast({
         style: Toast.Style.Failure,
@@ -201,6 +224,16 @@ function buildErrorHint(error: unknown): string | null {
   )
     return "Check `ollama serve` is running";
   if (lower.includes("model") && lower.includes("not found")) return "Pull the model first: `ollama pull <model>`";
+  return null;
+}
+
+function buildDSPyHint(error: unknown): string | null {
+  const message = error instanceof Error ? error.message : String(error);
+  const lower = message.toLowerCase();
+  if (lower.includes("timed out")) return "Try increasing Timeout (ms)";
+  if (lower.includes("connect") || lower.includes("econnrefused") || lower.includes("not reachable")) {
+    return "Check the DSPy backend is running";
+  }
   return null;
 }
 
