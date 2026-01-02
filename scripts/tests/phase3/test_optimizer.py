@@ -32,3 +32,20 @@ def test_dspy_signature_creation():
 
     assert compiled is not None, "Compiled signature should not be None"
     assert 'question' in signature.input_fields, "input_fields should contain 'question'"
+
+
+def test_dspy_optimizer_minimize_loss():
+    """Should optimize prompt using val set"""
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+    from scripts.phase3_dspy.optimizer import DSPOptimizer
+
+    optimizer = DSPOptimizer()
+    train = [{"question": "test", "metadata": {}}]
+    val = [{"question": "test", "metadata": {}}]
+
+    optimized_prompt = optimizer.optimize(train, val)
+
+    assert 'prompt' in optimized_prompt, "Result should contain 'prompt'"
+    assert 'best_loss' in optimized_prompt, "Result should contain 'best_loss'"

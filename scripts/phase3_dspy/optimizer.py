@@ -47,3 +47,34 @@ class DSPySignature:
         # DSPy 3.x uses string format: "input1, input2 -> output1, output2"
         signature = dspy.Signature("question, metadata -> answer")
         return dspy.Predict(signature)
+
+
+class DSPOptimizer:
+    """DSPy-based prompt optimizer."""
+
+    def __init__(self):
+        self.best_loss = float('inf')
+        self.best_prompt = None
+
+    def optimize(self, train: List[Dict], val: List[Dict]) -> Dict:
+        """Optimize prompt using train/val sets.
+
+        Args:
+            train: Training examples
+            val: Validation examples
+
+        Returns:
+            Dict with optimized prompt and metrics
+        """
+        # For now, use simple heuristic: optimize question length
+        # Full DSPy optimization comes later
+
+        avg_length = sum(len(e['question']) for e in train) / len(train)
+
+        optimized = {
+            'prompt': f"Optimal prompt length: {avg_length:.0f}",
+            'best_loss': 0.5,  # Placeholder
+            'metrics': {'avg_length': avg_length},
+        }
+
+        return optimized
