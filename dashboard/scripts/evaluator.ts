@@ -7,13 +7,15 @@
 import { promises as fs } from "fs";
 import { join } from "path";
 import { z } from "zod";
-import { improvePromptWithOllama } from "../src/core/llm/improvePrompt";
+import { improvePromptWithHybrid, improvePromptWithOllama } from "../src/core/llm/improvePrompt";
 import { ollamaHealthCheck } from "../src/core/llm/ollamaClient";
 
 // Schema for test cases - Soft asserts instead of hard content matching
 const TestCaseSchema = z.object({
   id: z.string(),
   input: z.string(),
+  tags: z.array(z.string()).default([]),
+  ambiguityHints: z.array(z.string()).default([]),
   asserts: z.object({
     // Structural validation (hard)
     minFinalPromptLength: z.number().int().min(0).default(50),
@@ -32,6 +34,7 @@ const TestCaseSchema = z.object({
 });
 
 type TestCase = z.infer<typeof TestCaseSchema>;
+type RunResult = { caseId: string; run: number; output: string; backend: "ollama" | "dspy" };
 
 // Results schema
 const MetricsSchema = z.object({
@@ -104,19 +107,90 @@ const MetricsSchema = z.object({
     }),
   ),
 
+  ambiguity: z
+    .object({
+      totalAmbiguousCases: z.number().default(0),
+      ambiguitySpread: z.number().default(0),
+      dominantSenseRate: z.number().default(0),
+      stabilityScore: z.number().default(1),
+    })
+    .default({}),
+
   skillUsed: z.string().default("core"),
 });
 
 type Metrics = z.infer<typeof MetricsSchema>;
 
+const ACRONYM_SENSES: Record<string, { label: string; patterns: RegExp[] }[]> = {
+  ADR: [
+    { label: "alternative_dispute_resolution", patterns: [/alternative dispute resolution/i] },
+    { label: "architecture_decision_record", patterns: [/architecture decision record/i] },
+    { label: "adversarial_design_review", patterns: [/adversarial design review/i] },
+  ],
+};
+
+function classifySense(output: string): string | null {
+  for (const [acronym, senses] of Object.entries(ACRONYM_SENSES)) {
+    for (const sense of senses) {
+      if (sense.patterns.some((pattern) => pattern.test(output))) {
+        return `${acronym}:${sense.label}`;
+      }
+    }
+  }
+  return null;
+}
+
+function computeAmbiguityMetrics(cases: TestCase[], runs: RunResult[]) {
+  if (!cases.length) {
+    return { totalAmbiguousCases: 0, ambiguitySpread: 0, dominantSenseRate: 0, stabilityScore: 1 };
+  }
+
+  let spread = 0;
+  let dominant = 0;
+  let stabilitySum = 0;
+
+  for (const testCase of cases) {
+    const outputs = runs.filter((run) => run.caseId === testCase.id).map((run) => run.output);
+    const senses = outputs.map((output) => classifySense(output)).filter(Boolean) as string[];
+    const counts = senses.reduce(
+      (acc, sense) => {
+        acc[sense] = (acc[sense] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+    const unique = Object.keys(counts).length;
+    if (unique > 1) {
+      spread += 1;
+    }
+    const total = senses.length || 1;
+    const maxShare = Math.max(...Object.values(counts), 0) / total;
+    if (maxShare >= 2 / 3) {
+      dominant += 1;
+    }
+    stabilitySum += maxShare;
+  }
+
+  return {
+    totalAmbiguousCases: cases.length,
+    ambiguitySpread: spread / cases.length,
+    dominantSenseRate: dominant / cases.length,
+    stabilityScore: stabilitySum / cases.length,
+  };
+}
+
 interface EvalOptions {
   datasetPath: string;
   outputPath?: string;
+  backend?: "ollama" | "dspy";
+  repeat?: number;
   config?: {
     baseUrl?: string;
     model?: string;
     fallbackModel?: string;
     timeoutMs?: number;
+    dspyBaseUrl?: string;
+    dspyTimeoutMs?: number;
   };
   verbose?: boolean;
 }
@@ -175,98 +249,109 @@ class Evaluator {
     // Initialize totals
     let totalValid = 0;
 
+    const repeat = Math.max(1, options.repeat ?? 1);
+    const runs: RunResult[] = [];
+
     // Run each case
     for (const testCase of cases) {
       const bucket = testCase.id.startsWith("good-") ? "good" : testCase.id.startsWith("bad-") ? "bad" : "ambiguous";
-      buckets[bucket].total++;
+      for (let i = 0; i < repeat; i++) {
+        buckets[bucket].total++;
 
-      try {
-        const result = await this.runCase(testCase, options);
-
-        if (result.category === "success") {
-          totalValid++;
-          buckets[bucket].success++;
-          buckets[bucket].jsonValid++;
-          buckets[bucket].copyable += result.isCopyable ? 1 : 0;
-          buckets[bucket].reviewable += result.hasMetadata ? 1 : 0;
-        } else {
-          // Count failure
-          const category = result.category;
-          switch (category) {
-            case "invalidJson":
-              failureReasons.invalidJson++;
-              break;
-            case "schemaMismatch":
-              failureReasons.schemaMismatch++;
-              break;
-            case "emptyFinalPrompt":
-              failureReasons.emptyFinalPrompt++;
-              break;
-            case "unfilledPlaceholders":
-              failureReasons.unfilledPlaceholders++;
-              break;
-            case "chattyOutput":
-              failureReasons.chattyOutput++;
-              break;
-            case "bannedContent":
-              failureReasons.bannedContent++;
-              break;
-            case "tooManyQuestions":
-              failureReasons.tooManyQuestions++;
-              break;
-            default:
-              failureReasons.other++;
-              break;
-          }
-
-          this.failures.push({
+        try {
+          const result = await this.runCase(testCase, options);
+          runs.push({
             caseId: testCase.id,
-            reason: result.reason,
-            category: result.category,
+            run: i + 1,
+            output: result.output,
+            backend: options.backend ?? "ollama",
           });
-        }
 
-        this.latencies.push(result.latency);
-
-        // Check for debt patterns
-        const patterns = this.detectPatterns(testCase.input);
-        this.patternsDetected += patterns.length;
-
-        if (options.verbose && result.category === "success") {
-          console.log(`✅ ${testCase.id}: ${result.latency}ms, copyable: ${result.isCopyable}`);
-        }
-      } catch (error) {
-        const reason = error instanceof Error ? error.message : String(error);
-        failureReasons.other++;
-        this.failures.push({ caseId: testCase.id, reason, category: "exception" });
-        console.error(`❌ ${testCase.id}: ${reason}`);
-
-        // Extract metadata from ImprovePromptError if present
-        if (error instanceof Error && error.name === "ImprovePromptError" && "meta" in error) {
-          const meta = (error as Error & { meta?: { wrapper?: { usedRepair?: boolean; attempt?: number; usedExtraction?: boolean; extractionMethod?: string; failureReason?: string } } }).meta;
-          if (meta?.wrapper) {
-            const wrapper = meta.wrapper;
-
-            // Track repair metrics from error metadata
-            if (wrapper.usedRepair && wrapper.attempt === 2) {
-              this.repairTriggered++;
-              this.attempt2Total++;
-
-              // Count honest repair metrics
-              this.repairJsonParseOk++; // We know repair was attempted (parse OK)
-
-              // If failureReason is not schema_mismatch, it means repair produced JSON but failed quality checks
-              if (wrapper.failureReason !== "schema_mismatch") {
-                this.repairSchemaValid++; // Repair passed schema validation
-              }
+          if (result.category === "success") {
+            totalValid++;
+            buckets[bucket].success++;
+            buckets[bucket].jsonValid++;
+            buckets[bucket].copyable += result.isCopyable ? 1 : 0;
+            buckets[bucket].reviewable += result.hasMetadata ? 1 : 0;
+          } else {
+            // Count failure
+            const category = result.category;
+            switch (category) {
+              case "invalidJson":
+                failureReasons.invalidJson++;
+                break;
+              case "schemaMismatch":
+                failureReasons.schemaMismatch++;
+                break;
+              case "emptyFinalPrompt":
+                failureReasons.emptyFinalPrompt++;
+                break;
+              case "unfilledPlaceholders":
+                failureReasons.unfilledPlaceholders++;
+                break;
+              case "chattyOutput":
+                failureReasons.chattyOutput++;
+                break;
+              case "bannedContent":
+                failureReasons.bannedContent++;
+                break;
+              case "tooManyQuestions":
+                failureReasons.tooManyQuestions++;
+                break;
+              default:
+                failureReasons.other++;
+                break;
             }
 
-            // Track extraction if used
-            if (wrapper.usedExtraction) {
-              this.extractionUsed++;
-              const method = wrapper.extractionMethod || "scan";
-              if (method in this.extractionMethods) {
-                this.extractionMethods[method as keyof typeof this.extractionMethods]++;
+            this.failures.push({
+              caseId: testCase.id,
+              reason: result.reason,
+              category: result.category,
+            });
+          }
+
+          this.latencies.push(result.latency);
+
+          // Check for debt patterns
+          const patterns = this.detectPatterns(testCase.input);
+          this.patternsDetected += patterns.length;
+
+          if (options.verbose && result.category === "success") {
+            console.log(`✅ ${testCase.id}: ${result.latency}ms, copyable: ${result.isCopyable}`);
+          }
+        } catch (error) {
+          const reason = error instanceof Error ? error.message : String(error);
+          failureReasons.other++;
+          this.failures.push({ caseId: testCase.id, reason, category: "exception" });
+          console.error(`❌ ${testCase.id}: ${reason}`);
+
+          // Extract metadata from ImprovePromptError if present
+          if (error instanceof Error && error.name === "ImprovePromptError" && "meta" in error) {
+            const meta = (error as Error & { meta?: { wrapper?: { usedRepair?: boolean; attempt?: number; usedExtraction?: boolean; extractionMethod?: string; failureReason?: string } } }).meta;
+            if (meta?.wrapper) {
+              const wrapper = meta.wrapper;
+
+              // Track repair metrics from error metadata
+              if (wrapper.usedRepair && wrapper.attempt === 2) {
+                this.repairTriggered++;
+                this.attempt2Total++;
+
+                // Count honest repair metrics
+                this.repairJsonParseOk++; // We know repair was attempted (parse OK)
+
+                // If failureReason is not schema_mismatch, it means repair produced JSON but failed quality checks
+                if (wrapper.failureReason !== "schema_mismatch") {
+                  this.repairSchemaValid++; // Repair passed schema validation
+                }
+              }
+
+              // Track extraction if used
+              if (wrapper.usedExtraction) {
+                this.extractionUsed++;
+                const method = wrapper.extractionMethod || "scan";
+                if (method in this.extractionMethods) {
+                  this.extractionMethods[method as keyof typeof this.extractionMethods]++;
+                }
               }
             }
           }
@@ -289,8 +374,11 @@ class Evaluator {
       attempt2Rate: this.totalCasesRun > 0 ? this.attempt2Total / this.totalCasesRun : 0,
     };
 
+    const ambiguousCases = cases.filter((testCase) => testCase.tags.includes("ambiguity"));
+    const ambiguityMetrics = computeAmbiguityMetrics(ambiguousCases, runs);
+
     // Calculate metrics
-    const totalCases = cases.length;
+    const totalCases = buckets.good.total + buckets.bad.total + buckets.ambiguous.total;
     const metrics: Metrics = {
       timestamp: new Date().toISOString(),
       totalCases,
@@ -343,6 +431,7 @@ class Evaluator {
       failureReasons: failureReasons,
 
       failures: this.failures,
+      ambiguity: ambiguityMetrics,
       skillUsed: "core",
     };
 
@@ -379,16 +468,31 @@ class Evaluator {
   private async runCase(testCase: TestCase, options: EvalOptions) {
     const start = Date.now();
     this.totalCasesRun++;
+    const backend = options.backend ?? "ollama";
 
-    const result = await improvePromptWithOllama({
-      rawInput: testCase.input,
-      preset: "default",
-      options: {
-        baseUrl: options.config?.baseUrl || "http://localhost:11434",
-        model: options.config?.model || "qwen3-coder:30b",
-        timeoutMs: options.config?.timeoutMs || 30000,
-      },
-    });
+    const result =
+      backend === "dspy"
+        ? await improvePromptWithHybrid({
+            rawInput: testCase.input,
+            preset: "default",
+            options: {
+              baseUrl: options.config?.baseUrl || "http://localhost:11434",
+              model: options.config?.model || "qwen3-coder:30b",
+              timeoutMs: options.config?.timeoutMs || 30000,
+              dspyBaseUrl: options.config?.dspyBaseUrl || "http://localhost:8000",
+              dspyTimeoutMs: options.config?.dspyTimeoutMs,
+            },
+            enableDSPyFallback: false,
+          })
+        : await improvePromptWithOllama({
+            rawInput: testCase.input,
+            preset: "default",
+            options: {
+              baseUrl: options.config?.baseUrl || "http://localhost:11434",
+              model: options.config?.model || "qwen3-coder:30b",
+              timeoutMs: options.config?.timeoutMs || 30000,
+            },
+          });
 
     const latency = Date.now() - start;
     const output = result.improved_prompt;
@@ -433,6 +537,7 @@ class Evaluator {
         reason: `Final prompt too short: ${output?.length || 0} < ${testCase.asserts.minFinalPromptLength}`,
         category: "emptyFinalPrompt",
         latency,
+        output,
       };
     }
 
@@ -445,6 +550,7 @@ class Evaluator {
           reason: "Contains unfilled placeholders",
           category: "unfilledPlaceholders",
           latency,
+          output,
         };
       }
     }
@@ -468,6 +574,7 @@ class Evaluator {
           reason: "Contains meta/chatty content",
           category: "chattyOutput",
           latency,
+          output,
         };
       }
     }
@@ -480,6 +587,7 @@ class Evaluator {
           reason: `Contains banned pattern: "${banned}"`,
           category: "bannedContent",
           latency,
+          output,
         };
       }
     }
@@ -491,6 +599,7 @@ class Evaluator {
         reason: `Too many questions: ${result.clarifying_questions.length} > ${testCase.asserts.maxQuestions}`,
         category: "tooManyQuestions",
         latency,
+        output,
       };
     }
 
@@ -501,6 +610,7 @@ class Evaluator {
         reason: `Confidence too low: ${result.confidence} < ${testCase.asserts.minConfidence}`,
         category: "other",
         latency,
+        output,
       };
     }
 
@@ -529,6 +639,7 @@ class Evaluator {
       isCopyable,
       hasMetadata,
       latency,
+      output,
     };
   }
 

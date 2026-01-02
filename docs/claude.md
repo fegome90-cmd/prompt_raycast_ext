@@ -196,6 +196,12 @@ npm run eval         # Ejecutar quality gates
 npm run publish      # Publicar a Raycast Marketplace
 ```
 
+### Evaluator (DSPy variance)
+
+```bash
+npm run eval -- --dataset testdata/variance-hybrid.jsonl --output eval/ambiguity/latest.json --backend dspy --repeat 5 --config '{"dspyBaseUrl":"http://localhost:8000","timeoutMs":30000}'
+```
+
 ### Agregar un Nuevo Preset
 
 1. Agregar nombre a `defaults.ts`:
