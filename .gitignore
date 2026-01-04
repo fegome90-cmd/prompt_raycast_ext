@@ -41,5 +41,8 @@ raycast_ext-worktrees/
 # Data analysis
 data-eval/
 
+# SQLite databases
+data/
+
 # Local Claude plugin
 .claude/

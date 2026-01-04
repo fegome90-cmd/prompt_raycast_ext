@@ -119,3 +119,18 @@ def create_openai_adapter(
         api_key=api_key or os.getenv("OPENAI_API_KEY"),
         **kwargs,
     )
+
+
+def create_anthropic_adapter(
+    model: str = "claude-3-haiku-20240307",
+    api_key: Optional[str] = None,
+    base_url: str = "https://api.anthropic.com",
+    **kwargs,
+) -> LiteLLMDSPyAdapter:
+    """Create Anthropic adapter."""
+    return LiteLLMDSPyAdapter(
+        model=f"anthropic/{model}",
+        api_key=api_key or os.getenv("ANTHROPIC_API_KEY") or os.getenv("HEMDOV_ANTHROPIC_API_KEY"),
+        api_base=base_url,
+        **kwargs,
+    )

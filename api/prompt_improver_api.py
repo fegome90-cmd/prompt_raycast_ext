@@ -229,6 +229,14 @@ async def _save_history_async(
             else result.guardrails
         )
 
+        # Extract and convert confidence to float if it's a string
+        confidence_value = getattr(result, "confidence", None)
+        if confidence_value is not None:
+            try:
+                confidence_value = float(confidence_value)
+            except (ValueError, TypeError):
+                confidence_value = None
+
         # Create PromptHistory entity
         history = PromptHistory(
             original_idea=original_idea,
@@ -242,7 +250,7 @@ async def _save_history_async(
             model=model,
             provider=provider,
             reasoning=getattr(result, "reasoning", None),
-            confidence=getattr(result, "confidence", None),
+            confidence=confidence_value,
             latency_ms=latency_ms
         )
 
