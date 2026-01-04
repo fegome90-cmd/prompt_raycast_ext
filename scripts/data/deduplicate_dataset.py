@@ -10,11 +10,16 @@ can confuse the few-shot selector.
 Usage:
     python3 scripts/data/deduplicate_dataset.py
 """
-import json
 import sys
 from pathlib import Path
 from typing import Any, Dict, List
 from datetime import datetime
+
+# Handle both module import and direct execution
+try:
+    from .utils import load_dataset, save_dataset
+except ImportError:
+    from utils import load_dataset, save_dataset
 
 
 def deduplicate_by_input(data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -27,6 +32,7 @@ def deduplicate_by_input(data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     Returns:
         Deduplicated dataset with unique inputs only
     """
+    import json
     seen_inputs = set()
     deduplicated = []
 
@@ -40,36 +46,6 @@ def deduplicate_by_input(data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             deduplicated.append(example)
 
     return deduplicated
-
-
-def load_dataset(path: str) -> List[Dict[str, Any]]:
-    """
-    Load JSON dataset from file.
-
-    Args:
-        path: Path to JSON file
-
-    Returns:
-        List of examples
-
-    Raises:
-        FileNotFoundError: If file doesn't exist
-        json.JSONDecodeError: If file is not valid JSON
-    """
-    with open(path, 'r', encoding='utf-8') as f:
-        return json.load(f)
-
-
-def save_dataset(data: List[Dict[str, Any]], path: str) -> None:
-    """
-    Save dataset to JSON file.
-
-    Args:
-        data: Dataset to save
-        path: Output file path
-    """
-    with open(path, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
 
 
 def add_metadata(data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -98,7 +74,9 @@ def main() -> int:
     Returns:
         Exit code (0 for success, 1 for error)
     """
-    base_path = Path("/Users/felipe_gonzalez/Developer/raycast_ext")
+    # Use relative path from script location
+    script_dir = Path(__file__).parent.parent.parent
+    base_path = script_dir
     input_file = base_path / "datasets/exports/merged-trainset.json"
     output_file = base_path / "datasets/exports/merged-trainset-deduped.json"
 

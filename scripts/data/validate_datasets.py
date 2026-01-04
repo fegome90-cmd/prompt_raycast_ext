@@ -16,23 +16,11 @@ from pathlib import Path
 from collections import defaultdict
 from typing import Any, Dict, List
 
-
-def load_dataset(path: str) -> List[Dict[str, Any]]:
-    """
-    Load JSON dataset from file.
-
-    Args:
-        path: Path to JSON file
-
-    Returns:
-        List of examples
-
-    Raises:
-        FileNotFoundError: If file doesn't exist
-        json.JSONDecodeError: If file is not valid JSON
-    """
-    with open(path, 'r', encoding='utf-8') as f:
-        return json.load(f)
+# Handle both module import and direct execution
+try:
+    from .utils import load_dataset
+except ImportError:
+    from utils import load_dataset
 
 
 def validate_structure(data: List[Dict[str, Any]], name: str) -> bool:
@@ -206,7 +194,9 @@ def main() -> int:
         "fewshot-train.json": "datasets/exports/fewshot-train.json",
     }
 
-    base_path = Path("/Users/felipe_gonzalez/Developer/raycast_ext")
+    # Use relative path from script location
+    script_dir = Path(__file__).parent.parent.parent
+    base_path = script_dir
 
     all_valid = True
 

@@ -8,19 +8,22 @@ import os
 import pytest
 from pathlib import Path
 
+# Get the project root directory
+PROJECT_ROOT = Path(__file__).parent.parent
+
 
 class TestValidationScriptsExist:
     """Test that validation scripts exist and are executable."""
 
     def test_validate_datasets_script_exists(self):
         """Check that validate_datasets.py exists and is executable."""
-        script_path = Path("/Users/felipe_gonzalez/Developer/raycast_ext/scripts/data/validate_datasets.py")
+        script_path = PROJECT_ROOT / "scripts/data/validate_datasets.py"
         assert script_path.exists(), "validate_datasets.py should exist"
         assert os.access(script_path, os.X_OK), "validate_datasets.py should be executable"
 
     def test_deduplicate_dataset_script_exists(self):
         """Check that deduplicate_dataset.py exists and is executable."""
-        script_path = Path("/Users/felipe_gonzalez/Developer/raycast_ext/scripts/data/deduplicate_dataset.py")
+        script_path = PROJECT_ROOT / "scripts/data/deduplicate_dataset.py"
         assert script_path.exists(), "deduplicate_dataset.py should exist"
         assert os.access(script_path, os.X_OK), "deduplicate_dataset.py should be executable"
 
@@ -51,7 +54,7 @@ class TestDeduplicationLogic:
 
         # Import and use deduplication function
         import sys
-        sys.path.insert(0, "/Users/felipe_gonzalez/Developer/raycast_ext/scripts/data")
+        sys.path.insert(0, str(PROJECT_ROOT / "scripts/data"))
         from deduplicate_dataset import deduplicate_by_input
 
         result = deduplicate_by_input(sample_data)
@@ -93,7 +96,7 @@ class TestDeduplicationLogic:
         ]
 
         import sys
-        sys.path.insert(0, "/Users/felipe_gonzalez/Developer/raycast_ext/scripts/data")
+        sys.path.insert(0, str(PROJECT_ROOT / "scripts/data"))
         from deduplicate_dataset import deduplicate_by_input
 
         result = deduplicate_by_input(sample_data)
@@ -109,7 +112,7 @@ class TestDeduplicatedDataset:
 
     def test_deduped_dataset_was_created(self):
         """Verify that deduped file exists and has no duplicate inputs."""
-        deduped_path = Path("/Users/felipe_gonzalez/Developer/raycast_ext/datasets/exports/merged-trainset-deduped.json")
+        deduped_path = PROJECT_ROOT / "datasets/exports/merged-trainset-deduped.json"
 
         assert deduped_path.exists(), "Deduplicated dataset should exist"
 
@@ -137,7 +140,7 @@ class TestDeduplicatedDataset:
 
     def test_deduped_dataset_structure_valid(self):
         """Verify that deduplicated examples have valid DSPy structure."""
-        deduped_path = Path("/Users/felipe_gonzalez/Developer/raycast_ext/datasets/exports/merged-trainset-deduped.json")
+        deduped_path = PROJECT_ROOT / "datasets/exports/merged-trainset-deduped.json"
 
         with open(deduped_path, 'r') as f:
             data = json.load(f)
@@ -160,7 +163,7 @@ class TestValidationScriptFunctions:
     def test_validate_structure(self):
         """Test validate_structure function."""
         import sys
-        sys.path.insert(0, "/Users/felipe_gonzalez/Developer/raycast_ext/scripts/data")
+        sys.path.insert(0, str(PROJECT_ROOT / "scripts/data"))
         from validate_datasets import validate_structure
 
         # Valid data
@@ -181,7 +184,7 @@ class TestValidationScriptFunctions:
         """Test analyze_duplicates function."""
         import sys
         import json
-        sys.path.insert(0, "/Users/felipe_gonzalez/Developer/raycast_ext/scripts/data")
+        sys.path.insert(0, str(PROJECT_ROOT / "scripts/data"))
         from validate_datasets import analyze_duplicates
 
         data = [
