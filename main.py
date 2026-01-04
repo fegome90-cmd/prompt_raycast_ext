@@ -80,6 +80,7 @@ async def lifespan(app: FastAPI):
     yield
 
     logger.info("Shutting down DSPy backend...")
+    await container.shutdown()
 
 
 # Create FastAPI app
