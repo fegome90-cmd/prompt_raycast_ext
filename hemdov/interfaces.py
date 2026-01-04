@@ -20,11 +20,11 @@ class Container:
         self._factories: Dict[Type, Callable] = {}
         self._cleanup_hooks: List[Callable] = []
 
-    def register(self, interface: Type[T], implementation: T):
+    def register(self, interface: Type[T], implementation: T) -> None:
         """Register a service implementation."""
         self._services[interface] = implementation
 
-    def register_factory(self, interface: Type[T], factory: Callable[[], T]):
+    def register_factory(self, interface: Type[T], factory: Callable[[], T]) -> None:
         """Register factory function for lazy initialization."""
         self._factories[interface] = factory
 
