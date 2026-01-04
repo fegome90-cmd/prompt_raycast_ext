@@ -36,6 +36,8 @@ class SQLitePromptRepository(PromptRepository):
         if self._connection is None:
             self.db_path.parent.mkdir(parents=True, exist_ok=True)
             self._connection = await aiosqlite.connect(self.db_path)
+            # Set row_factory to access columns by name
+            self._connection.row_factory = aiosqlite.Row
             await self._configure_connection(self._connection)
         return self._connection
 
