@@ -5,7 +5,7 @@
  * Source: docs/research/prompt-engineering-investigation.md
  */
 
-import fetch from "node-fetch";
+import { fetchWithTimeout } from "./fetchWrapper";
 
 export interface OllamaMessage {
   role: "system" | "user" | "assistant";
@@ -62,22 +62,17 @@ export async function callOllamaChat(
     temperature,
   };
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
   try {
     const url = new URL("/api/chat", baseUrl).toString();
 
-    const response = await fetch(url, {
+    const response = await fetchWithTimeout(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(requestBody),
-      signal: controller.signal,
+      timeout: timeoutMs,
     });
-
-    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -96,12 +91,7 @@ export async function callOllamaChat(
 
     return data.message.content;
   } catch (error) {
-    clearTimeout(timeoutId);
-
     if (error instanceof Error) {
-      if (error.name === "AbortError") {
-        throw new Error(`Ollama request timed out after ${timeoutMs}ms`);
-      }
       throw error;
     }
 
@@ -116,18 +106,13 @@ export async function ollamaHealthCheckChat(options: {
   baseUrl: string;
   timeoutMs: number;
 }): Promise<{ ok: boolean; error?: string }> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), options.timeoutMs);
-
   try {
     const url = new URL("/api/tags", options.baseUrl).toString();
 
-    const response = await fetch(url, {
+    const response = await fetchWithTimeout(url, {
       method: "GET",
-      signal: controller.signal,
+      timeout: options.timeoutMs,
     });
-
-    clearTimeout(timeoutId);
 
     if (!response.ok) {
       return {
@@ -138,12 +123,10 @@ export async function ollamaHealthCheckChat(options: {
 
     return { ok: true };
   } catch (error) {
-    clearTimeout(timeoutId);
-
     if (error instanceof Error) {
       return {
         ok: false,
-        error: error.name === "AbortError" ? "Timeout" : error.message,
+        error: error.message,
       };
     }
 
