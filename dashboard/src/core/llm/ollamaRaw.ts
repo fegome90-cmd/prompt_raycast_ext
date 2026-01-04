@@ -3,7 +3,7 @@
  * Foundation for structured extraction and telemetría
  */
 
-import fetch from "node-fetch";
+import { fetchWithTimeout } from "./fetchWrapper";
 
 export interface OllamaRawResponse {
   raw: string;
@@ -26,16 +26,14 @@ export type OllamaTransport = (req: OllamaRawRequest) => Promise<OllamaRawRespon
  * Production transport using fetch
  */
 export async function fetchTransport(req: OllamaRawRequest): Promise<OllamaRawResponse> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), req.timeoutMs);
   const start = Date.now();
 
   try {
     const url = new URL("/api/generate", req.baseUrl).toString();
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      signal: controller.signal,
+      timeout: req.timeoutMs,
       body: JSON.stringify({
         model: req.model,
         prompt: req.prompt,
@@ -69,8 +67,6 @@ export async function fetchTransport(req: OllamaRawRequest): Promise<OllamaRawRe
       }
     }
     throw error;
-  } finally {
-    clearTimeout(timeout);
   }
 }
 
