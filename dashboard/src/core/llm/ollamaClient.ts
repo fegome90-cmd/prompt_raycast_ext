@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import { fetchWithTimeout } from "./fetchWrapper";
 
 export type OllamaGenerateRequest = {
   baseUrl: string;
@@ -41,31 +41,25 @@ export async function ollamaHealthCheck(args: {
   baseUrl: string;
   timeoutMs: number;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), args.timeoutMs);
-
   try {
     const url = new URL("/api/version", args.baseUrl).toString();
-    const res = await fetch(url, { method: "GET", signal: controller.signal });
+    const res = await fetchWithTimeout(url, {
+      method: "GET",
+      timeout: args.timeoutMs
+    });
     if (!res.ok) return { ok: false, error: `HTTP ${res.status} ${res.statusText}` };
     const data = (await res.json()) as Partial<OllamaVersionResponse>;
     if (!data.version) return { ok: false, error: "Unexpected response from Ollama" };
     return { ok: true };
   } catch (e) {
-    if (e instanceof Error && e.name === "AbortError") return { ok: false, error: `Timeout after ${args.timeoutMs}ms` };
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
-  } finally {
-    clearTimeout(timeout);
   }
 }
 
 export async function ollamaGenerateJson(request: OllamaGenerateRequest): Promise<unknown> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), request.timeoutMs);
-
   try {
     const url = new URL("/api/generate", request.baseUrl).toString();
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -74,7 +68,7 @@ export async function ollamaGenerateJson(request: OllamaGenerateRequest): Promis
         stream: false,
         format: request.schema,
       }),
-      signal: controller.signal,
+      timeout: request.timeoutMs,
     });
 
     if (!res.ok) {
@@ -93,22 +87,14 @@ export async function ollamaGenerateJson(request: OllamaGenerateRequest): Promis
     }
   } catch (e) {
     if (e instanceof OllamaError) throw e;
-    if (e instanceof Error && e.name === "AbortError") {
-      throw new OllamaError(`Ollama request timed out after ${request.timeoutMs}ms`, e);
-    }
     throw new OllamaError("Failed calling Ollama (is it running at the configured URL?)", e);
-  } finally {
-    clearTimeout(timeout);
   }
 }
 
 export async function ollamaGenerateText(request: OllamaGenerateTextRequest): Promise<string> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), request.timeoutMs);
-
   try {
     const url = new URL("/api/generate", request.baseUrl).toString();
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -118,7 +104,7 @@ export async function ollamaGenerateText(request: OllamaGenerateTextRequest): Pr
         stream: false,
         options: request.temperature === undefined ? undefined : { temperature: request.temperature },
       }),
-      signal: controller.signal,
+      timeout: request.timeoutMs,
     });
 
     if (!res.ok) {
@@ -132,11 +118,6 @@ export async function ollamaGenerateText(request: OllamaGenerateTextRequest): Pr
     return raw;
   } catch (e) {
     if (e instanceof OllamaError) throw e;
-    if (e instanceof Error && e.name === "AbortError") {
-      throw new OllamaError(`Ollama request timed out after ${request.timeoutMs}ms`, e);
-    }
     throw new OllamaError("Failed calling Ollama (is it running at the configured URL?)", e);
-  } finally {
-    clearTimeout(timeout);
   }
 }
