@@ -68,7 +68,7 @@ ConfigProvider (inyectado) → PromptEngine → CLI/MCP/Raycast
 
 | Función | Líneas | Dependencias externas |
 |---------|--------|----------------------|
-| `fetchTransport()` | 27-71 | Solo `node-fetch` (HTTP client genérico) |
+| `fetchTransport()` | 27-71 | Native fetch (Node 18+) (migrated from node-fetch@3.2.10 on 2026-01-04) |
 | `makeOllamaGenerateRaw()` | 76-79 | Ninguna |
 
 #### `ollamaStructured.ts` (95% movible a core/)

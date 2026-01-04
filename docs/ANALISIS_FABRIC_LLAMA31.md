@@ -20,7 +20,7 @@
 | **Motor LLM** | Ollama (local) | Dato no disponible | package.json:3 |
 | **Validación** | Zod | 3.24.1 | package.json:83 |
 | **Testing** | Vitest | 1.6.0 | package.json:94 |
-| **HTTP Client** | node-fetch | 3.2.10 | package.json:82 |
+| **HTTP Client** | Native fetch (Node 18+) | Built-in | N/A (formerly node-fetch@3.2.10, removed 2026-01-04) |
 | **Build Tool** | Ray CLI | Dato no disponible | package.json:97 |
 
 **Modelos configurados actualmente:**

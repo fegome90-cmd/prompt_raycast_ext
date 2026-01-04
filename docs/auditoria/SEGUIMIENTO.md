@@ -146,3 +146,31 @@ npm run eval -- --dataset testdata/cases.jsonl --output eval/test.json
 - ✅ Test de variabilidad: 100% éxito JSON, 0% fallos
 - ✅ Evaluación completa: 3/4 quality gates PASSED
 - ✅ **CRT-04: COMPLETADO** - Problema CRT-03 resuelto
+
+---
+
+### 2026-01-04 - Optimización Anthropic Haiku 4.5
+- ✅ **Anthropic Claude Support Agregado** - Haiku 4.5, Sonnet 4.5, Opus 4
+- ✅ Adapter creado: `create_anthropic_adapter()` con api_base forzado
+- ✅ Configuración actualizada: `HEMDOV_ANTHROPIC_API_KEY` soportada
+- ✅ **A/B Test: Haiku 4.5 vs Sonnet 4.5** - Script creado en `scripts/eval/ab_test_haiku_sonnet.py`
+- ✅ **Haiku 4.5 seleccionado como default** - 7.2s latencia vs 8.7s Sonnet
+- ✅ **Análisis de costos completado**: $0.0035/prompt (Haiku) vs $0.000635/prompt (DeepSeek)
+- ✅ **Documentación actualizada**:
+  - `docs/plans/2026-01-04-anthropic-haiku-optimization.md` - Plan completo creado
+  - `docs/backend/quickstart.md` - Actualizado con Haiku 4.5 como default
+  - `.env.example` - Reescrito con todos los modelos Claude y precios
+
+**Conclusiones:**
+- Haiku 4.5 es **3.5x más rápido** que DeepSeek (7.2s vs 25.1s)
+- Mismo nivel de calidad (0.92 confidence) que Sonnet 4.5
+- Para uso moderado (<1000 prompts/mes), costo es despreciable
+- **Recomendación:** Mantener Haiku 4.5 como default para óptima UX
+
+**Archivos modificados:**
+- `main.py` - Added anthropic to DEFAULT_TEMPERATURE and lifespan
+- `hemdov/infrastructure/adapters/litellm_dspy_adapter_prompt.py` - Added create_anthropic_adapter()
+- `hemdov/infrastructure/config/__init__.py` - Added HEMDOV_ANTHROPIC_API_KEY
+- `.env` - Updated with Haiku 4.5 configuration
+- `.env.example` - Complete rewrite with all Claude models documented
+- `docs/backend/quickstart.md` - Updated for Anthropic/Haiku 4.5
