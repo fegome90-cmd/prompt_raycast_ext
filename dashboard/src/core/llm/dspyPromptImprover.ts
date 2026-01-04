@@ -5,23 +5,7 @@
  * enhanced prompt improvement capabilities following HemDov patterns.
  */
 
-declare global {
-  namespace NodeJS {
-    interface RequestInit {
-      headers?: Record<string, string>;
-      method?: string;
-      body?: string;
-      signal?: AbortSignal;
-    }
-  }
-
-  function fetch(url: string, init?: NodeJS.RequestInit): Promise<{
-    ok: boolean;
-    status: number;
-    statusText: string;
-    json(): Promise<any>;
-  }>;
-}
+import { fetchWithTimeout } from "./fetchWrapper";
 
 export interface DSPyPromptImproverRequest {
   idea: string;
@@ -57,7 +41,7 @@ export class DSPyPromptImproverClient {
    * Improve a raw idea using DSPy backend
    */
   async improvePrompt(request: DSPyPromptImproverRequest): Promise<DSPyPromptImproverResponse> {
-    const response = await fetch(`${this.config.baseUrl}/api/v1/improve-prompt`, {
+    const response = await fetchWithTimeout(`${this.config.baseUrl}/api/v1/improve-prompt`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -66,7 +50,7 @@ export class DSPyPromptImproverClient {
         idea: request.idea,
         context: request.context || ''
       }),
-      signal: AbortSignal.timeout(this.config.timeoutMs)
+      timeout: this.config.timeoutMs
     });
 
     if (!response.ok) {
@@ -86,9 +70,9 @@ export class DSPyPromptImproverClient {
     model: string;
     dspy_configured: boolean;
   }> {
-    const response = await fetch(`${this.config.baseUrl}/health`, {
+    const response = await fetchWithTimeout(`${this.config.baseUrl}/health`, {
       method: 'GET',
-      signal: AbortSignal.timeout(5000)
+      timeout: 5000
     });
 
     if (!response.ok) {
@@ -106,9 +90,9 @@ export class DSPyPromptImproverClient {
     version: string;
     endpoints: Record<string, string>;
   }> {
-    const response = await fetch(`${this.config.baseUrl}/`, {
+    const response = await fetchWithTimeout(`${this.config.baseUrl}/`, {
       method: 'GET',
-      signal: AbortSignal.timeout(5000)
+      timeout: 5000
     });
 
     if (!response.ok) {
