@@ -52,25 +52,6 @@ class PromptHistory:
         if not self.improved_prompt or not self.improved_prompt.strip():
             raise ValueError("improved_prompt cannot be empty")
 
-        # Validate framework is allowed value (case-insensitive)
-        allowed_frameworks = {
-            "chain-of-thought",
-            "tree-of-thoughts",
-            "decomposition",
-            "role-playing"
-        }
-        # Normalize framework to lowercase for comparison
-        framework_normalized = self.framework.lower().strip()
-        # Check if any allowed framework is contained in the framework string
-        is_valid_framework = any(
-            fw in framework_normalized
-            for fw in allowed_frameworks
-        )
-        if not is_valid_framework:
-            # Allow any framework if it doesn't match known ones
-            # This prevents validation errors from breaking persistence
-            pass
-
         # Validate guardrails is not empty
         if not self.guardrails:
             raise ValueError("guardrails cannot be empty")

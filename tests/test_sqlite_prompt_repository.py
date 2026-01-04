@@ -487,3 +487,28 @@ async def test_find_by_id_with_corrupted_guardrails_json(repository: SQLitePromp
     assert result is not None
     assert result.guardrails == ["[data corrupted - unavailable]"]  # Safe default
     assert result.original_idea == "test idea"
+
+
+@pytest.mark.asyncio
+async def test_invalid_framework_allowed(repository: SQLitePromptRepository):
+    """Test that invalid framework names are accepted (dead code)."""
+    # This should raise ValueError if validation worked, but it doesn't
+    entity = PromptHistory(
+        original_idea="test",
+        context="context",
+        improved_prompt="improved",
+        role="role",
+        directive="directive",
+        framework="completely-invalid-framework-name",  # Invalid framework
+        guardrails=["guardrail"],
+        backend="backend",
+        model="model",
+        provider="provider"
+    )
+
+    # Test passes because validation is dead (doesn't actually validate)
+    assert entity.framework == "completely-invalid-framework-name"
+
+    # Should be able to save to database without error
+    history_id = await repository.save(entity)
+    assert history_id > 0
