@@ -8,11 +8,50 @@ Supports both zero-shot and few-shot modes.
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 import dspy
+import time
+import logging
+from typing import Optional
 
 from eval.src.dspy_prompt_improver import PromptImprover
+from hemdov.interfaces import container
 from hemdov.infrastructure.config import Settings
+from hemdov.domain.entities.prompt_history import PromptHistory
+from hemdov.domain.repositories.prompt_repository import PromptRepository
+from hemdov.infrastructure.persistence.sqlite_prompt_repository import SQLitePromptRepository
+from api.circuit_breaker import CircuitBreaker
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1", tags=["prompts"])
+
+# Circuit breaker instance
+_circuit_breaker = CircuitBreaker(max_failures=5, timeout_seconds=300)
+
+# Repository getter with circuit breaker
+async def get_repository(settings: Settings) -> Optional[PromptRepository]:
+    """Get repository instance with circuit breaker protection."""
+    if not settings.SQLITE_ENABLED:
+        return None
+
+    if not await _circuit_breaker.should_attempt():
+        return None
+
+    # Get or create repository from container
+    try:
+        return container.get(PromptRepository)
+    except ValueError:
+        # Not registered, register it now
+        repo = SQLitePromptRepository(settings)
+        container.register(PromptRepository, repo)
+
+        # Register cleanup hook
+        async def cleanup():
+            await repo.close()
+
+        container._cleanup_hooks.append(cleanup)
+
+        return repo
+
 
 
 class ImprovePromptRequest(BaseModel):
@@ -107,8 +146,6 @@ async def improve_prompt(request: ImprovePromptRequest):
         )
 
     # Get module
-    from hemdov.interfaces import container
-
     settings = container.get(Settings)
 
     # Use few-shot if enabled
@@ -119,11 +156,18 @@ async def improve_prompt(request: ImprovePromptRequest):
         improver = get_prompt_improver(settings)
         backend = "zero-shot"
 
+    # Start timer for latency
+    start_time = time.time()
+
     # Improve prompt
     try:
         result = improver(original_idea=request.idea, context=request.context)
 
-        return ImprovePromptResponse(
+        # Calculate latency
+        latency_ms = int((time.time() - start_time) * 1000)
+
+        # Build response
+        response = ImprovePromptResponse(
             improved_prompt=result.improved_prompt,
             role=result.role,
             directive=result.directive,
@@ -136,7 +180,81 @@ async def improve_prompt(request: ImprovePromptRequest):
             backend=backend,
         )
 
+        # Save history asynchronously (non-blocking)
+        await _save_history_async(
+            settings=settings,
+            original_idea=request.idea,
+            context=request.context,
+            result=result,
+            backend=backend,
+            latency_ms=latency_ms
+        )
+
+        return response
+
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Prompt improvement failed: {str(e)}"
         )
+
+
+async def _save_history_async(
+    settings: Settings,
+    original_idea: str,
+    context: str,
+    result,
+    backend: str,
+    latency_ms: int
+):
+    """
+    Save prompt improvement history to SQLite with circuit breaker protection.
+
+    Non-blocking async function that logs errors without failing the request.
+    """
+    try:
+        # Get repository with circuit breaker
+        repo = await get_repository(settings)
+        if repo is None:
+            logger.debug("Persistence disabled or circuit breaker open")
+            return
+
+        # Extract model and provider from settings
+        model = settings.LLM_MODEL
+        provider = settings.LLM_PROVIDER
+
+        # Convert guardrails to list if it's a string
+        guardrails_list = (
+            result.guardrails.split("\n")
+            if isinstance(result.guardrails, str)
+            else result.guardrails
+        )
+
+        # Create PromptHistory entity
+        history = PromptHistory(
+            original_idea=original_idea,
+            context=context,
+            improved_prompt=result.improved_prompt,
+            role=result.role,
+            directive=result.directive,
+            framework=result.framework,
+            guardrails=guardrails_list,
+            backend=backend,
+            model=model,
+            provider=provider,
+            reasoning=getattr(result, "reasoning", None),
+            confidence=getattr(result, "confidence", None),
+            latency_ms=latency_ms
+        )
+
+        # Save to database
+        await repo.save(history)
+
+        # Record success on circuit breaker
+        await _circuit_breaker.record_success()
+        logger.info(f"Saved prompt history to database (latency: {latency_ms}ms)")
+
+    except Exception as e:
+        # Record failure on circuit breaker
+        await _circuit_breaker.record_failure()
+        logger.error(f"Failed to save prompt history: {e}", exc_info=True)
+
