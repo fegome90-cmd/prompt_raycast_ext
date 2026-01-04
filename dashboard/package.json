@@ -87,7 +87,7 @@
           "description": "Timeout for Ollama calls",
           "type": "text",
           "required": false,
-          "default": "30000",
+          "default": "60000",
           "title": "Timeout (ms)"
         }
       ]
@@ -95,7 +95,6 @@
   ],
   "dependencies": {
     "@raycast/api": "latest",
-    "node-fetch": "^3.2.10",
     "zod": "^3.24.1"
   },
   "devDependencies": {
