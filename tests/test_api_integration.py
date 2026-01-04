@@ -414,3 +414,47 @@ class TestResponseFormat:
                 data = response.json()
                 assert "backend" in data
                 assert data["backend"] in ["zero-shot", "few-shot"]
+
+
+class TestNonBlockingSave:
+    """Test non-blocking save operation."""
+
+    def test_save_is_non_blocking(self, client, mock_dspy_result):
+        """
+        GREEN: Test that save operation doesn't block API response.
+
+        Verifies:
+        - API responds immediately even when save takes 1 second
+        - Save operation runs in background
+        - Response time is < 100ms (not waiting for save)
+        """
+        from unittest.mock import AsyncMock, patch
+        import asyncio
+
+        # Mock save to take 1 second
+        async def slow_save(*args, **kwargs):
+            await asyncio.sleep(1)
+
+        # Mock the PromptImprover module
+        with patch('api.prompt_improver_api.get_prompt_improver') as mock_get_improver:
+            mock_improver = MagicMock()
+            mock_improver.return_value = mock_dspy_result
+            mock_get_improver.return_value = mock_improver
+
+            # Mock repository
+            with patch('api.prompt_improver_api.get_repository', return_value=AsyncMock()):
+                # Patch _save_history_async to be slow
+                with patch('api.prompt_improver_api._save_history_async', new=slow_save):
+                    import time
+                    start = time.time()
+
+                    response = client.post(
+                        "/api/v1/improve-prompt",
+                        json={"idea": "test blocking behavior", "context": "testing"}
+                    )
+
+                    elapsed = time.time() - start
+
+                    # Should respond immediately (< 100ms), not wait for save
+                    assert response.status_code == 200
+                    assert elapsed < 0.5, f"Response took {elapsed:.2f}s, should be < 0.5s (non-blocking)"

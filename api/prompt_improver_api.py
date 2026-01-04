@@ -10,6 +10,7 @@ from pydantic import BaseModel
 import dspy
 import time
 import logging
+import asyncio
 from typing import Optional
 
 from eval.src.dspy_prompt_improver import PromptImprover
@@ -181,14 +182,14 @@ async def improve_prompt(request: ImprovePromptRequest):
         )
 
         # Save history asynchronously (non-blocking)
-        await _save_history_async(
+        asyncio.create_task(_save_history_async(
             settings=settings,
             original_idea=request.idea,
             context=request.context,
             result=result,
             backend=backend,
             latency_ms=latency_ms
-        )
+        ))
 
         return response
 
