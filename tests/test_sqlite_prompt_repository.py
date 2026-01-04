@@ -458,3 +458,32 @@ async def test_get_statistics(repository: SQLitePromptRepository):
     assert "few-shot" in stats["backend_distribution"]
     assert stats["backend_distribution"]["zero-shot"] == 3
     assert stats["backend_distribution"]["few-shot"] == 2
+
+
+@pytest.mark.asyncio
+async def test_find_by_id_with_corrupted_guardrails_json(repository: SQLitePromptRepository):
+    """Test reading record with malformed JSON returns safe default."""
+    import aiosqlite
+
+    # Get the repository's connection to ensure table exists
+    conn = await repository._get_connection()
+
+    # Insert record with invalid JSON in guardrails
+    await conn.execute(
+        "INSERT INTO prompt_history "
+        "(original_idea, context, improved_prompt, role, directive, framework, guardrails, "
+        "reasoning, confidence, backend, model, provider, latency_ms, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        ("test idea", "context", "improved", "role", "directive", "framework",
+         "{invalid json",  # Malformed JSON
+         None, 0.9, "backend", "model", "provider", 100,
+         datetime.now().isoformat())
+    )
+    await conn.commit()
+
+    # Should not crash, should return fallback value for guardrails
+    result = await repository.find_by_id(1)
+
+    assert result is not None
+    assert result.guardrails == ["[data corrupted - unavailable]"]  # Safe default
+    assert result.original_idea == "test idea"

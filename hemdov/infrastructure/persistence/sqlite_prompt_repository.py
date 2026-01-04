@@ -210,6 +210,14 @@ class SQLitePromptRepository(PromptRepository):
 
     def _row_to_entity(self, row) -> PromptHistory:
         """Convert database row to PromptHistory entity."""
+        # Safely parse JSON, fallback to safe default on corruption
+        try:
+            guardrails = json.loads(row["guardrails"])
+        except (json.JSONDecodeError, TypeError):
+            logger.warning(f"Invalid JSON in guardrails for record {row['id']}, using fallback value")
+            # Use fallback that won't trigger validation error but indicates data issue
+            guardrails = ["[data corrupted - unavailable]"]
+
         return PromptHistory(
             original_idea=row["original_idea"],
             context=row["context"] or "",
@@ -217,7 +225,7 @@ class SQLitePromptRepository(PromptRepository):
             role=row["role"],
             directive=row["directive"],
             framework=row["framework"],
-            guardrails=json.loads(row["guardrails"]),
+            guardrails=guardrails,
             reasoning=row["reasoning"],
             confidence=row["confidence"],
             backend=row["backend"],
