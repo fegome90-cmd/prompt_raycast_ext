@@ -38,7 +38,13 @@ class SQLitePromptRepository(PromptRepository):
             self._connection = await aiosqlite.connect(self.db_path)
             # Set row_factory to access columns by name
             self._connection.row_factory = aiosqlite.Row
-            await self._configure_connection(self._connection)
+            try:
+                await self._configure_connection(self._connection)
+            except Exception:
+                # Clean up connection if configure fails
+                await self._connection.close()
+                self._connection = None
+                raise
         return self._connection
 
     async def _configure_connection(self, conn: aiosqlite.Connection):

@@ -512,3 +512,57 @@ async def test_invalid_framework_allowed(repository: SQLitePromptRepository):
     # Should be able to save to database without error
     history_id = await repository.save(entity)
     assert history_id > 0
+
+
+@pytest.mark.asyncio
+async def test_normal_connection_lifecycle():
+    """Test that normal connection lifecycle works correctly."""
+    # Create a temp directory with invalid permissions to trigger failure
+    # Use a readonly parent directory trick
+    import tempfile
+    from pathlib import Path
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Create settings pointing to valid path
+        settings = Settings(
+            SQLITE_ENABLED=True,
+            SQLITE_DB_PATH=str(Path(tmpdir) / "test.db"),
+            SQLITE_WAL_MODE=True,
+        )
+        repo = SQLitePromptRepository(settings)
+
+        # This should succeed and create connection
+        conn = await repo._get_connection()
+        assert conn is not None
+        assert repo._connection is not None
+
+        # Close connection
+        await repo.close()
+        assert repo._connection is None
+
+
+@pytest.mark.asyncio
+async def test_init_handles_connection_failure_gracefully():
+    """Test that connection failure is handled without leaking."""
+    from unittest.mock import AsyncMock, patch
+
+    settings = Settings(
+        SQLITE_ENABLED=True,
+        SQLITE_DB_PATH=":memory:",
+        SQLITE_WAL_MODE=True,
+    )
+    repo = SQLitePromptRepository(settings)
+
+    # Mock _configure_connection to raise an error
+    # This simulates a failure during configuration AFTER connection is created
+    with patch.object(
+        repo,
+        '_configure_connection',
+        new=AsyncMock(side_effect=RuntimeError("Simulated configure failure"))
+    ):
+        with pytest.raises(RuntimeError, match="Simulated configure failure"):
+            await repo._get_connection()
+
+    # Connection should be None after failure (no leak)
+    # Currently this FAILS because connection is not cleaned up
+    assert repo._connection is None, "Connection should be None after configure failure"
