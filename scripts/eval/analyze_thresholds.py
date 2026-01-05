@@ -31,7 +31,7 @@ def analyze_thresholds(results: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         Dictionary with threshold recommendations
     """
-    total = results["total_evaluated"]
+    total = results.get("total_evaluated", 0)
     if total == 0:
         return {"error": "No data to analyze"}
 
@@ -50,7 +50,7 @@ def analyze_thresholds(results: Dict[str, Any]) -> Dict[str, Any]:
             recommendations[gate_name] = {
                 "issue": "high_fail_rate",
                 "current_rate": fail_rate,
-                "recommendation": _get_threshold_recommendation(gate_name, "lower"),
+                "recommendation": _get_threshold_recommendation(gate_name, "more_lenient"),
                 "current_threshold": _get_current_threshold(gate_name)
             }
 
@@ -81,25 +81,33 @@ def _get_gate_metric_keys(metric_type: str) -> List[str]:
 
 
 def _get_threshold_recommendation(gate_name: str, direction: str) -> str:
-    """Get specific threshold recommendation for a gate."""
+    """Get specific threshold recommendation for a gate.
+
+    Args:
+        gate_name: Name of the gate (e.g., "A1_filler")
+        direction: "more_lenient" (reduce false positives) or "more_strict" (reduce false negatives)
+
+    Returns:
+        Human-readable recommendation string
+    """
     thresholds = GateThresholds()
 
     recommendations = {
         "A1_filler": {
-            "lower": f"Reduce A1_MAX_FILLER_COUNT from {thresholds.A1_MAX_FILLER_COUNT} to {thresholds.A1_MAX_FILLER_COUNT + 1}",
-            "raise": f"Increase A1_MAX_FILLER_COUNT to catch more fillers"
+            "more_lenient": f"Increase A1_MAX_FILLER_COUNT from {thresholds.A1_MAX_FILLER_COUNT} to {thresholds.A1_MAX_FILLER_COUNT + 1} (allows more filler words)",
+            "more_strict": f"Decrease A1_MAX_FILLER_COUNT from {thresholds.A1_MAX_FILLER_COUNT} to {max(0, thresholds.A1_MAX_FILLER_COUNT - 1)} (catches more filler words)"
         },
         "P1_steps": {
-            "lower": f"Increase P1_MAX_EMPTY_STEP_RATIO from {thresholds.P1_MAX_EMPTY_STEP_RATIO} to {thresholds.P1_MAX_EMPTY_STEP_RATIO + 0.1}",
-            "raise": f"Decrease P1_MIN_NON_TRIVIAL_TOKENS to be less strict"
+            "more_lenient": f"Increase P1_MAX_EMPTY_STEP_RATIO from {thresholds.P1_MAX_EMPTY_STEP_RATIO} to {thresholds.P1_MAX_EMPTY_STEP_RATIO + 0.1} (allows more empty steps)",
+            "more_strict": f"Decrease P1_MAX_EMPTY_STEP_RATIO from {thresholds.P1_MAX_EMPTY_STEP_RATIO} to {max(0.0, thresholds.P1_MAX_EMPTY_STEP_RATIO - 0.1)} (requires more substantive steps)"
         },
         "C1_specific": {
-            "lower": f"Increase C1_MAX_GENERIC_RATIO from {thresholds.C1_MAX_GENERIC_RATIO} to {thresholds.C1_MAX_GENERIC_RATIO + 0.1}",
-            "raise": "Decrease C1_MIN_NON_TRIVIAL_TOKENS"
+            "more_lenient": f"Increase C1_MAX_GENERIC_RATIO from {thresholds.C1_MAX_GENERIC_RATIO} to {thresholds.C1_MAX_GENERIC_RATIO + 0.1} (allows more generic phrases)",
+            "more_strict": f"Decrease C1_MAX_GENERIC_RATIO from {thresholds.C1_MAX_GENERIC_RATIO} to {max(0.0, thresholds.C1_MAX_GENERIC_RATIO - 0.1)} (requires more specific content)"
         },
         "E1_code": {
-            "lower": f"Decrease E1_MIN_CODE_LINES from {thresholds.E1_MIN_CODE_LINES} to {max(1, thresholds.E1_MIN_CODE_LINES - 1)}",
-            "raise": f"Increase E1_MIN_CODE_LINES to ensure more substantive code"
+            "more_lenient": f"Decrease E1_MIN_CODE_LINES from {thresholds.E1_MIN_CODE_LINES} to {max(1, thresholds.E1_MIN_CODE_LINES - 1)} (requires less code)",
+            "more_strict": f"Increase E1_MIN_CODE_LINES from {thresholds.E1_MIN_CODE_LINES} to {thresholds.E1_MIN_CODE_LINES + 1} (requires more substantive code)"
         }
     }
 
