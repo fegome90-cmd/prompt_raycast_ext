@@ -1,0 +1,12 @@
+{
+  "handles": [
+    "hwchase17/react",
+    "hwchase17/openai-functions",
+    "hwchase17/chat-thought-v2",
+    "rlm/rag-prompt"
+  ],
+  "metadata": {
+    "description": "Whitelist of LangChain Hub prompts to fetch for few-shot pool",
+    "last_updated": "2026-01-05"
+  }
+}
