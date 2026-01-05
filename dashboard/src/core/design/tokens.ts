@@ -29,10 +29,34 @@ const SEMANTIC = {
   info: "#60A5FA",     // Blue
 } as const;
 
+// Typography scale (for generated text/markdown)
+const TYPE = {
+  // Sizes (in points, follows 4px grid-ish)
+  xs: "11px",
+  sm: "12px",
+  base: "14px",
+  lg: "16px",
+  xl: "18px",
+  "2xl": "24px",
+  "3xl": "32px",
+
+  // Weights
+  normal: "400",
+  medium: "500",
+  semibold: "600",
+  bold: "700",
+
+  // Tracking (letter-spacing)
+  tight: "-0.02em",   // Headlines
+  standard: "0",      // Body
+  wide: "0.02em",     // Labels (uppercase)
+} as const;
+
 export const tokens = {
   accent: ACCENT,
   gray: GRAY,
   semantic: SEMANTIC,
+  type: TYPE,
 } as const;
 
 // Type exports for type-safe usage
