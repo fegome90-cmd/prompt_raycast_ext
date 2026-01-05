@@ -58,16 +58,12 @@ def load_validation_scores(path: Path) -> dict:
     for result in results:
         val_id = result['id']  # e.g., 'security_security_auth_001'
 
-        # Normalize: remove duplicate prefix if present
+        # Normalize: always remove first part
         # 'security_security_auth_001' → 'security_auth_001'
+        # 'architecture_arch_event_001' → 'arch_event_001'
+        # 'database_db_postgres_001' → 'db_postgres_001'
         parts = val_id.split('_')
-
-        # Check if first two parts are same (duplicate prefix)
-        if len(parts) >= 4 and parts[0] == parts[1]:
-            # Remove duplicate: security_security_auth_001 → security_auth_001
-            normalized_id = '_'.join(parts[1:])
-        else:
-            normalized_id = val_id
+        normalized_id = '_'.join(parts[1:])  # Remove first part
 
         score = result['score']
         score_map[normalized_id] = score

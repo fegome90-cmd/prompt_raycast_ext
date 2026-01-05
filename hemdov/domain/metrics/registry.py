@@ -175,15 +175,17 @@ class MetricsRegistry:
         return self.definitions.get(metric_name)
 
     def is_acceptable(self, metric_name: str, value: float) -> bool:
-        """Check if metric value meets minimum threshold."""
-        threshold = self.get_threshold(metric_name)
-        definition = self.get_definition(metric_name)
-        higher_is_better = definition.higher_is_better if definition else True
+        """Check if metric value meets minimum threshold.
 
-        if higher_is_better:
-            return value >= threshold.min_acceptable
-        else:
-            return value <= threshold.min_acceptable
+        Note: This method expects normalized scores (0-1). For metrics where
+        'higher_is_better=False' (like latency), the raw value should be
+        converted to a score first (where higher score = better performance).
+        """
+        threshold = self.get_threshold(metric_name)
+
+        # For normalized scores (0-1), higher is always better
+        # Performance metrics invert raw values: low latency → high score
+        return value >= threshold.min_acceptable
 
     def get_grade(self, metric_name: str, value: float) -> MetricGrade:
         """Get letter grade for a metric value."""

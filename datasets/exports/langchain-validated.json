@@ -1,0 +1,63 @@
+{
+  "metadata": {
+    "total_validated": 2,
+    "total_passed": 2,
+    "total_failed": 0,
+    "avg_score": 0.8314999999999999,
+    "min_score": 0.7859999999999999,
+    "max_score": 0.877,
+    "min_threshold": 0.5
+  },
+  "candidates": [
+    {
+      "handle": "test1",
+      "name": "Test Agent 1",
+      "template": "You are a helpful assistant. Answer questions clearly and concisely. Use examples when appropriate. Avoid unnecessary details.",
+      "converted": {
+        "inputs": {
+          "original_idea": "AI Assistant agent using Chain-of-Thought",
+          "context": ""
+        },
+        "outputs": {
+          "improved_prompt": "You are a helpful assistant. Answer questions clearly and concisely. Use examples when appropriate. Avoid unnecessary details.",
+          "role": "helpful assistant",
+          "directive": "Answer questions clearly and concisely",
+          "framework": "Chain-of-Thought",
+          "guardrails": "Avoid unnecessary details"
+        },
+        "metadata": {
+          "source": "langchain-hub",
+          "source_handle": "test1",
+          "source_name": "Test Agent 1"
+        }
+      },
+      "validation_score": 0.7859999999999999,
+      "validation_passed": true
+    },
+    {
+      "handle": "test2",
+      "name": "Code Expert",
+      "template": "Act as a senior software engineer. Provide clean, well-documented code examples. Explain your reasoning step by step. Consider edge cases and error handling.",
+      "converted": {
+        "inputs": {
+          "original_idea": "Senior software engineer using Decomposition",
+          "context": ""
+        },
+        "outputs": {
+          "improved_prompt": "Act as a senior software engineer. Provide clean, well-documented code examples. Explain your reasoning step by step. Consider edge cases and error handling.",
+          "role": "senior software engineer",
+          "directive": "Provide clean code examples with explanations",
+          "framework": "Decomposition",
+          "guardrails": "Consider edge cases and error handling"
+        },
+        "metadata": {
+          "source": "langchain-hub",
+          "source_handle": "test2",
+          "source_name": "Code Expert"
+        }
+      },
+      "validation_score": 0.877,
+      "validation_passed": true
+    }
+  ]
+}

@@ -18,6 +18,15 @@ from typing import Dict, List, Any, Set
 from hashlib import sha256
 from datetime import datetime
 
+# Load environment variables from .env FIRST
+from dotenv import load_dotenv
+# Look for .env in project root (3 levels up from scripts/langchain/)
+project_root = Path(__file__).parent.parent.parent
+load_dotenv(project_root / ".env")
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent))
+
 # Import LangChain components
 from fetch_prompts import LangChainHubFetcher
 from convert_to_dspy_format import FormatConverter

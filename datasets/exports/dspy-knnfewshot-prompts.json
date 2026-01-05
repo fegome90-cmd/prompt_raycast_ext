@@ -1,0 +1,674 @@
+[
+  {
+    "input": "OAuth2 + OpenID Connect implementation\n\nContext: Enterprise web application with SSO requirements",
+    "output": "You are a Security Architect specializing in authentication systems.\n\n**Task**: Design and implement OAuth2 + OpenID Connect authentication flow\n\nLet's approach this step-by-step:\n\n1. **Analyze Requirements**\n   - Core requirements and constraints\n   - Success criteria\n   - Edge cases to consider\n\n2. **Design Solution**\n   - Architecture/pattern choice\n   - Justification with trade-offs\n   - Technology selection rationale\n\n3. **Implementation Plan**\n   - Step-by-step implementation\n   - Validation checkpoints\n   - Error handling strategy\n\n4. **Verification**\n   - Testing approach\n   - Success metrics\n   - Rollback plan\n\n**Context**: Enterprise web application with SSO requirements\n**Constraints**: - Follow OAuth2 RFC 6749 specification\n- Use PKCE for public clients\n- Implement token refresh mechanism\n- Store tokens securely (httpOnly cookies)\n\nProvide your reasoning for each step, then the final solution.",
+    "metadata": {
+      "role": "Security Architect",
+      "framework": "Chain-of-Thought",
+      "task_category": "Security",
+      "sub_category": "Authentication",
+      "domain": "authentication systems",
+      "complexity": "high",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "JWT validation middleware\n\nContext: Express.js API protecting routes with JWT",
+    "output": "You are a Backend Security Engineer specializing in API authentication.\n\n**Task**: Implement JWT validation middleware for Express.js\n\nBreak this down into manageable components:\n\n1. **Component 1**: Token extraction\n2. **Component 2**: Signature verification\n3. **Component 3**: Claims validation\n\nFor each component:\n- Define its responsibility\n- Identify dependencies\n- Specify validation criteria\n\n**Context**: Express.js API protecting routes with JWT\n**Constraints**: - Verify signature using secret or public key\n- Check token expiration\n- Extract and validate claims (roles, permissions)\n- Return 401 for invalid, 403 for missing claims\n\nExecute each component systematically, ensuring proper integration.",
+    "metadata": {
+      "role": "Backend Security Engineer",
+      "framework": "Decomposition",
+      "task_category": "Security",
+      "sub_category": "Authentication",
+      "domain": "API authentication",
+      "complexity": "medium",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "RBAC system design\n\nContext: SaaS platform requiring role-based permissions",
+    "output": "You are a Authorization Specialist with access to Permission checker, Role manager, asset ownership validator, Cache layer.\n\n**Task**: Design RBAC system with roles, permissions, and asset ownership\n\n**Process**: Use Thought-Action-Observation cycles\n\n**Thought 1**: Analyze the current situation\n**Action 1**: Choose the appropriate tool or action\n**Observation 1**: Review the result\n**Thought 2**: How does this change your understanding?\n**Action 2**: What's the next step?\n**Observation 2**: Continue iterating...\n\nContinue the Thought-Action-Observation cycle until the task is complete.\n\n**Available Tools**:\n- Permission checker, Role manager, asset ownership validator, Cache layer\n\n**Context**: SaaS platform requiring role-based permissions\n**Constraints**: - Support hierarchical roles\n- Allow custom permissions per resource\n- Implement permission inheritance\n- Fast storage permissions for performance\n\nBegin with your initial thought about the task.",
+    "metadata": {
+      "role": "Authorization Specialist",
+      "framework": "ReAct",
+      "task_category": "Security",
+      "sub_category": "Authorization",
+      "domain": "access control",
+      "complexity": "high",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "Input sanitization (XSS, SQLi)\n\nContext: REST API accepting user-generated content",
+    "output": "You are a Application Security Engineer specializing in input sanitization.\n\n**Task**: Implement input sanitization preventing XSS and SQL injection\n\nBreak this down into manageable components:\n\n1. **Component 1**: Input validation\n2. **Component 2**: SQL escaping\n3. **Component 3**: HTML sanitization\n\nFor each component:\n- Define its responsibility\n- Identify dependencies\n- Specify validation criteria\n\n**Context**: REST API accepting user-generated content\n**Constraints**: - Use parameterized queries for database\n- Escape HTML special characters\n- Validate and sanitize both query params and body\n- Implement length limits on fields\n\nExecute each component systematically, ensuring proper integration.",
+    "metadata": {
+      "role": "Application Security Engineer",
+      "framework": "Decomposition",
+      "task_category": "Security",
+      "sub_category": "Input Validation",
+      "domain": "input sanitization",
+      "complexity": "medium",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "Rate limiting implementation\n\nContext: Public API preventing abuse and DoS",
+    "output": "You are a API Security Specialist specializing in API protection.\n\n**Task**: Implement rate limiting with tiered limits and backoff\n\nLet's approach this step-by-step:\n\n1. **Analyze Requirements**\n   - Core requirements and constraints\n   - Success criteria\n   - Edge cases to consider\n\n2. **Design Solution**\n   - Architecture/pattern choice\n   - Justification with trade-offs\n   - Technology selection rationale\n\n3. **Implementation Plan**\n   - Step-by-step implementation\n   - Validation checkpoints\n   - Error handling strategy\n\n4. **Verification**\n   - Testing approach\n   - Success metrics\n   - Rollback plan\n\n**Context**: Public API preventing abuse and DoS\n**Constraints**: - Use sliding window algorithm\n- Implement exponential backoff\n- Support per-IP and per-user limits\n- Provide clear rate limit headers\n\nProvide your reasoning for each step, then the final solution.",
+    "metadata": {
+      "role": "API Security Specialist",
+      "framework": "Chain-of-Thought",
+      "task_category": "Security",
+      "sub_category": "Rate Limiting",
+      "domain": "API protection",
+      "complexity": "medium",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "API key management\n\nContext: Platform managing API keys for third-party developers",
+    "output": "You are a API Security Engineer with access to Key generator, Hash function, Database, Revocation manager.\n\n**Task**: Design API key generation, storage, and revocation system\n\n**Process**: Use Thought-Action-Observation cycles\n\n**Thought 1**: Analyze the current situation\n**Action 1**: Choose the appropriate tool or action\n**Observation 1**: Review the result\n**Thought 2**: How does this change your understanding?\n**Action 2**: What's the next step?\n**Observation 2**: Continue iterating...\n\nContinue the Thought-Action-Observation cycle until the task is complete.\n\n**Available Tools**:\n- Key generator, Hash function, Database, Withdrawal manager\n\n**Context**: Platform managing API keys for third-party developers\n**Constraints**: - Generate cryptographically secure keys\n- Hash keys before storage\n- Implement key scopes and permissions\n- Support key rotation and revocation\n\nBegin with your initial thought about the task.",
+    "metadata": {
+      "role": "API Security Engineer",
+      "framework": "ReAct",
+      "task_category": "Security",
+      "sub_category": "API Keys",
+      "domain": "API key management",
+      "complexity": "high",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "OWASP Top 10 mitigation\n\nContext: Web application security review",
+    "output": "You are a Security Engineer specializing in web security.\n\n**Task**: Implement mitigations for OWASP Top 10 vulnerabilities\n\nBreak this down into manageable components:\n\n1. **Component 1**: SQL injection prevention\n2. **Component 2**: XSS mitigation\n3. **Component 3**: CSRF protection\n\nFor each component:\n- Define its responsibility\n- Identify dependencies\n- Specify validation criteria\n\n**Context**: Web application security review\n**Constraints**: - Prevent SQL injection (parameterized queries)\n- Prevent XSS (output encoding)\n- Prevent CSRF (tokens)\n- Implement secure authentication (MFA)\n- Validate all inputs\n- Use HTTPS everywhere\n- Implement security headers\n\nExecute each component systematically, ensuring proper integration.",
+    "metadata": {
+      "role": "Security Engineer",
+      "framework": "Decomposition",
+      "task_category": "Security",
+      "sub_category": "Vulnerability Prevention",
+      "domain": "web security",
+      "complexity": "high",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "Secure headers (CORS, CSP, HSTS)\n\nContext: Production web application hardening",
+    "output": "You are a Web Security Specialist specializing in HTTP security.\n\n**Task**: Configure secure HTTP headers following best practices\n\n**Context**: Production web application hardening\n**Constraints**: - Set Content-Security-Policy to prevent XSS\n- Configure CORS for specific origins only\n- Enable HSTS with preload\n- Set X-Frame-Options to prevent clickjacking\n- Set X-Content-Type-Options: nosniff\n\nComplete this task following best practices for CORS, CSP, HSTS. Ensure:\n- Production-ready implementation\n- Proper error handling\n- Comprehensive validation\n- Clear documentation",
+    "metadata": {
+      "role": "Web Security Specialist",
+      "framework": "Zero-Shot",
+      "task_category": "Security",
+      "sub_category": "HTTP Security",
+      "domain": "HTTP security",
+      "complexity": "low",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "CSRF protection\n\nContext: State-changing web application",
+    "output": "You are a Security Engineer specializing in CSRF protection.\n\n**Task**: Implement CSRF protection for state-changing operations\n\nLet's approach this step-by-step:\n\n1. **Analyze Requirements**\n   - Core requirements and constraints\n   - Success criteria\n   - Edge cases to consider\n\n2. **Design Solution**\n   - Architecture/pattern choice\n   - Justification with trade-offs\n   - Technology selection rationale\n\n3. **Implementation Plan**\n   - Step-by-step implementation\n   - Validation checkpoints\n   - Error handling strategy\n\n4. **Verification**\n   - Testing approach\n   - Success metrics\n   - Rollback plan\n\n**Context**: State-changing web application\n**Constraints**: - Generate cryptographically secure tokens\n- Validate token on POST/PUT/DELETE\n- Bind token to user session\n- Implement token rotation\n\nProvide your reasoning for each step, then the final solution.",
+    "metadata": {
+      "role": "Security Engineer",
+      "framework": "Chain-of-Thought",
+      "task_category": "Security",
+      "sub_category": "CSRF",
+      "domain": "CSRF protection",
+      "complexity": "medium",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "Kubernetes multi-cluster deployment\n\nContext: Application deployment across multiple K8s clusters",
+    "output": "You are a DevOps Engineer specializing in container orchestration.\n\n**Task**: Design multi-cluster deployment strategy with service discovery\n\nLet's approach this step-by-step:\n\n1. **Analyze Requirements**\n   - Core requirements and constraints\n   - Success criteria\n   - Edge cases to consider\n\n2. **Design Solution**\n   - Architecture/pattern choice\n   - Justification with trade-offs\n   - Technology selection rationale\n\n3. **Implementation Plan**\n   - Step-by-step implementation\n   - Validation checkpoints\n   - Error handling strategy\n\n4. **Verification**\n   - Testing approach\n   - Success metrics\n   - Rollback plan\n\n**Context**: Application deployment across multiple K8s clusters\n**Constraints**: - Use Helm for packaging\n- Implement namespace isolation\n- Configure resource quotas\n- Set up health checks and liveness probes\n- Implement rolling updates with zero downtime\n\nProvide your reasoning for each step, then the final solution.",
+    "metadata": {
+      "role": "DevOps Engineer",
+      "framework": "Chain-of-Thought",
+      "task_category": "DevOps",
+      "sub_category": "Kubernetes",
+      "domain": "container orchestration",
+      "complexity": "high",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "Dockerfile multi-stage optimization\n\nContext: Node.js application production containerization",
+    "output": "You are a DevOps Engineer specializing in containerization.\n\n**Task**: Create optimized multi-phase Dockerfile for Node.js\n\nBreak this down into manageable components:\n\n1. **Component 1**: Base image stage\n2. **Component 2**: Dependencies stage\n3. **Component 3**: Application build phase\n\nFor each component:\n- Define its responsibility\n- Identify dependencies\n- Specify validation criteria\n\n**Context**: Node.js application production containerization\n**Constraints**: - Use official Node.js Alpine base image\n- Install dependencies in separate build phase\n- Copy only necessary files (exclude node_modules)\n- Run as non-root user\n- Optimize layer caching\n\nExecute each component systematically, ensuring proper integration.",
+    "metadata": {
+      "role": "DevOps Engineer",
+      "framework": "Decomposition",
+      "task_category": "DevOps",
+      "sub_category": "Docker",
+      "domain": "containerization",
+      "complexity": "medium",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "CI/CD pipeline with GitHub Actions\n\nContext: Automated testing and deployment pipeline",
+    "output": "You are a DevOps Engineer with access to GitHub Actions, Docker, kubectl, Test runner.\n\n**Task**: Create GitHub Actions workflow for test and deployment\n\n**Process**: Use Thought-Action-Observation cycles\n\n**Thought 1**: Analyze the current situation\n**Action 1**: Choose the appropriate tool or action\n**Observation 1**: Review the result\n**Thought 2**: How does this change your understanding?\n**Action 2**: What's the next step?\n**Observation 2**: Continue iterating...\n\nContinue the Thought-Action-Observation cycle until the task is complete.\n\n**Available Tools**:\n- GitHub Actions, Docker, kubectl, Test runner\n\n**Context**: Automated testing and deployment pipeline\n**Constraints**: - Run tests on every PR\n- Build Docker image and push to registry\n- Deploy to staging only on main branch\n- Require manual approval for production\n- Rollback on failure\n\nBegin with your initial thought about the task.",
+    "metadata": {
+      "role": "DevOps Engineer",
+      "framework": "ReAct",
+      "task_category": "DevOps",
+      "sub_category": "CI/CD",
+      "domain": "CI/CD pipelines",
+      "complexity": "high",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "Terraform module design\n\nContext: Reusable infrastructure components",
+    "output": "You are a Infrastructure Engineer specializing in Infrastructure as Code.\n\n**Task**: Design Terraform module for VPC with public/private subnets\n\nBreak this down into manageable components:\n\n1. **Component 1**: VPC configuration\n2. **Component 2**: Subnet definitions\n3. **Component 3**: Route tables\n\nFor each component:\n- Define its responsibility\n- Identify dependencies\n- Specify validation criteria\n\n**Context**: Reusable infrastructure components\n**Constraints**: - Use variables for configuration\n- Output resource IDs\n- Implement state locking\n- Include documentation\n- Follow Terraform best practices\n\nExecute each component systematically, ensuring proper integration.",
+    "metadata": {
+      "role": "Infrastructure Engineer",
+      "framework": "Decomposition",
+      "task_category": "DevOps",
+      "sub_category": "IaC",
+      "domain": "Infrastructure as Code",
+      "complexity": "medium",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "Prometheus alerting patterns\n\nContext: Application monitoring with actionable alerts",
+    "output": "You are a SRE Engineer specializing in monitoring and alerting.\n\n**Task**: Design Prometheus alerting strategy with proper severity levels\n\nLet's approach this step-by-step:\n\n1. **Analyze Requirements**\n   - Core requirements and constraints\n   - Success criteria\n   - Edge cases to consider\n\n2. **Design Solution**\n   - Architecture/pattern choice\n   - Justification with trade-offs\n   - Technology selection rationale\n\n3. **Implementation Plan**\n   - Step-by-step implementation\n   - Validation checkpoints\n   - Error handling strategy\n\n4. **Verification**\n   - Testing approach\n   - Success metrics\n   - Rollback plan\n\n**Context**: Application monitoring with actionable alerts\n**Constraints**: - Alert on symptoms, not causes\n- Include runbook links in alerts\n- Use severity levels appropriately\n- Implement alert grouping\n- Set up alert silencing rules\n\nProvide your reasoning for each step, then the final solution.",
+    "metadata": {
+      "role": "SRE Engineer",
+      "framework": "Chain-of-Thought",
+      "task_category": "DevOps",
+      "sub_category": "Monitoring",
+      "domain": "monitoring and alerting",
+      "complexity": "high",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "Blue-green deployment strategy\n\nContext: Zero-downtime production deployment",
+    "output": "You are a DevOps Engineer specializing in deployment strategies.\n\n**Task**: Implement blue-green deployment with instant rollback\n\n**Context**: Zero-downtime production deployment\n**Constraints**: - Maintain two identical production environments\n- Switch traffic instantly using load balancer\n- Run smoke tests before traffic switch\n- Keep previous version for instant rollback\n- Monitor both environments during switch\n\nComplete this task following best practices for Blue-green deployment. Ensure:\n- Production-ready implementation\n- Proper error handling\n- Comprehensive validation\n- Clear documentation",
+    "metadata": {
+      "role": "DevOps Engineer",
+      "framework": "Zero-Shot",
+      "task_category": "DevOps",
+      "sub_category": "Deployment",
+      "domain": "deployment strategies",
+      "complexity": "medium",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "Helm chart best practices\n\nContext: Application packaging for Kubernetes deployment",
+    "output": "You are a DevOps Engineer specializing in Kubernetes packaging.\n\n**Task**: Create Helm chart following best practices\n\nBreak this down into manageable components:\n\n1. **Component 1**: Deployment template\n2. **Component 2**: Service template\n3. **Component 3**: ConfigMap\n\nFor each component:\n- Define its responsibility\n- Identify dependencies\n- Specify validation criteria\n\n**Context**: Application packaging for Kubernetes deployment\n**Constraints**: - Use values.yaml for configuration\n- Implement proper labels and selectors\n- Include liveness and readiness probes\n- Set resource limits and requests\n- Support multiple environments (dev/staging/prod)\n\nExecute each component systematically, ensuring proper integration.",
+    "metadata": {
+      "role": "DevOps Engineer",
+      "framework": "Decomposition",
+      "task_category": "DevOps",
+      "sub_category": "Kubernetes",
+      "domain": "Kubernetes packaging",
+      "complexity": "medium",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "Event-driven architecture design\n\nContext: Scalable microservices communication",
+    "output": "You are a Solution Architect specializing in event-driven architecture.\n\n**Task**: Design event-driven architecture with message brokers\n\nLet's approach this step-by-step:\n\n1. **Analyze Requirements**\n   - Core requirements and constraints\n   - Success criteria\n   - Edge cases to consider\n\n2. **Design Solution**\n   - Architecture/pattern choice\n   - Justification with trade-offs\n   - Technology selection rationale\n\n3. **Implementation Plan**\n   - Step-by-step implementation\n   - Validation checkpoints\n   - Error handling strategy\n\n4. **Verification**\n   - Testing approach\n   - Success metrics\n   - Rollback plan\n\n**Context**: Scalable microservices communication\n**Constraints**: - Use message queues for reliability\n- Implement event versioning\n- Handle duplicate events\n- Design for eventual consistency\n- Include dead letter queues\n\nProvide your reasoning for each step, then the final solution.",
+    "metadata": {
+      "role": "Solution Architect",
+      "framework": "Chain-of-Thought",
+      "task_category": "Architecture",
+      "sub_category": "Event-Driven",
+      "domain": "event-driven architecture",
+      "complexity": "high",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "CQRS pattern implementation\n\nContext: High-read/write application scaling",
+    "output": "You are a Software Architect specializing in data management patterns.\n\n**Task**: Implement CQRS pattern with separate read/write models\n\nBreak this down into manageable components:\n\n1. **Component 1**: Command model\n2. **Component 2**: Query model\n3. **Component 3**: Event store\n\nFor each component:\n- Define its responsibility\n- Identify dependencies\n- Specify validation criteria\n\n**Context**: High-read/write application scaling\n**Constraints**: - Separate command and query responsibilities\n- Use eventual consistency between models\n- Implement event sourcing for updates\n- Optimize read model for queries\n- Validate commands before execution\n\nExecute each component systematically, ensuring proper integration.",
+    "metadata": {
+      "role": "Software Architect",
+      "framework": "Decomposition",
+      "task_category": "Architecture",
+      "sub_category": "Patterns",
+      "domain": "data management patterns",
+      "complexity": "high",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "Microservices vs monolith decision\n\nContext: New application architecture selection",
+    "output": "You are a Software Architect specializing in architectural decisions.\n\n**Task**: Evaluate and recommend microservices vs monolithic architecture\n\n**Context**: New application architecture selection\n**Constraints**: - Consider team size and expertise\n- Evaluate deployment complexity\n- Assess communication overhead\n- Analyze scaling requirements\n- Factor in development velocity\n\nComplete this task following best practices for Microservices vs Monolith. Ensure:\n- Production-ready implementation\n- Proper error handling\n- Comprehensive validation\n- Clear documentation",
+    "metadata": {
+      "role": "Software Architect",
+      "framework": "Zero-Shot",
+      "task_category": "Architecture",
+      "sub_category": "System Design",
+      "domain": "architectural decisions",
+      "complexity": "high",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "API gateway selection\n\nContext: Central API management for microservices",
+    "output": "You are a Solution Architect with access to API gateway (Kong/AWS API Gateway), Rate limiter, Auth service.\n\n**Task**: Select and configure API gateway with rate limiting and auth\n\n**Process**: Use Thought-Action-Observation cycles\n\n**Thought 1**: Analyze the current situation\n**Action 1**: Choose the appropriate tool or action\n**Observation 1**: Review the result\n**Thought 2**: How does this change your understanding?\n**Action 2**: What's the next step?\n**Observation 2**: Continue iterating...\n\nContinue the Thought-Action-Observation cycle until the task is complete.\n\n**Available Tools**:\n- API gateway (Kong/AWS API Gateway), Velocity limiter, Auth service\n\n**Context**: Central API management for microservices\n**Constraints**: - Support multiple authentication methods\n- Implement rate limiting per service\n- Provide request/response transformation\n- Include circuit breaking\n- Offer API versioning\n\nBegin with your initial thought about the task.",
+    "metadata": {
+      "role": "Solution Architect",
+      "framework": "ReAct",
+      "task_category": "Architecture",
+      "sub_category": "API Gateway",
+      "domain": "API management",
+      "complexity": "high",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "Database sharding strategy\n\nContext: High-volume database beyond single-server capacity",
+    "output": "You are a Database Architect specializing in scaling the data layer.\n\n**Task**: Design database sharding strategy with data distribution\n\nLet's approach this step-by-step:\n\n1. **Analyze Requirements**\n   - Core requirements and constraints\n   - Success criteria\n   - Edge cases to consider\n\n2. **Design Solution**\n   - Architecture/pattern choice\n   - Justification with trade-offs\n   - Technology selection rationale\n\n3. **Implementation Plan**\n   - Step-by-step implementation\n   - Validation checkpoints\n   - Error handling strategy\n\n4. **Verification**\n   - Testing approach\n   - Success metrics\n   - Rollback plan\n\n**Context**: High-volume data layer beyond single-server capacity\n**Constraints**: - Choose appropriate shard key\n- Implement consistent hashing\n- Handle cross-shard queries\n- Plan for re-sharding\n- Maintain referential integrity\n\nProvide your reasoning for each step, then the final solution.",
+    "metadata": {
+      "role": "Database Architect",
+      "framework": "Chain-of-Thought",
+      "task_category": "Architecture",
+      "sub_category": "Scaling",
+      "domain": "database scaling",
+      "complexity": "high",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "Saga pattern for distributed transactions\n\nContext: Maintaining consistency across microservices",
+    "output": "You are a Distributed Systems Architect specializing in distributed transactions.\n\n**Task**: Implement Saga pattern for distributed transaction management\n\nBreak this down into manageable components:\n\n1. **Component 1**: Saga orchestrator\n2. **Component 2**: Transaction participants\n3. **Component 3**: Compensating actions\n\nFor each component:\n- Define its responsibility\n- Identify dependencies\n- Specify validation criteria\n\n**Context**: Maintaining consistency across microservices\n**Constraints**: - Define compensating transactions\n- Implement orchestration or choreography\n- Handle transaction timeouts\n- Log all saga steps\n- Provide retry mechanisms\n\nExecute each component systematically, ensuring proper integration.",
+    "metadata": {
+      "role": "Distributed Systems Architect",
+      "framework": "Decomposition",
+      "task_category": "Architecture",
+      "sub_category": "Distributed Transactions",
+      "domain": "distributed transactions",
+      "complexity": "high",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "PostgreSQL query optimization\n\nContext: Slow query analysis and optimization",
+    "output": "You are a Database Performance Engineer specializing in statement tuning.\n\n**Task**: Analyze and optimize slow PostgreSQL query using EXPLAIN\n\nLet's approach this step-by-step:\n\n1. **Analyze Requirements**\n   - Core requirements and constraints\n   - Success criteria\n   - Edge cases to consider\n\n2. **Design Solution**\n   - Architecture/pattern choice\n   - Justification with trade-offs\n   - Technology selection rationale\n\n3. **Implementation Plan**\n   - Step-by-step implementation\n   - Validation checkpoints\n   - Error handling strategy\n\n4. **Verification**\n   - Testing approach\n   - Success metrics\n   - Rollback plan\n\n**Context**: inefficient request analysis and optimization\n**Constraints**: - Use EXPLAIN ANALYZE for detailed analysis\n- Check for missing indexes\n- Identify sequential scans\n- Review join strategies\n- Avoid N+1 query patterns\n\nProvide your reasoning for each step, then the final solution.",
+    "metadata": {
+      "role": "Database Performance Engineer",
+      "framework": "Chain-of-Thought",
+      "task_category": "Database",
+      "sub_category": "PostgreSQL",
+      "domain": "query optimization",
+      "complexity": "medium",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "MongoDB sharding design\n\nContext: Large-scale MongoDB deployment beyond single server",
+    "output": "You are a NoSQL Architect specializing in database scaling.\n\n**Task**: Design MongoDB sharding architecture with config servers\n\nBreak this down into manageable components:\n\n1. **Component 1**: Shard servers\n2. **Component 2**: Config servers\n3. **Component 3**: Mongos routers\n\nFor each component:\n- Define its responsibility\n- Identify dependencies\n- Specify validation criteria\n\n**Context**: Large-scale MongoDB deployment beyond single server\n**Constraints**: - Choose appropriate shard key\n- Deploy config server replica set\n- Use mongos query routers\n- Plan for shard balancing\n- Implement read preferences\n\nExecute each component systematically, ensuring proper integration.",
+    "metadata": {
+      "role": "NoSQL Architect",
+      "framework": "Decomposition",
+      "task_category": "Database",
+      "sub_category": "MongoDB",
+      "domain": "database scaling",
+      "complexity": "high",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "Redis caching strategy\n\nContext: Application layer caching for performance",
+    "output": "You are a Cache Architect with access to Redis, Cache client, Invalidation mechanism.\n\n**Task**: Design Redis caching strategy with refreshing stale data\n\n**Process**: Use Thought-Action-Observation cycles\n\n**Thought 1**: Analyze the current situation\n**Action 1**: Choose the appropriate tool or action\n**Observation 1**: Review the result\n**Thought 2**: How does this change your understanding?\n**Action 2**: What's the next step?\n**Observation 2**: Continue iterating...\n\nContinue the Thought-Action-Observation cycle until the task is complete.\n\n**Available Tools**:\n- Redis, Fast storage client, Invalidation mechanism\n\n**Context**: Application layer caching for performance\n**Constraints**: - Implement cache-aside pattern\n- Set appropriate TTL values\n- Handle temporary storage stampede\n- Use cache warming\n- Implement refreshing stale data\n\nBegin with your initial thought about the task.",
+    "metadata": {
+      "role": "Cache Architect",
+      "framework": "ReAct",
+      "task_category": "Database",
+      "sub_category": "Caching",
+      "domain": "caching strategy",
+      "complexity": "medium",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "Database migration zero-downtime\n\nContext: Production database schema changes",
+    "output": "You are a Database Migration Specialist specializing in schema migrations.\n\n**Task**: Perform zero-downtime data structure migration\n\n**Context**: Production database table design changes\n**Constraints**: - Create new table/column alongside existing\n- Backfill information incrementally\n- Update application to use both old and new\n- Switch traffic to new schema\n- Remorecordsld data definition after verification\n\nComplete this task following best praccontents for Data layer migrations. Ensure:\n- Production-ready implementation\n- Proper error handling\n- Comprehensive validation\n- Clear documentation",
+    "metadata": {
+      "role": "Database Migration Specialist",
+      "framework": "Zero-Shot",
+      "task_category": "Database",
+      "sub_category": "Migration",
+      "domain": "schema migrations",
+      "complexity": "high",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "Index optimization\n\nContext: Query performance improvement through indexing",
+    "output": "You are a DBA specializing in index optimization.\n\n**Task**: Design optimal indexes for frequently executed queries\n\nBreak this down into manageable components:\n\n1. **Component 1**: Single column lookup structures\n2. **Component 2**: Composite access paths\n3. **Component 3**:indicesng indexes\n\nFor each component:\n- Define its responsibility\n- Identify dependencies\n- Specify validation criteria\n\n**Context**: Query performance improvement through indexing\n**Constraints**: - Index columns used in WHERE clauses\n- Consider composite search structures for multi-column queries\n- Includeaccess pathsng indexes\n- Balance read performance vs write overhead\n- Monitor search structure usage statistics\n\nExecute each component systematically, ensuring proper integration.",
+    "metadata": {
+      "role": "DBA",
+      "framework": "Decomposition",
+      "task_category": "Database",
+      "sub_category": "Indexing",
+      "domain": "index optimization",
+      "complexity": "medium",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "Connection pooling patterns\n\nContext: High-concurrency application database access",
+    "output": "You are a Database Engineer specializing in connection management.\n\n**Task**: Implement database connection pooling with proper configuration\n\nLet's approach this step-by-step:\n\n1. **Analyze Requirements**\n   - Core requirements and constraints\n   - Success criteria\n   - Edge cases to consider\n\n2. **Design Solution**\n   - Architecture/pattern choice\n   - Justification with trade-offs\n   - Technology selection rationale\n\n3. **Implementation Plan**\n   - Step-by-step implementation\n   - Validation checkpoints\n   - Error handling strategy\n\n4. **Verification**\n   - Testing approach\n   - Success metrics\n   - Rollback plan\n\n**Context**: High-concurrency application data layer access\n**Constraints**: - Set appropriate pool size\n- Configure channel timeout\n- Implement idle connection handling\n- Monitor pool exhaustion\n- Handle path errors gracefully\n\nProvide your reasoning for each step, then the final solution.",
+    "metadata": {
+      "role": "Database Engineer",
+      "framework": "Chain-of-Thought",
+      "task_category": "Database",
+      "sub_category": "Connections",
+      "domain": "connection management",
+      "complexity": "medium",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "REST API versioning\n\nContext: Evolving API with breaking changes",
+    "output": "You are a API Architect specializing in REST API design.\n\n**Task**: Design REST API versioning strategy\n\nBreak this down into manageable components:\n\n1. **Component 1**: Version detection\n2. **Component 2**: Request routing\n3. **Component 3**: Version-specific handlers\n\nFor each component:\n- Define its responsibility\n- Identify dependencies\n- Specify validation criteria\n\n**Context**: Evolving API with breaking changes\n**Constraints**: - Include version in URL or header\n- Maintain backward compatibility\n- Document deprecated versions\n- Provide sunset timeline\n- Use semantic versioning\n\nExecute each component systematically, ensuring proper integration.",
+    "metadata": {
+      "role": "API Architect",
+      "framework": "Decomposition",
+      "task_category": "Backend",
+      "sub_category": "REST",
+      "domain": "REST API design",
+      "complexity": "medium",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "GraphQL schema design\n\nContext: Flexible API for frontend teams",
+    "output": "You are a GraphQL Architect specializing in GraphQL schema design.\n\n**Task**: Design GraphQL schema with proper types and resolvers\n\nLet's approach this step-by-step:\n\n1. **Analyze Requirements**\n   - Core requirements and constraints\n   - Success criteria\n   - Edge cases to consider\n\n2. **Design Solution**\n   - Architecture/pattern choice\n   - Justification with trade-offs\n   - Technology selection rationale\n\n3. **Implementation Plan**\n   - Step-by-step implementation\n   - Validation checkpoints\n   - Error handling strategy\n\n4. **Verification**\n   - Testing approach\n   - Success metrics\n   - Rollback plan\n\n**Context**: Flexible API for frontend teams\n**Constraints**: - Define clear type definitions\n- Implement efficient resolvers\n- Use DataLoader for batching\n- Handle errors gracefully\n- Include pagination\n\nProvide your reasoning for each step, then the final solution.",
+    "metadata": {
+      "role": "GraphQL Architect",
+      "framework": "Chain-of-Thought",
+      "task_category": "Backend",
+      "sub_category": "GraphQL",
+      "domain": "GraphQL schema design",
+      "complexity": "high",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "GraphQL N+1 resolution\n\nContext: GraphQL API with N+1 query problems",
+    "output": "You are a GraphQL Performance Engineer specializing in API optimization.\n\n**Task**: Resolve GQL N+1 request problem\n\nBreak this down into manageable components:\n\n1. **Component 1**: DataLoader configuration\n2. **Component 2**: Batching logic\n3. **Component 3**: Caching layer\n\nFor each component:\n- Define its responsibility\n- Identify dependencies\n- Specify validation criteria\n\n**Context**: Graphql API with N+1 retrieval problems\n**Constraints**: - Use DataLoader for batching\n- Implement operation complexity analysis\n- Consider statement batching\n- Use federation if appropriate\n- Monitor request performance\n\nProvide a comprehensive solution addressing each component.",
+    "metadata": {
+      "role": "GraphQL Performance Engineer",
+      "framework": "Decomposition",
+      "task_category": "Backend",
+      "sub_category": "GraphQL",
+      "domain": "GraphQL optimization",
+      "complexity": "high",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "gRPC service definition\n\nContext: High-performance microservice communication",
+    "output": "You are a gRPC Architect specializing in gRPC service design.\n\n**Task**: Define gRPC service with proper messages and streaming\n\nBreak this down into manageable components:\n\n1. **Component 1**: Service definition\n2. **Component 2**: Message definitions\n3. **Component 3**: Streaming configuration\n\nFor each component:\n- Define its responsibility\n- Identify dependencies\n- Specify validation criteria\n\n**Context**: High-performance microservice communication\n**Constraints**: - Use protobuf3 syntax\n- Define clear message types\n- Implement proper error handling\n- Consider streaming options\n- Document RPC methods\n\nExecute each component systematically, ensuring proper integration.",
+    "metadata": {
+      "role": "gRPC Architect",
+      "framework": "Decomposition",
+      "task_category": "Backend",
+      "sub_category": "gRPC",
+      "domain": "gRPC service design",
+      "complexity": "medium",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "gRPC error handling patterns\n\nContext: Robust gRPC service error management",
+    "output": "You are a gRPC Engineer with access to gRPC status codes, Interceptor, Retry mechanism, Logger.\n\n**Task**: Implement comprehensive remote procedure call error handling\n\n**Process**: Use Thought-Action-Observation cycles\n\n**Thought 1**: Analyze the current situation\n**Action 1**: Choose the appropriate tool or action\n**Observation 1**: Review the result\n**Thought 2**: How does this change your understanding?\n**Action 2**: What's the next step?\n**Observation 2**: Continue iterating...\n\nContinue the Thought-Action-Observation cycle until the task is complete.\n\n**Available Tools**:\n- the RPC framework status codes, Interceptor, Retry mechanism, Logger\n\n**Context**: Robust service RPC service error management\n**Constraints**: - Usethe serviceropriate gRPC status codes\n- Include error details in metadata\n- Implement retry logic\n- Handle deadline exceeded\n- Log errors with context\n\nBegin with your initial thought about the task.",
+    "metadata": {
+      "role": "gRPC Engineer",
+      "framework": "ReAct",
+      "task_category": "Backend",
+      "sub_category": "gRPC",
+      "domain": "gRPC error handling",
+      "complexity": "medium",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "Serverless API (AWS Lambda)\n\nContext: Event-driven API without server management",
+    "output": "You are a Serverless Architect specializing in serverless computing.\n\n**Task**: Design serverless API with AWS Lambda and API Gateway\n\nLet's approach this step-by-step:\n\n1. **Analyze Requirements**\n   - Core requirements and constraints\n   - Success criteria\n   - Edge cases to consider\n\n2. **Design Solution**\n   - Architecture/pattern choice\n   - Justification with trade-offs\n   - Technology selection rationale\n\n3. **Implementation Plan**\n   - Step-by-step implementation\n   - Validation checkpoints\n   - Error handling strategy\n\n4. **Verification**\n   - Testing approach\n   - Success metrics\n   - Rollback plan\n\n**Context**: Event-driven API without server management\n**Constraints**: - Keep functions stateless\n- Optimize cold start time\n- Implement proper error handling\n- Use Lambda layers for dependencies\n- Monitor function timeouts\n\nProvide your reasoning for each step, then the final solution.",
+    "metadata": {
+      "role": "Serverless Architect",
+      "framework": "Chain-of-Thought",
+      "task_category": "Backend",
+      "sub_category": "Serverless",
+      "domain": "serverless computing",
+      "complexity": "high",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "Webhook implementation\n\nContext: Notifying external systems of events",
+    "output": "You are a Integration Engineer specializing in webhook implementation.\n\n**Task**: Implement callback dispatch with retry logic\n\nBreak this down into manageable components:\n\n1. **Component 1**: Event detection\n2. **Component 2**: notification data creation\n3. **Component 3**: Signature generation\n\nFor each component:\n- Define its responsibility\n- Identify dependencies\n- Specify validation criteria\n\n**Context**: Notifying external systems of events\n**Constraints**: - Sign notification datas with HMAC\n- Implement exponential backoff retries\n- Handle webhook failures gracefully\n- Provide callback dispatch status\n- Allow HTTP callback replay\n\nExecute each component systematically, ensuring proper integration.",
+    "metadata": {
+      "role": "Integration Engineer",
+      "framework": "Decomposition",
+      "task_category": "Backend",
+      "sub_category": "Webhooks",
+      "domain": "webhook implementation",
+      "complexity": "medium",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "Batch processing patterns\n\nContext: Processing large datasets asynchronously",
+    "output": "You are a Backend Engineer specializing in batch processing.\n\n**Task**: Implement batch processing system with job queue\n\n**Context**: Processing large datasets asynchronously\n**Constraints**: - Use job queue for task management\n- Implement progress tracking\n- Handle job failures gracefully\n- Support job prioritization\n- Provide job completion notifications\n\nComplete this task following best practices for Batch processing. Ensure:\n- Production-ready implementation\n- Proper error handling\n- Comprehensive validation\n- Clear documentation",
+    "metadata": {
+      "role": "Backend Engineer",
+      "framework": "Zero-Shot",
+      "task_category": "Backend",
+      "sub_category": "Batch",
+      "domain": "batch processing",
+      "complexity": "medium",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "API pagination strategy\n\nContext: Efficient data retrieval for large result sets",
+    "output": "You are a API Engineer specializing in API pagination.\n\n**Task**: Design API pagination strategy with cursor-based approach\n\nLet's approach this step-by-step:\n\n1. **Analyze Requirements**\n   - Core requirements and constraints\n   - Success criteria\n   - Edge cases to consider\n\n2. **Design Solution**\n   - Architecture/pattern choice\n   - Justification with trade-offs\n   - Technology selection rationale\n\n3. **Implementation Plan**\n   - Step-by-step implementation\n   - Validation checkpoints\n   - Error handling strategy\n\n4. **Verification**\n   - Testing approach\n   - Success metrics\n   - Rollback plan\n\n**Context**: Efficient data retrieval for large result sets\n**Constraints**: - Support cursor-based pagination\n- Include page size limits\n- Handle edge cases (empty results, last page)\n- Provide total count hint\n- Enable bidirectional pagination\n\nProvide your reasoning for each step, then the final solution.",
+    "metadata": {
+      "role": "API Engineer",
+      "framework": "Chain-of-Thought",
+      "task_category": "Backend",
+      "sub_category": "Pagination",
+      "domain": "API pagination",
+      "complexity": "medium",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "N+1 query optimization\n\nContext: Application with N+1 query performance issues",
+    "output": "You are a Performance Engineer specializing in query optimization.\n\n**Task**: Identify and resolve N+1 query problems\n\nLet's approach this step-by-step:\n\n1. **Analyze Requirements**\n   - Core requirements and constraints\n   - Success criteria\n   - Edge cases to consider\n\n2. **Design Solution**\n   - Architecture/pattern choice\n   - Justification with trade-offs\n   - Technology selection rationale\n\n3. **Implementation Plan**\n   - Step-by-step implementation\n   - Validation checkpoints\n   - Error handling strategy\n\n4. **Verification**\n   - Testing approach\n   - Success metrics\n   - Rollback plan\n\n**Context**: Application with N+1 query performance issues\n**Constraints**: - Use EXPLAIN to analyze queries\n- Implement eager loading\n- Use JOINs appropriately\n- Consider batch queries\n- Cache frequently accessed data\n\nProvide your reasoning for each step, then the final solution.",
+    "metadata": {
+      "role": "Performance Engineer",
+      "framework": "Chain-of-Thought",
+      "task_category": "Performance",
+      "sub_category": "Database",
+      "domain": "query optimization",
+      "complexity": "medium",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "Caching strategies (Redis, Memcached)\n\nContext: Multi-layer caching for performance",
+    "output": "You are a Performance Architect specializing in caching strategies.\n\n**Task**: Design multi-layer caching strategy\n\nBreak this down into manageable components:\n\n1. **Component 1**: Application cache\n2. **Component 2**: CDN storage\n3. **Component 3**: Database query fast storage\n\nFor each component:\n- Define its responsibility\n- Identify dependencies\n- Specify validation criteria\n\n**Context**: Multi-layer caching for performance\n**Constraints**: - Implement application-levebufferhe\n- Use CDN for static assets\n- Temporary storage database queries\n- Implement refreshing stale data\n- Monitmemory storeche hit rates\n\nExecute each component systematically, ensuring proper integration.",
+    "metadata": {
+      "role": "Performance Architect",
+      "framework": "Decomposition",
+      "task_category": "Performance",
+      "sub_category": "Caching",
+      "domain": "caching strategies",
+      "complexity": "high",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "Database indexing strategy\n\nContext: Query performance through strategic indexing",
+    "output": "You are a DBA specializing in indexing strategy.\n\n**Task**: Design comprehensive indexing strategy\n\nBreak this down into manageable components:\n\n1. **Component 1**: Query pattern analysis\n2. **Component 2**: Index selection\n3. **Component 3**: Index creation\n\nFor each component:\n- Define its responsibility\n- Identify dependencies\n- Specify validation criteria\n\n**Context**: Query performance through strategic indexing\n**Constraints**: - Analyze query patterns\n- Create indexes for frequent filters\n- Use composite indexes wisely\n- Monitor index effectiveness\n- Remove unused indexes\n\nExecute each component systematically, ensuring proper integration.",
+    "metadata": {
+      "role": "DBA",
+      "framework": "Decomposition",
+      "task_category": "Performance",
+      "sub_category": "Database",
+      "domain": "indexing strategy",
+      "complexity": "medium",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "Code splitting for frontend\n\nContext: Large frontend application bundle optimization",
+    "output": "You are a Frontend Performance Engineer with access to Webpack/Vite, Bundle analyzer, Dynamic import.\n\n**Task**: Implement code splitting for optimal package dimensions\n\n**Process**: Use Thought-Action-Observation cycles\n\n**Thought 1**: Analyze the current situation\n**Action 1**: Choose the appropriate tool or action\n**Observation 1**: Review the result\n**Thought 2**: How does this change your understanding?\n**Action 2**: What's the next step?\n**Observation 2**: Continue iterating...\n\nContinue the Thought-Action-Observation cycle until the task is complete.\n\n**Available Tools**:\n- Webpack/Vite, Bundle analyzer, Dynamic import\n\n**Context**: Large frontend application compiled assets optimization\n**Constraints**: - Use dynamic imports\n- Split by route\n- Lazy load components\n- Analyze package dimensions\n- Optimize vendor chunks\n\nBegin with your initial thought about the task.",
+    "metadata": {
+      "role": "Frontend Performance Engineer",
+      "framework": "ReAct",
+      "task_category": "Performance",
+      "sub_category": "Frontend",
+      "domain": "code splitting",
+      "complexity": "medium",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  },
+  {
+    "input": "Lazy loading patterns\n\nContext: Optimizing initial page load time",
+    "output": "You are a Frontend Engineer specializing in lazy loading.\n\n**Task**: Implement lazy loading for images and components\n\nLet's approach this step-by-step:\n\n1. **Analyze Requirements**\n   - Core requirements and constraints\n   - Success criteria\n   - Edge cases to consider\n\n2. **Design Solution**\n   - Architecture/pattern choice\n   - Justification with trade-offs\n   - Technology selection rationale\n\n3. **Implementation Plan**\n   - Step-by-step implementation\n   - Validation checkpoints\n   - Error handling strategy\n\n4. **Verification**\n   - Testing approach\n   - Success metrics\n   - Rollback plan\n\n**Context**: Optimizing initial page load time\n**Constraints**: - Use Intersection Observer API\n- Provide fallback content\n- Implement preloading for above-fold content\n- Handle loading states\n- Optimize image formats\n\nProvide your reasoning for each step, then the final solution.",
+    "metadata": {
+      "role": "Frontend Engineer",
+      "framework": "Chain-of-Thought",
+      "task_category": "Performance",
+      "sub_category": "Frontend",
+      "domain": "lazy loading",
+      "complexity": "medium",
+      "source": "prompt_dataset_v1",
+      "validation_timestamp": "2026-01-05T12:00:00Z",
+      "quality_score": 0.85,
+      "example_validator_score": 0.96
+    }
+  }
+]
