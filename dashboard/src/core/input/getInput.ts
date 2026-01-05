@@ -8,8 +8,9 @@ export async function getInput(): Promise<{
   // Try getSelectedText()
   try {
     const selected = await getSelectedText();
-    if (selected?.trim().length >= 5) {
-      return { source: "selection", text: selected.trim() };
+    const trimmed = selected?.trim();
+    if (trimmed && trimmed.length >= 5) {
+      return { source: "selection", text: trimmed };
     }
   } catch {
     // Silent failure - fall through to clipboard
@@ -18,8 +19,9 @@ export async function getInput(): Promise<{
   // Try clipboard
   try {
     const clipboard = await Clipboard.readText();
-    if (clipboard?.trim().length >= 5) {
-      return { source: "clipboard", text: clipboard.trim() };
+    const trimmed = clipboard?.trim();
+    if (trimmed && trimmed.length >= 5) {
+      return { source: "clipboard", text: trimmed };
     }
   } catch {
     // Silent failure - return none
