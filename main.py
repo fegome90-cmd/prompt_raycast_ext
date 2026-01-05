@@ -18,6 +18,7 @@ from hemdov.infrastructure.adapters.litellm_dspy_adapter_prompt import (
     create_gemini_adapter,
     create_deepseek_adapter,
     create_openai_adapter,
+    create_anthropic_adapter,
 )
 from api.prompt_improver_api import router as prompt_improver_router
 import dspy
@@ -31,6 +32,7 @@ DEFAULT_TEMPERATURE = {
     "gemini": 0.0,    # Gemini is deterministic at 0.0
     "deepseek": 0.0,  # CRITICAL: 0.0 for maximum consistency
     "openai": 0.0,    # OpenAI is deterministic at 0.0
+    "anthropic": 0.0, # Anthropic is deterministic at 0.0
 }
 
 logger = logging.getLogger(__name__)
@@ -67,6 +69,13 @@ async def lifespan(app: FastAPI):
         lm = create_openai_adapter(
             model=settings.LLM_MODEL,
             api_key=settings.OPENAI_API_KEY or settings.LLM_API_KEY,
+            temperature=temp,  # Uses 0.0 from DEFAULT_TEMPERATURE
+        )
+    elif provider == "anthropic":
+        lm = create_anthropic_adapter(
+            model=settings.LLM_MODEL,
+            api_key=settings.ANTHROPIC_API_KEY or settings.HEMDOV_ANTHROPIC_API_KEY or settings.LLM_API_KEY,
+            base_url=settings.LLM_BASE_URL,
             temperature=temp,  # Uses 0.0 from DEFAULT_TEMPERATURE
         )
     else:
@@ -165,12 +174,18 @@ if __name__ == "__main__":
                 "OPENAI_API_KEY is required when LLM_PROVIDER=openai"
             )
 
+    elif settings.LLM_PROVIDER.lower() == "anthropic":
+        if not settings.ANTHROPIC_API_KEY and not settings.HEMDOV_ANTHROPIC_API_KEY and not settings.LLM_API_KEY:
+            raise ValueError(
+                "ANTHROPIC_API_KEY is required when LLM_PROVIDER=anthropic"
+            )
+
     logger.info("Starting DSPy Prompt Improver API...")
     logger.info(f"✓ Configuration loaded from .env")
     logger.info(f"✓ API_PORT: {settings.API_PORT} (validated)")
     logger.info(f"Server: http://{settings.API_HOST}:{settings.API_PORT}")
     logger.info(f"LLM: {settings.LLM_PROVIDER}/{settings.LLM_MODEL}")
-    if settings.LLM_PROVIDER.lower() in ["deepseek", "gemini", "openai"]:
+    if settings.LLM_PROVIDER.lower() in ["deepseek", "gemini", "openai", "anthropic"]:
         logger.info(f"✓ Cloud provider configured - API validation passed")
 
     uvicorn.run(
