@@ -20,6 +20,32 @@ def load_dataset(path: Path) -> List[Dict[str, Any]]:
     if not path.exists():
         print(f"  ⚠️  {path.name}: NOT FOUND (skipping)")
         return []
+
+    # Special handling for langchain-validated.json
+    if path.name == 'langchain-validated.json':
+        with open(path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        # Extract candidates that passed validation
+        candidates = data.get('candidates', [])
+        validated = [c for c in candidates if c.get('validation_passed', False)]
+
+        # Convert to unified format
+        examples = []
+        for candidate in validated:
+            examples.append({
+                'inputs': candidate['converted']['inputs'],
+                'outputs': candidate['converted']['outputs'],
+                'metadata': {
+                    **candidate['converted']['metadata'],
+                    'source_file': 'langchain-validated.json',
+                    'validation_score': candidate.get('validation_score'),
+                    'framework': candidate['converted']['outputs']['framework']
+                }
+            })
+
+        return examples
+
     return _utils_load_dataset(str(path))
 
 
@@ -133,6 +159,7 @@ def main() -> int:
         'merged-trainset-deduped.json': load_dataset(datasets_path / 'merged-trainset-deduped.json'),
         'fewshot-train.json': load_dataset(datasets_path / 'fewshot-train.json'),
         'sqlite-export.json': load_dataset(datasets_path / 'sqlite-export.json'),
+        'langchain-validated.json': load_dataset(datasets_path / 'langchain-validated.json'),
     }
 
     # Merge and deduplicate

@@ -1,7 +1,69 @@
 """Fetch prompts from LangChain Hub for few-shot pool augmentation."""
 
 import os
+import re
 from datetime import datetime
+
+
+def _extract_template_from_langchain_object(prompt_data) -> str:
+    """Extract clean template string from various LangChain prompt objects.
+
+    Handles different prompt types:
+    - PromptTemplate: Direct template attribute
+    - ChatPromptTemplate: Extract and combine all message templates
+    - MessagesPlaceholder: Extract from nested template
+
+    Args:
+        prompt_data: LangChain prompt object (PromptTemplate, ChatPromptTemplate, etc.)
+
+    Returns:
+        Clean template string without metadata.
+    """
+    # Try direct template attribute first (works for PromptTemplate)
+    if hasattr(prompt_data, 'template'):
+        template = prompt_data.template
+        # Check if it's the actual template (not the __str__ representation)
+        if template and not template.startswith('input_variables='):
+            return template
+
+    # Try ChatPromptTemplate structure
+    if hasattr(prompt_data, 'messages') and len(prompt_data.messages) > 0:
+        # Try to extract from messages
+        combined_template = []
+        for msg in prompt_data.messages:
+            if hasattr(msg, 'prompt') and hasattr(msg.prompt, 'template'):
+                template = msg.prompt.template
+                if template and not template.startswith('input_variables='):
+                    combined_template.append(template)
+
+        if combined_template:
+            return '\n\n'.join(combined_template)
+
+    # Fallback: Try to extract template from string representation
+    # This handles cases where .template contains the __str__ representation
+    str_repr = str(prompt_data)
+
+    # Look for all template="..." or template='...' patterns in the string representation
+    # This handles ChatPromptTemplate with multiple messages
+    template_matches = re.findall(r'template="([^"]*(?:\\.[^"]*)*)"', str_repr)
+    if not template_matches:
+        template_matches = re.findall(r"template='([^']*(?:\\.[^']*)*)'", str_repr)
+
+    if template_matches:
+        # Decode escaped characters and combine
+        decoded_templates = []
+        for match in template_matches:
+            # Skip if it's just a placeholder like '{input}'
+            if match.strip() not in ['{input}', '{context}', '{question}']:
+                # Replace common escape sequences (must be done in this order)
+                decoded = match.replace('\\n', '\n').replace('\\r', '\r').replace('\\t', '\t').replace('\\"', '"').replace("\\'", "'").replace('\\\\', '\\')
+                decoded_templates.append(decoded)
+
+        if decoded_templates:
+            return '\n\n'.join(decoded_templates)
+
+    # Last resort: return the string representation (might be dirty)
+    return str_repr
 
 
 class LangChainHubFetcher:
@@ -62,9 +124,9 @@ class LangChainHubFetcher:
                     # With env vars unset, hub will use public Hub API
                     prompt_data = hub.pull(handle)
 
-                    # Extract prompt information
-                    # prompt_data is a langchain PromptTemplate or similar object
-                    template = prompt_data.template if hasattr(prompt_data, 'template') else str(prompt_data)
+                    # Extract prompt information using the helper function
+                    # This handles PromptTemplate, ChatPromptTemplate, etc.
+                    template = _extract_template_from_langchain_object(prompt_data)
                     input_variables = prompt_data.input_variables if hasattr(prompt_data, 'input_variables') else []
                     partial_variables = prompt_data.partial_variables if hasattr(prompt_data, 'partial_variables') else {}
 

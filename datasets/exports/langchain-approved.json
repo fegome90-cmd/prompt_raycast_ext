@@ -1,17 +1,19 @@
 {
   "metadata": {
-    "validated_at": "2026-01-05T14:45:00.000000",
-    "threshold_promptmetodizer": 0.6,
-    "threshold_examplevalidator": 0.5,
-    "total_validated": 1,
-    "total_passed": 1,
-    "handles": ["rlm/rag-prompt"],
-    "validation_chain": ["PromptMetodizer v2", "ExampleValidator"],
-    "avg_score": 0.744,
-    "min_score": 0.744,
-    "max_score": 0.744
+    "approved_at": "2026-01-05T14:30:00.000000",
+    "threshold": 0.6,
+    "total_approved": 1,
+    "total_rejected": 1,
+    "handles": [
+      "rlm/rag-prompt"
+    ],
+    "rejected_handles": [
+      "hwchase17/self-ask-with-search"
+    ],
+    "evaluation_method": "PromptMetodizer v2",
+    "validation_criteria": "overall_quality ≥ 0.6 with 4-dimensional scoring"
   },
-  "candidates": [
+  "approved": [
     {
       "handle": "rlm/rag-prompt",
       "name": "rlm/rag-prompt",
@@ -33,13 +35,19 @@
           "source_handle": "rlm/rag-prompt",
           "source_name": "rlm/rag-prompt",
           "tags": ["rag", "retrieval"],
-          "quality_scores_promptmetodizer": {
+          "quality_scores": {
             "role_clarity": 0.0,
             "directive_specificity": 1.0,
             "framework_confidence": 1.0,
             "guardrails_measurability": 0.5,
             "overall_quality": 0.625
           },
+          "detected_patterns": [
+            "Variables: question, context",
+            "Negative constraint",
+            "Quantitative constraint",
+            "Structured output format"
+          ],
           "framework_detections": [
             {
               "name": "RAG",
@@ -54,50 +62,32 @@
           ]
         }
       },
-      "validation_results": {
-        "promptmetodizer_v2": {
-          "score": 0.625,
-          "threshold": 0.6,
-          "passed": true
-        },
-        "examplevalidator": {
-          "score": 0.863,
-          "threshold": 0.5,
-          "passed": true,
-          "is_valid": true,
-          "errors": [],
-          "warnings": []
-        }
-      },
-      "validation_score": 0.744,
-      "validation_passed": true,
-      "final_decision": {
-        "approved_for_merge": true,
-        "reason": "Passed both validators: PromptMetodizer (0.625 >= 0.6) and ExampleValidator (0.863 >= 0.5). Framework RAG adds new category to pool.",
-        "expected_impact": {
-          "framework_added": "RAG",
-          "pool_size_before": 107,
-          "pool_size_after": 108,
-          "frameworks_before": 6,
-          "frameworks_after": 7
-        }
+      "validation": {
+        "passed": true,
+        "threshold": 0.6,
+        "score": 0.625,
+        "reason": "Framework detection perfect (1.0) + directive specificity excellent (1.0). Role clarity low (0.0) due to generic 'AI Assistant', but framework uniqueness justifies inclusion."
       }
     }
   ],
-  "summary": {
-    "total_fetched": 4,
-    "total_reviewed": 4,
-    "total_approved_manual": 2,
-    "total_validated": 1,
-    "total_passed": 1,
-    "success_rate": "25% (1/4 from original fetch)",
-    "frameworks_added": ["RAG"],
-    "frameworks_rejected": ["ReAct (reference only)", "Self-Ask (below threshold)", "OpenAI-Tools (too generic)"]
-  },
+  "rejected": [
+    {
+      "handle": "hwchase17/self-ask-with-search",
+      "reason": "Quality score 0.500 < threshold 0.6. Guardrails measurability = 0.0 (clean template has no explicit guardrails). Framework confidence = 0.7 (good but not excellent).",
+      "quality_scores": {
+        "role_clarity": 0.8,
+        "directive_specificity": 0.5,
+        "framework_confidence": 0.7,
+        "guardrails_measurability": 0.0,
+        "overall_quality": 0.5
+      },
+      "saved_as_reference": false,
+      "notes": "Self-Ask framework valuable but template quality below threshold with current scoring algorithm. Consider re-evaluation if guardrails extraction improves."
+    }
+  ],
   "next_steps": [
-    "Merge with unified-fewshot-pool.json using scripts/data/merge_unified_pool.py",
-    "Verify SHA256 deduplication prevents duplicates",
-    "Test DSPy KNNFewShot loads updated pool successfully",
-    "Commit: feat(langchain): add RAG framework prompt from LangChain Hub"
+    "Run ExampleValidator on approved prompt (rlm/rag-prompt)",
+    "Merge with unified-fewshot-pool.json using merge_unified_pool.py",
+    "Expected pool impact: 107 → 108 examples (+1 RAG framework example)"
   ]
 }

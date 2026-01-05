@@ -6,12 +6,12 @@ Supports both zero-shot and few-shot modes.
 """
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 import dspy
 import time
 import logging
 import asyncio
-from typing import Optional
+from typing import Optional, Dict, Any
 
 from eval.src.dspy_prompt_improver import PromptImprover
 from hemdov.interfaces import container
@@ -24,8 +24,20 @@ from hemdov.domain.metrics.evaluators import (
     PromptMetricsCalculator,
     ImpactData,
 )
+from api.quality_gates import evaluate_output, GateReport, get_template_summary
 
 logger = logging.getLogger(__name__)
+
+# Custom exceptions for better error handling
+class QualityGateValidationError(Exception):
+    """Raised when input validation fails."""
+    pass
+
+
+class QualityGateEvaluationError(Exception):
+    """Raised when gate evaluation fails."""
+    pass
+
 
 router = APIRouter(prefix="/api/v1", tags=["prompts"])
 
@@ -265,6 +277,164 @@ async def improve_prompt(request: ImprovePromptRequest):
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Prompt improvement failed: {str(e)}"
+        )
+
+
+class EvaluateQualityRequest(BaseModel):
+    """Request model for quality gate evaluation.
+
+    Raises:
+        ValueError: If output is empty/whitespace or exceeds size limit.
+        ValueError: If template_id is not supported.
+    """
+    output: str = Field(
+        ...,
+        description="The output text to evaluate against quality gates.",
+        min_length=1,
+        max_length=100000  # 100KB limit
+    )
+    template_id: str = Field(
+        default="json",
+        description="Template ID to use for evaluation. Must be one of: json, procedure_md, checklist_md, example_md."
+    )
+    template_spec: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Optional template specification override. If not provided, uses DEFAULT_TEMPLATES."
+    )
+
+    @field_validator("output")
+    @classmethod
+    def output_must_not_be_whitespace(cls, v: str) -> str:
+        """Validate output is not just whitespace."""
+        if not v or not v.strip():
+            raise ValueError("Output cannot be empty or whitespace only")
+        return v
+
+    @field_validator("template_id")
+    @classmethod
+    def template_id_must_be_valid(cls, v: str) -> str:
+        """Validate template_id is supported."""
+        from api.quality_gates import DEFAULT_TEMPLATES
+        valid_templates = set(DEFAULT_TEMPLATES.keys())
+        if v not in valid_templates:
+            raise ValueError(
+                f"Invalid template_id '{v}'. Must be one of: {', '.join(sorted(valid_templates))}"
+            )
+        return v
+
+
+class EvaluateQualityResponse(BaseModel):
+    """Response model for quality gate evaluation.
+
+    Contains complete gate evaluation results including v0.1 (format+completeness)
+    and v0.2 (anti-trampa heuristics) gate results.
+    """
+    template_id: str = Field(description="The template ID used for evaluation.")
+    output_length: int = Field(description="Character length of the evaluated output.")
+    v0_1_pass: bool = Field(description="Whether all v0.1 gates (format+completeness) passed.")
+    v0_2_fail_count: int = Field(description="Number of v0.2 gates that FAILED.")
+    v0_2_warn_count: int = Field(description="Number of v0.2 gates that WARNED.")
+    overall_pass: bool = Field(description="Overall pass status (v0.1 must pass AND v0.2 must have 0 FAILs).")
+    overall_status: str = Field(description="Overall status: PASS, WARN, or FAIL.")
+    summary: str = Field(description="Human-readable summary of evaluation results.")
+    gates: Dict[str, Dict[str, Any]] = Field(description="Complete gate results with details for each gate.")
+
+
+@router.post("/evaluate-quality", response_model=EvaluateQualityResponse)
+async def evaluate_quality(request: EvaluateQualityRequest):
+    """
+    Evaluate output quality against v0.1 + v0.2 gates.
+
+    POST /api/v1/evaluate-quality
+    {
+        "output": "## Objetivo\\n\\n## Pasos\\n\\n1. TBD",
+        "template_id": "procedure_md"
+    }
+
+    Response:
+    {
+        "template_id": "procedure_md",
+        "output_length": 45,
+        "v0.1_pass": false,
+        "v0.2_fail_count": 1,
+        "v0.2_warn_count": 0,
+        "overall_pass": false,
+        "overall_status": "FAIL",
+        "summary": "Pasos genéricos o vacíos",
+        "gates": {
+            "v0.1_gates": {...},
+            "v0.2_gates": {...}
+        }
+    }
+
+    Error Responses:
+    - 400: Validation error (empty output, invalid template_id)
+    - 500: Evaluation error (internal gate failure)
+    """
+    # Note: Pydantic validators handle input validation automatically
+    # Custom validators check for:
+    # - Empty/whitespace output
+    # - Invalid template_id
+    # - Output size limits (min 1, max 100000 chars)
+
+    try:
+        # Run quality gates
+        report: GateReport = evaluate_output(
+            output_text=request.output,
+            template_id=request.template_id,
+            template_spec=request.template_spec
+        )
+
+        # Convert to response format
+        return EvaluateQualityResponse(
+            template_id=report.template_id,
+            output_length=report.output_length,
+            v0_1_pass=report.v0_1_pass,
+            v0_2_fail_count=report.v0_2_fail_count,
+            v0_2_warn_count=report.v0_2_warn_count,
+            overall_pass=report.overall_pass,
+            overall_status=report._get_overall_status(),
+            summary=get_template_summary(report),
+            gates=report.to_dict()
+        )
+
+    except (ValueError, KeyError) as e:
+        # Expected validation errors - log with context but don't expose internals
+        logger.warning(
+            f"Quality gate validation failed: {type(e).__name__} | "
+            f"template_id={request.template_id} | "
+            f"output_length={len(request.output)}"
+        )
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid input: {str(e)}"
+        )
+    except (QualityGateValidationError, QualityGateEvaluationError) as e:
+        # Custom business logic errors
+        logger.error(
+            f"Quality gate error: {type(e).__name__} | "
+            f"template_id={request.template_id} | "
+            f"message={str(e)}"
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Quality gate evaluation failed. Please try again later."
+        )
+    except Exception as e:
+        # Unexpected errors - log with full context, hide internals from client
+        logger.error(
+            f"Unexpected error in quality gate evaluation: {type(e).__name__} | "
+            f"template_id={request.template_id} | "
+            f"output_length={len(request.output)} | "
+            f"error={str(e)}",
+            exc_info=True
+        )
+        # Generate error ID for tracking (timestamp + template_id)
+        error_id = f"QE-{int(time.time())}-{request.template_id}"
+        logger.error(f"Error ID for tracking: {error_id}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal evaluation error. Reference ID: {error_id}"
         )
 
 
