@@ -341,6 +341,9 @@ class PromptImprovementResult:
     reasoning: Optional[str] = None
     confidence: Optional[float] = None
     latency_ms: Optional[int] = None
+    backend: Optional[str] = None
+    provider: Optional[str] = None
+    model: Optional[str] = None
 
 
 class PerformanceEvaluator:
@@ -491,9 +494,9 @@ class PromptMetricsCalculator:
         # Calculate performance metrics
         performance = self.performance_evaluator.evaluate(
             latency_ms=latency_ms,
-            provider=result.model,  # Will be overridden by metadata
-            model=result.model,
-            backend="zero-shot",  # Will be overridden by metadata
+            provider=result.provider or result.model or "unknown",  # Use provider if available
+            model=result.model or "unknown",
+            backend=result.backend or "zero-shot",  # Use backend from result, default to zero-shot
             original_idea=original_idea,
             improved_prompt=result.improved_prompt,
         )
@@ -567,6 +570,7 @@ class PromptMetricsCalculator:
             reasoning=None,
             confidence=confidence,
             latency_ms=latency_ms,
+            backend=backend,
         )
 
         # Override model/provider in result for performance evaluation
