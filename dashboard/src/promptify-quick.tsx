@@ -1,10 +1,11 @@
-import { Action, ActionPanel, Clipboard, Detail, Form, Toast, getPreferenceValues, showToast } from "@raycast/api";
-import { useState } from "react";
+import { Action, ActionPanel, Clipboard, Detail, Form, getPreferenceValues } from "@raycast/api";
+import { useState, useEffect } from "react";
 import { improvePromptWithHybrid, improvePromptWithOllama } from "./core/llm/improvePrompt";
 import { ollamaHealthCheck } from "./core/llm/ollamaClient";
 import { loadConfig } from "./core/config";
 import { getCustomPatternSync } from "./core/templates/pattern";
 import { Typography } from "./core/design/typography";
+import { ToastHelper } from "./core/design/toast";
 
 type Preferences = {
   ollamaBaseUrl?: string;
@@ -104,11 +105,7 @@ function PromptPreview(props: {
               title="Copy Prompt Only"
               onAction={async () => {
                 await Clipboard.copy(props.prompt);
-                await showToast({
-                  style: Toast.Style.Success,
-                  title: "Prompt copied",
-                  message: `${props.prompt.length} characters`,
-                });
+                await ToastHelper.success("Copied", `${props.prompt.length} characters`);
               }}
               shortcut={{ modifiers: ["cmd"], key: "c" }}
             />
@@ -118,11 +115,7 @@ function PromptPreview(props: {
               onAction={async () => {
                 const withStats = [`# Improved Prompt`, "", props.prompt, "", "---", ...stats].join("\n");
                 await Clipboard.copy(withStats);
-                await showToast({
-                  style: Toast.Style.Success,
-                  title: "Copied with stats",
-                  message: "Includes metadata",
-                });
+                await ToastHelper.success("Copied with stats", "Includes metadata");
               }}
             />
           </ActionPanel.Section>
@@ -133,10 +126,7 @@ function PromptPreview(props: {
               shortcut={{ modifiers: ["cmd", "shift"], key: "r" }}
               onAction={() => {
                 props.onReset?.();
-                showToast({
-                  style: Toast.Style.Animated,
-                  title: "Ready to regenerate",
-                });
+                ToastHelper.loading("Ready to regenerate");
               }}
             />
           </ActionPanel.Section>
@@ -177,24 +167,23 @@ export default function Command() {
 
   // Show diagnostic toast if safe mode activated automatically
   const [safeModeToastShown, setSafeModeToastShown] = useState(false);
-  if (isInSafeMode && !safeModeToastShown && configState.source === "defaults") {
-    setSafeModeToastShown(true);
-    showToast({
-      style: Toast.Style.Failure,
-      title: "Invalid Configuration",
-      message: "Using safe mode (defaults). Check logs for details.",
-    });
-  }
+
+  useEffect(() => {
+    if (isInSafeMode && !safeModeToastShown && configState.source === "defaults") {
+      setSafeModeToastShown(true);
+      ToastHelper.error("Invalid Configuration", "Using safe mode (defaults). Check logs for details.");
+    }
+  }, [isInSafeMode, safeModeToastShown, configState.source]);
 
   async function handleGenerateFinal(values: { inputText: string }) {
     const text = values.inputText.trim();
     if (!text.length) {
-      await showToast({ style: Toast.Style.Failure, title: "Paste or type some text first" });
+      await ToastHelper.error("Empty Input", "Paste or type some text first");
       return;
     }
 
     setIsLoading(true);
-    await showToast({ style: Toast.Style.Animated, title: "Generating prompt…" });
+    await ToastHelper.loading("Generating prompt…");
     try {
       // Use configuration (preferences override config defaults)
       const config = configState.config;
@@ -212,11 +201,7 @@ export default function Command() {
       if (!dspyEnabled) {
         const health = await ollamaHealthCheck({ baseUrl, timeoutMs: Math.min(2_000, timeoutMs) });
         if (!health.ok) {
-          await showToast({
-            style: Toast.Style.Failure,
-            title: "Ollama is not reachable",
-            message: `${baseUrl} (${health.error})`,
-          });
+          await ToastHelper.error("Ollama is not reachable", health.error, `Check ${baseUrl}`);
           return;
         }
       }
@@ -249,7 +234,7 @@ export default function Command() {
 
       const finalPrompt = result.improved_prompt.trim();
       await Clipboard.copy(finalPrompt);
-      await showToast({ style: Toast.Style.Success, title: "Copied final prompt" });
+      await ToastHelper.success("Copied final prompt");
       setPreview({
         prompt: finalPrompt,
         meta: {
@@ -277,19 +262,19 @@ export default function Command() {
       });
 
       if (dspyEnabled) {
-        await showToast({
-          style: Toast.Style.Failure,
-          title: "DSPy backend not available",
-          message: `${dspyBaseUrl} (${e instanceof Error ? e.message : String(e)})${hint ? ` — ${hint}` : ""}`,
-        });
+        await ToastHelper.error(
+          "DSPy backend not available",
+          e instanceof Error ? e.message : String(e),
+          `${dspyBaseUrl}${hint ? ` — ${hint}` : ""}`
+        );
         return;
       }
 
-      await showToast({
-        style: Toast.Style.Failure,
-        title: "Prompt improvement failed",
-        message: `${e instanceof Error ? e.message : String(e)} (${model} @ ${baseUrl})${hint ? ` — ${hint}` : ""}`,
-      });
+      await ToastHelper.error(
+        "Prompt improvement failed",
+        e instanceof Error ? e.message : String(e),
+        `(${model} @ ${baseUrl})${hint ? ` — ${hint}` : ""}`
+      );
     } finally {
       setIsLoading(false);
     }
@@ -423,11 +408,7 @@ async function runWithModelFallback(args: {
     if (!args.fallbackModel || args.fallbackModel === args.model) throw e;
     if (!shouldTryFallback(e)) throw e;
 
-    await showToast({
-      style: Toast.Style.Animated,
-      title: "Retrying with fallback model…",
-      message: args.fallbackModel,
-    });
+    await ToastHelper.loading("Retrying with fallback model…", args.fallbackModel);
 
     return await improvePromptWithOllama({
       rawInput: args.rawInput,
