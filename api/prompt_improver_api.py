@@ -6,7 +6,7 @@ Supports both zero-shot and few-shot modes.
 """
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ValidationError
 import dspy
 import time
 import logging
@@ -385,6 +385,16 @@ async def evaluate_quality(request: EvaluateQualityRequest):
             template_spec=request.template_spec
         )
 
+        # Build gates dict for response (only v0.1 and v0.2 gates)
+        gates_dict = {
+            "v0_1_gates": {
+                k: v.to_dict() for k, v in report.v0_1_gates.items()
+            },
+            "v0_2_gates": {
+                k: v.to_dict() for k, v in report.v0_2_gates.items()
+            }
+        }
+
         # Convert to response format
         return EvaluateQualityResponse(
             template_id=report.template_id,
@@ -395,20 +405,9 @@ async def evaluate_quality(request: EvaluateQualityRequest):
             overall_pass=report.overall_pass,
             overall_status=report._get_overall_status(),
             summary=get_template_summary(report),
-            gates=report.to_dict()
+            gates=gates_dict
         )
 
-    except (ValueError, KeyError) as e:
-        # Expected validation errors - log with context but don't expose internals
-        logger.warning(
-            f"Quality gate validation failed: {type(e).__name__} | "
-            f"template_id={request.template_id} | "
-            f"output_length={len(request.output)}"
-        )
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid input: {str(e)}"
-        )
     except (QualityGateValidationError, QualityGateEvaluationError) as e:
         # Custom business logic errors
         logger.error(
@@ -420,8 +419,20 @@ async def evaluate_quality(request: EvaluateQualityRequest):
             status_code=500,
             detail="Quality gate evaluation failed. Please try again later."
         )
+    except KeyError as e:
+        # Missing keys in output data
+        logger.warning(
+            f"Quality gate key error: {type(e).__name__} | "
+            f"template_id={request.template_id} | "
+            f"key={str(e)}"
+        )
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid output format: missing required key"
+        )
     except Exception as e:
         # Unexpected errors - log with full context, hide internals from client
+        # Note: ValidationError from Pydantic is handled before reaching this code
         logger.error(
             f"Unexpected error in quality gate evaluation: {type(e).__name__} | "
             f"template_id={request.template_id} | "

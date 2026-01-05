@@ -236,16 +236,26 @@ def load_trainset(path: str) -> List[dspy.Example]:
     """Load training set from JSON file.
 
     Args:
-        path: Path to merged-trainset.json
+        path: Path to JSON file with training examples.
+               Supports both wrapped format (with 'examples' key) and
+               direct list format (e.g., merged-trainset-deduped.json).
 
     Returns:
         List of dspy.Example with inputs() and outputs()
     """
-    with open(path, 'r') as f:
+    with open(path, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
+    # Handle unified pool wrapper format: {"metadata": {...}, "examples": [...]}
+    if isinstance(data, dict) and 'examples' in data:
+        examples = data['examples']
+    elif isinstance(data, list):
+        examples = data
+    else:
+        raise ValueError(f"Invalid trainset format at {path}. Expected list or dict with 'examples' key.")
+
     trainset = []
-    for item in data:
+    for item in examples:
         inputs = item['inputs']
         outputs = item['outputs']
 
