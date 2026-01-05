@@ -84,17 +84,9 @@ function PromptPreview(props: {
             />
           )}
 
-          <Detail.Metadata.Label
-            title="Length"
-            text={`${props.prompt.length} chars`}
-            icon="📝"
-          />
+          <Detail.Metadata.Label title="Length" text={`${props.prompt.length} chars`} icon="📝" />
 
-          <Detail.Metadata.Label
-            title="Words"
-            text={`${props.prompt.split(/\s+/).length}`}
-            icon="📄"
-          />
+          <Detail.Metadata.Label title="Words" text={`${props.prompt.split(/\s+/).length}`} icon="📄" />
 
           <Detail.Metadata.Separator />
 
@@ -124,14 +116,7 @@ function PromptPreview(props: {
             <Action
               title="Copy with Stats"
               onAction={async () => {
-                const withStats = [
-                  `# Improved Prompt`,
-                  "",
-                  props.prompt,
-                  "",
-                  "---",
-                  ...stats,
-                ].join("\n");
+                const withStats = [`# Improved Prompt`, "", props.prompt, "", "---", ...stats].join("\n");
                 await Clipboard.copy(withStats);
                 await showToast({
                   style: Toast.Style.Success,
@@ -161,6 +146,17 @@ function PromptPreview(props: {
   );
 }
 
+function getPlaceholder(preset?: "default" | "specific" | "structured" | "coding"): string {
+  const placeholders = {
+    default: "Paste your rough prompt here… (⌘I for quick improve)",
+    specific: "What specific task should this prompt accomplish?",
+    structured: "Paste your prompt - we'll add structure and clarity…",
+    coding: "Describe what you want the code to do…",
+  };
+
+  return placeholders[preset || "structured"];
+}
+
 export default function Command() {
   const preferences = getPreferenceValues<Preferences>();
 
@@ -168,7 +164,11 @@ export default function Command() {
   const configState = loadConfig();
   const isInSafeMode = configState.safeMode;
 
+  // Compute DSPy enabled state for use in JSX
+  const dspyEnabled = preferences.dspyEnabled ?? configState.config.dspy.enabled;
+
   const [inputText, setInputText] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [preview, setPreview] = useState<{
     prompt: string;
     meta?: { confidence?: number; clarifyingQuestions?: string[]; assumptions?: string[] };
@@ -193,6 +193,7 @@ export default function Command() {
       return;
     }
 
+    setIsLoading(true);
     await showToast({ style: Toast.Style.Animated, title: "Generating prompt…" });
     try {
       // Use configuration (preferences override config defaults)
@@ -289,6 +290,8 @@ export default function Command() {
         title: "Prompt improvement failed",
         message: `${e instanceof Error ? e.message : String(e)} (${model} @ ${baseUrl})${hint ? ` — ${hint}` : ""}`,
       });
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -305,23 +308,60 @@ export default function Command() {
 
   return (
     <Form
+      isLoading={isLoading}
       actions={
         <ActionPanel>
-          <Action.SubmitForm
-            title="Improve Prompt (Ollama)"
-            onSubmit={handleGenerateFinal}
-            shortcut={{ modifiers: ["cmd", "shift"], key: "enter" }}
-          />
-          <Action title="Clear" onAction={() => setInputText("")} shortcut={{ modifiers: ["cmd"], key: "backspace" }} />
+          <ActionPanel.Section title="Improve">
+            <Action.SubmitForm
+              title={isLoading ? "Improving…" : "Improve Prompt"}
+              subtitle={`${dspyEnabled ? "DSPy + " : ""}${preferences.model?.slice(0, 20) || "Ollama"}`}
+              onSubmit={handleGenerateFinal}
+              shortcut={{ modifiers: ["cmd", "shift"], key: "enter" }}
+              disabled={isLoading}
+            />
+            <Action
+              title="Quick Improve"
+              subtitle="Use default settings"
+              shortcut={{ modifiers: ["cmd"], key: "i" }}
+              onAction={() => {
+                if (inputText.trim()) {
+                  handleGenerateFinal({ inputText });
+                }
+              }}
+              disabled={isLoading || !inputText.trim()}
+            />
+          </ActionPanel.Section>
+
+          {inputText.trim() && (
+            <ActionPanel.Section title="Edit">
+              <Action
+                title="Clear Input"
+                onAction={() => setInputText("")}
+                shortcut={{ modifiers: ["cmd"], key: "backspace" }}
+                style={Action.Style.Destructive}
+                disabled={isLoading}
+              />
+            </ActionPanel.Section>
+          )}
+
+          <ActionPanel.Section title="Settings">
+            <Action.OpenInBrowser
+              title="Open Preferences"
+              url="raycast://extensions/preferences/thomas.prompt-renderer-local"
+              shortcut={{ modifiers: ["ctrl"], key: "," }}
+            />
+          </ActionPanel.Section>
         </ActionPanel>
       }
     >
       <Form.TextArea
         id="inputText"
         title="Prompt"
-        placeholder="Paste your rough prompt here… (⌘⇧↵ to improve)"
+        placeholder={getPlaceholder(preferences.preset)}
         value={inputText}
         onChange={setInputText}
+        disabled={isLoading}
+        enableMarkdown={true}
       />
     </Form>
   );
