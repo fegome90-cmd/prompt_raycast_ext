@@ -237,11 +237,22 @@ async def improve_prompt(request: ImprovePromptRequest):
                         # Note: We need a metrics repository, not prompt repository
                         # For now, just log that we would save it
                         logger.debug("Metrics calculated successfully (persistence to be implemented)")
+                except (ConnectionError, OSError) as e:
+                    logger.error(f"Failed to save metrics due to connection/error: {e}")
                 except Exception as e:
-                    logger.error(f"Failed to save metrics: {e}")
+                    logger.error(f"Failed to save metrics: {type(e).__name__}: {e}", exc_info=True)
+        except (ValueError, TypeError, AttributeError) as e:
+            # Expected errors from metrics calculation (invalid data types, missing attributes)
+            logger.warning(
+                f"Metrics calculation skipped due to data issue: {type(e).__name__}: {e}"
+            )
         except Exception as e:
-            logger.error(f"Failed to calculate metrics: {e}", exc_info=True)
-            # Don't fail the request if metrics fail
+            # Unexpected errors - log with full context but don't fail the request
+            logger.error(
+                f"Unexpected error in metrics calculation: {type(e).__name__}: {e} | "
+                f"backend={backend} | model={model}",
+                exc_info=True
+            )
 
         # Build response
         response = ImprovePromptResponse(
