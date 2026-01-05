@@ -21,6 +21,7 @@ from hemdov.infrastructure.adapters.litellm_dspy_adapter_prompt import (
     create_anthropic_adapter,
 )
 from api.prompt_improver_api import router as prompt_improver_router
+from api.metrics_api import router as metrics_router
 import dspy
 
 # Global LM instance for DSPy
@@ -111,6 +112,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(prompt_improver_router)
+app.include_router(metrics_router)
 
 
 # Health check endpoint
@@ -134,6 +136,9 @@ async def root():
         "endpoints": {
             "health": "/health",
             "improve_prompt": "/api/v1/improve-prompt",
+            "metrics_summary": "/api/v1/metrics/summary",
+            "metrics_trends": "/api/v1/metrics/trends",
+            "metrics_compare": "/api/v1/metrics/compare",
             "docs": "/docs",
         },
     }
