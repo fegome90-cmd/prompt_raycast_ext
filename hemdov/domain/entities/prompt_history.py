@@ -1,7 +1,10 @@
 # hemdov/domain/entities/prompt_history.py
+import logging
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class PromptHistory:
@@ -36,6 +39,20 @@ class PromptHistory:
 
     def __post_init__(self):
         """Validate business invariants."""
+        # Validate framework is allowed value (with fallback)
+        allowed_frameworks = {
+            "chain-of-thought",
+            "tree-of-thoughts",
+            "decomposition",
+            "role-playing"
+        }
+        if self.framework not in allowed_frameworks:
+            logger.warning(
+                f"Unknown framework '{self.framework}', "
+                f"defaulting to 'chain-of-thought'"
+            )
+            object.__setattr__(self, 'framework', 'chain-of-thought')
+
         # Validate confidence range
         if self.confidence is not None:
             if not (0.0 <= self.confidence <= 1.0):

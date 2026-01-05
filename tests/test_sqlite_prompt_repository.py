@@ -491,8 +491,8 @@ async def test_find_by_id_with_corrupted_guardrails_json(repository: SQLitePromp
 
 @pytest.mark.asyncio
 async def test_invalid_framework_allowed(repository: SQLitePromptRepository):
-    """Test that invalid framework names are accepted (dead code)."""
-    # This should raise ValueError if validation worked, but it doesn't
+    """Test that invalid framework names fallback to default."""
+    # Invalid framework should fallback to chain-of-thought
     entity = PromptHistory(
         original_idea="test",
         context="context",
@@ -506,12 +506,17 @@ async def test_invalid_framework_allowed(repository: SQLitePromptRepository):
         provider="provider"
     )
 
-    # Test passes because validation is dead (doesn't actually validate)
-    assert entity.framework == "completely-invalid-framework-name"
+    # Framework should be normalized to default
+    assert entity.framework == "chain-of-thought"
 
     # Should be able to save to database without error
     history_id = await repository.save(entity)
     assert history_id > 0
+
+    # Verify the saved entity has the normalized framework
+    saved = await repository.find_by_id(history_id)
+    assert saved is not None
+    assert saved.framework == "chain-of-thought"
 
 
 @pytest.mark.asyncio
