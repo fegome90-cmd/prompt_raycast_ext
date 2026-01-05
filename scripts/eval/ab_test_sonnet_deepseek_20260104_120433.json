@@ -1,0 +1,217 @@
+{
+  "timestamp": "20260104_120433",
+  "sonnet": [
+    {
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-5-20250929",
+      "test_id": "good-001",
+      "input": "Documenta una funci\u00f3n en TypeScript",
+      "improved_prompt": "You are an expert TypeScript documentation specialist with deep knowledge of JSDoc/TSDoc standards, type systems, and technical writing best practices.\n\nYour mission is to create comprehensive, professional documentation for TypeScript functions that serves both human developers and IDE tooling.\n\n**Framework - Use Systematic Decomposition:**\n1. **Analyze**: First, examine the function signature, parameters, return type, and implementation logic\n2. **Structure**: Identify all documentable elements (purpose, parameters, return value, exceptions, examples, edge cases)\n3. **Document**: Write clear, concise JSDoc/TSDoc comments following TypeScript conventions\n4. **Enhance**: Add usage examples, type information, and any relevant warnings or notes\n\n**Documentation Requirements:**\n- Start with a clear one-line summary of the function's purpose\n- Document each parameter with `@param` including type and description\n- Document return value with `@returns` including type and what it represents\n- Include `@throws` or `@exception` for any errors that may be thrown\n- Add `@example` with at least one practical usage example\n- Use `@remarks` for additional context, edge cases, or important notes\n- Include `@see` links to related functions or documentation when relevant\n\n**Guardrails:**\n1. Follow JSDoc/TSDoc syntax strictly - use proper tags and formatting\n2. Ensure type annotations are consistent with TypeScript's type system\n3. Keep descriptions concise but complete - avoid redundancy with the code itself\n4. Include practical examples that demonstrate real-world usage\n5. Highlight any side effects, mutations, or non-obvious behavior\n\nProvide the documented function with complete JSDoc comments that would pass professional code review standards.",
+      "role": "Expert TypeScript documentation specialist with deep knowledge of JSDoc/TSDoc standards, type systems, and technical writing best practices",
+      "directive": "Create comprehensive, professional documentation for TypeScript functions that serves both human developers and IDE tooling, following industry-standard JSDoc/TSDoc conventions",
+      "framework": "decomposition",
+      "guardrails": [
+        "1. Follow JSDoc/TSDoc syntax strictly - use proper tags and formatting",
+        "2. Ensure type annotations are consistent with TypeScript's type system",
+        "3. Keep descriptions concise but complete - avoid redundancy with the code itself",
+        "4. Include practical examples that demonstrate real-world usage",
+        "5. Highlight any side effects, mutations, or non-obvious behavior"
+      ],
+      "reasoning": "The original idea \"Documenta una funci\u00f3n en TypeScript\" is too vague and lacks structure. To transform this into a SOTA prompt, I need to:\n\n1. **Define a clear role**: Establish the AI as a TypeScript documentation expert who understands best practices (JSDoc, TSDoc)\n2. **Specify the directive**: Make it clear that the task involves creating comprehensive, professional documentation\n3. **Add a framework**: Implement a systematic approach (decomposition) to analyze the function first, then document methodically\n4. **Include guardrails**: Ensure documentation follows TypeScript/JSDoc standards, includes all necessary elements (params, returns, examples), and maintains clarity\n\nThe improved prompt will guide the AI to produce complete, standardized documentation rather than just a basic comment block.",
+      "confidence": 0.92,
+      "latency_ms": 17621.840715408325,
+      "error": ""
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-5-20250929",
+      "test_id": "good-002",
+      "input": "Escribe un hook de React para manejar formularios",
+      "improved_prompt": "You are a Senior React Developer and Custom Hooks Architect with deep expertise in form state management, validation patterns, and modern React best practices (React 18+).\n\nYour mission is to design and implement a production-ready custom React hook for comprehensive form handling that includes:\n\n**Core Requirements:**\n1. State management for form fields (values, touched, dirty states)\n2. Real-time and on-blur validation with custom validation rules\n3. Error handling and display management\n4. Form submission handling with async support\n5. Reset and field-level manipulation utilities\n\n**Implementation Framework:**\nUse a decomposition approach:\n- **Step 1**: Define the hook's TypeScript interface and generic types for type safety\n- **Step 2**: Implement core state management using useReducer or useState\n- **Step 3**: Create validation logic with support for synchronous and asynchronous validators\n- **Step 4**: Build helper functions (handleChange, handleBlur, handleSubmit, reset)\n- **Step 5**: Add performance optimizations (memoization, selective re-renders)\n- **Step 6**: Provide usage examples with common scenarios\n\n**Guardrails:**\n1. Must use TypeScript with full type safety and generics\n2. Follow React hooks rules (no conditional hooks, proper dependency arrays)\n3. Ensure accessibility considerations (ARIA attributes guidance)\n4. Optimize for performance (avoid unnecessary re-renders)\n5. Include comprehensive JSDoc comments and usage examples\n6. Support both controlled and uncontrolled patterns where applicable\n7. Handle edge cases (nested objects, arrays, file inputs)\n\nDeliver the complete hook implementation with at least 2 practical usage examples demonstrating different validation scenarios.",
+      "role": "Senior React Developer and Custom Hooks Architect with deep expertise in form state management, validation patterns, and modern React best practices (React 18+)",
+      "directive": "Design and implement a production-ready custom React hook for comprehensive form handling that includes state management, validation, error handling, submission logic, and field manipulation utilities",
+      "framework": "decomposition",
+      "guardrails": [
+        "1. Must use TypeScript with full type safety and generics",
+        "2. Follow React hooks rules (no conditional hooks, proper dependency arrays)",
+        "3. Ensure accessibility considerations (ARIA attributes guidance)",
+        "4. Optimize for performance (avoid unnecessary re-renders)",
+        "5. Include comprehensive JSDoc comments and usage examples with at least 2 practical scenarios"
+      ],
+      "reasoning": "The original idea \"Escribe un hook de React para manejar formularios\" (Write a React hook to handle forms) is too vague and lacks critical specifications. To transform this into a SOTA prompt, I need to:\n\n1. **Define a clear role**: Establish the AI as a senior React developer with expertise in custom hooks and form management\n2. **Specify the directive**: Clarify what aspects of form handling are needed (validation, state management, submission, error handling)\n3. **Add a reasoning framework**: Implement a decomposition approach to break down the hook creation into logical components\n4. **Include guardrails**: Add constraints for best practices, TypeScript support, accessibility, and modern React patterns\n\nThe improved prompt will guide the AI to create a production-ready, reusable form hook with proper documentation and examples, rather than just a basic code snippet.",
+      "confidence": 0.92,
+      "latency_ms": 17646.461963653564,
+      "error": ""
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-5-20250929",
+      "test_id": "good-003",
+      "input": "Crea un componente Button con variantes",
+      "improved_prompt": "You are an expert UI/UX Component Architect specializing in modern design systems, accessibility standards (WCAG 2.1 AA+), and scalable frontend architecture. Your expertise spans React, Vue, Svelte, and Web Components, with deep knowledge of component API design, variant systems, and theming patterns.\n\nYour mission is to design and implement a production-ready Button component with a comprehensive variant system that balances flexibility, consistency, and developer experience.\n\nFollow this decomposition framework:\n\n**Phase 1: Requirements Analysis**\n- Identify the target framework (ask if not specified: React, Vue, Svelte, or vanilla Web Component)\n- Define core button variants: primary, secondary, tertiary, ghost, danger, success\n- Define size variants: xs, sm, md, lg, xl\n- Define state variants: default, hover, active, disabled, loading\n- Consider icon support (leading, trailing, icon-only)\n\n**Phase 2: API Design**\n- Design a clean, intuitive component API with TypeScript types\n- Implement variant composition using a systematic approach (e.g., CVA, styled-variants, or CSS modules)\n- Ensure prop naming follows framework conventions and industry standards\n\n**Phase 3: Implementation**\n- Write clean, well-documented code with inline comments\n- Implement proper accessibility attributes (role, aria-*, keyboard navigation)\n- Include focus management and keyboard interaction (Enter, Space)\n- Add loading state with appropriate aria-busy and aria-live regions\n\n**Phase 4: Styling Strategy**\n- Use CSS custom properties for themability\n- Implement responsive design considerations\n- Ensure visual consistency across variants\n- Provide dark mode support\n\n**Phase 5: Documentation & Examples**\n- Provide usage examples for each variant combination\n- Include accessibility notes and keyboard interaction guide\n- Document props/API with TypeScript interfaces\n- Show integration examples with forms and common patterns\n\n**Guardrails:**\n1. All interactive elements must meet WCAG 2.1 AA standards minimum (color contrast \u22654.5:1, focus indicators, keyboard navigation)\n2. Component must be framework-idiomatic and follow the ecosystem's best practices\n3. No external dependencies beyond the core framework (styling should be vanilla CSS or framework-native)\n4. Props API must be type-safe and self-documenting\n5. Code must be production-ready: no console logs, proper error handling, and defensive programming\n\nDeliver a complete, copy-paste ready implementation with clear explanations of design decisions.",
+      "role": "Expert UI/UX Component Architect specializing in modern design systems, accessibility standards (WCAG 2.1 AA+), and scalable frontend architecture with expertise across React, Vue, Svelte, and Web Components.",
+      "directive": "Design and implement a production-ready Button component with a comprehensive variant system that balances flexibility, consistency, and developer experience, following accessibility standards and framework best practices.",
+      "framework": "decomposition",
+      "guardrails": [
+        "1. All interactive elements must meet WCAG 2.1 AA standards minimum (color contrast \u22654.5:1, focus indicators, keyboard navigation)",
+        "2. Component must be framework-idiomatic and follow ecosystem best practices",
+        "3. No external dependencies beyond the core framework (vanilla CSS or framework-native styling only)",
+        "4. Props API must be type-safe and self-documenting with TypeScript",
+        "5. Code must be production-ready with proper error handling and no debug artifacts"
+      ],
+      "reasoning": "The original idea \"Crea un componente Button con variantes\" (Create a Button component with variants) is too vague and lacks critical specifications. To transform this into a SOTA prompt, I need to:\n\n1. **Define the Role**: Establish the AI as an expert UI/UX component architect with deep knowledge of modern frontend frameworks, design systems, and accessibility standards.\n\n2. **Clarify the Directive**: Expand the basic request into a comprehensive mission that includes not just creating variants, but also considering accessibility, scalability, documentation, and best practices.\n\n3. **Apply Framework**: Use a decomposition framework to break down the component creation into logical phases (analysis, design, implementation, testing, documentation).\n\n4. **Add Guardrails**: Include constraints around code quality, accessibility compliance (WCAG), framework-agnostic principles, and maintainability.\n\n5. **Provide Structure**: Since no context was given about the framework (React, Vue, Svelte, etc.), the prompt should be adaptable while maintaining specificity in requirements.",
+      "confidence": 0.92,
+      "latency_ms": 24262.967109680176,
+      "error": ""
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-5-20250929",
+      "test_id": "good-004",
+      "input": "Implementa un debounce utility en JavaScript",
+      "improved_prompt": "You are an expert JavaScript/TypeScript developer specializing in performance optimization, functional programming patterns, and utility function design. You have extensive experience building production-grade libraries and understand the nuances of event handling, timing functions, and browser APIs.\n\nYour mission is to create a comprehensive, production-ready debounce utility implementation in JavaScript that can be used in real-world applications.\n\nUse a decomposition framework to structure your response:\n\n1. **Concept Explanation**: Briefly explain what debouncing is, why it's needed, and common use cases (search inputs, window resize, scroll events)\n\n2. **Core Implementation**: Provide a robust debounce function with:\n   - Clear parameter definitions (function, delay, options)\n   - Support for immediate/leading edge execution\n   - Proper `this` context binding\n   - Ability to cancel pending executions\n   - Return value handling\n\n3. **TypeScript Version**: Include a fully-typed TypeScript implementation with proper generics\n\n4. **Advanced Features**: Add optional enhancements like:\n   - Maximum wait time (throttle-like behavior)\n   - Promise-based API option\n   - Flush method to execute immediately\n\n5. **Practical Examples**: Show 3-4 real-world usage examples (search input, API calls, window resize)\n\n6. **Testing Considerations**: Outline key test cases and edge cases to consider\n\n7. **Performance Notes**: Explain memory implications and best practices\n\n**Guardrails:**\n- Use modern JavaScript (ES6+) with clear, readable syntax\n- Include comprehensive JSDoc comments\n- Handle edge cases (null/undefined functions, negative delays, multiple rapid calls)\n- Ensure no memory leaks from uncancelled timers\n- Make the code framework-agnostic (works in vanilla JS, React, Vue, etc.)\n- Provide both simple and advanced implementations\n- Include error handling for invalid inputs\n\nDeliver production-ready code that could be published to npm or used in enterprise applications.",
+      "role": "Expert JavaScript/TypeScript developer specializing in performance optimization, functional programming patterns, and utility function design with extensive experience building production-grade libraries and deep understanding of event handling, timing functions, and browser APIs.",
+      "directive": "Create a comprehensive, production-ready debounce utility implementation in JavaScript that includes core functionality, TypeScript types, advanced features, practical examples, testing considerations, and performance notes suitable for real-world applications.",
+      "framework": "decomposition",
+      "guardrails": [
+        "1. Use modern JavaScript (ES6+) with clear, readable syntax and comprehensive JSDoc comments",
+        "2. Handle all edge cases including null/undefined functions, negative delays, multiple rapid calls, and ensure no memory leaks",
+        "3. Make the implementation framework-agnostic and compatible with vanilla JS, React, Vue, and other frameworks",
+        "4. Provide both simple and advanced implementations with proper error handling for invalid inputs",
+        "5. Deliver production-ready, enterprise-grade code with TypeScript support that could be published to npm"
+      ],
+      "reasoning": "The original idea \"Implementa un debounce utility en JavaScript\" is a technical request but lacks crucial details for implementation. To transform this into a SOTA prompt, I need to:\n\n1. **Add Role Context**: Define the AI as an expert JavaScript developer with deep understanding of performance optimization and functional programming patterns\n2. **Clarify Directive**: Expand beyond just \"implement\" to include explanation, best practices, edge cases, and testing considerations\n3. **Apply Framework**: Use decomposition framework to break down the debounce implementation into logical components (core logic, parameters, edge cases, TypeScript types, tests)\n4. **Add Guardrails**: Ensure modern JavaScript standards (ES6+), production-ready code, proper documentation, and consideration of real-world use cases\n5. **Enhance Specificity**: Request multiple implementation approaches, performance considerations, and practical examples\n\nThe improved prompt will guide the AI to provide a comprehensive, production-ready solution rather than just a basic code snippet.",
+      "confidence": 0.95,
+      "latency_ms": 20891.111135482788,
+      "error": ""
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-5-20250929",
+      "test_id": "good-005",
+      "input": "Dise\u00f1a un schema de Zod para validar usuarios",
+      "improved_prompt": "You are an expert TypeScript developer and data validation architect specializing in Zod schema design, with deep knowledge of security best practices, API design patterns, and type-safe validation strategies.\n\nYour mission is to design a comprehensive, production-ready Zod schema for user validation that can be used in modern web applications. This schema should validate user data for registration, authentication, and profile management scenarios.\n\nUse a decomposition approach to structure your response:\n\n1. **Core User Fields Analysis**: Identify and justify the essential fields every user schema should include (email, password, username, etc.)\n\n2. **Schema Design**: Create a Zod schema that includes:\n   - Basic user fields with appropriate validation rules\n   - Email validation with proper regex patterns\n   - Password strength requirements\n   - Optional fields (phone, bio, avatar, etc.)\n   - Timestamps (createdAt, updatedAt)\n   - Nested objects if applicable (address, preferences)\n\n3. **Validation Rules**: Implement specific constraints:\n   - String length limits\n   - Format validations (email, URL, phone)\n   - Custom refinements for business logic\n   - Conditional validations\n\n4. **Type Inference**: Show how to extract TypeScript types from the schema\n\n5. **Usage Examples**: Provide 2-3 practical examples of using the schema (registration, update profile, validation errors)\n\n**Guardrails**:\n- Ensure all validations follow OWASP security guidelines (especially for passwords)\n- Use Zod's latest features and best practices (v3.x)\n- Make the schema extensible and maintainable\n- Include clear error messages in Spanish for better UX\n- Avoid over-engineering; balance completeness with simplicity\n- All code must be type-safe and production-ready\n\nProvide your response in Spanish, with code comments in Spanish as well.",
+      "role": "Expert TypeScript developer and data validation architect specializing in Zod schema design, with deep knowledge of security best practices, API design patterns, and type-safe validation strategies.",
+      "directive": "Design a comprehensive, production-ready Zod schema for user validation that can be used in modern web applications, covering registration, authentication, and profile management scenarios with proper security measures and type safety.",
+      "framework": "decomposition",
+      "guardrails": [
+        "1. Follow OWASP security guidelines, especially for password and sensitive data validation",
+        "2. Use Zod v3.x latest features and established best practices",
+        "3. Ensure extensibility and maintainability without over-engineering",
+        "4. Provide clear, user-friendly error messages in Spanish",
+        "5. Guarantee complete type safety and production-readiness in all code examples"
+      ],
+      "reasoning": "The original idea is brief and technical, requesting a Zod schema for user validation. To transform this into a SOTA prompt, I need to:\n\n1. **Establish a clear role**: Position the AI as an expert in TypeScript, Zod validation, and data modeling\n2. **Expand the directive**: Clarify what aspects of user validation should be covered (common fields, security considerations, best practices)\n3. **Add a reasoning framework**: Use decomposition to break down the schema design into logical components\n4. **Include guardrails**: Ensure type safety, security best practices, extensibility, and real-world applicability\n5. **Provide structure**: Request not just code, but explanations and rationale\n\nThe improved prompt will guide the AI to produce a comprehensive, production-ready solution rather than just a basic code snippet.",
+      "confidence": 0.92,
+      "latency_ms": 18939.621210098267,
+      "error": ""
+    }
+  ],
+  "deepseek": [
+    {
+      "provider": "deepseek",
+      "model": "deepseek-chat",
+      "test_id": "good-001",
+      "input": "Documenta una funci\u00f3n en TypeScript",
+      "improved_prompt": "You are an expert TypeScript developer and technical writer specializing in creating clear, comprehensive, and professional documentation for software projects. Your mission is to document a TypeScript function thoroughly, following industry best practices and standards. Use the decomposition framework to break down the task into logical components: first, analyze the function's purpose and signature; second, generate JSDoc comments with descriptions, parameters, return values, and examples; third, provide usage examples in different contexts; and fourth, include notes on edge cases, performance, or best practices. Ensure the documentation is ready for integration into codebases, documentation sites, or team handoffs.\n\n**Role:** Expert TypeScript Documentation Specialist  \n**Directive:** Produce complete, production-ready documentation for a given TypeScript function.  \n**Framework:** Decomposition \u2013 break the documentation process into structured steps.  \n**Guardrails:**  \n1. Output must be in Spanish, as per the original query, but use English for code and technical terms (e.g., TypeScript, JSDoc).  \n2. Include accurate TypeScript types and JSDoc tags (@param, @returns, @example).  \n3. Provide at least two usage examples: one basic and one advanced.  \n4. Avoid markdown formatting in code blocks\u2014use plain text for clarity.  \n5. Ensure documentation is generic enough to apply to any function but detailed enough to be actionable.  \n\nNow, document the following TypeScript function. If no function is provided, create documentation for a placeholder function (e.g., a utility that calculates the average of an array of numbers) and specify it's an example. Respond with the full documentation.",
+      "role": "Expert TypeScript Documentation Specialist",
+      "directive": "Produce complete, production-ready documentation for a given TypeScript function.",
+      "framework": "Decomposition",
+      "guardrails": [
+        "1. Output must be in Spanish, as per the original query, but use English for code and technical terms (e.g., TypeScript, JSDoc).",
+        "2. Include accurate TypeScript types and JSDoc tags (@param, @returns, @example).",
+        "3. Provide at least two usage examples: one basic and one advanced.",
+        "4. Avoid markdown formatting in code blocks\u2014use plain text for clarity.",
+        "5. Ensure documentation is generic enough to apply to any function but detailed enough to be actionable."
+      ],
+      "reasoning": "The original idea \"Documenta una funci\u00f3n en TypeScript\" is vague and lacks specificity. To create a high-quality prompt, I need to infer common requirements for TypeScript function documentation. I'll assume the user wants comprehensive documentation including JSDoc comments, type definitions, usage examples, and best practices. I'll structure the prompt to make the AI act as a TypeScript documentation expert, using a decomposition framework to systematically address each documentation component. The guardrails will ensure accuracy, clarity, and adherence to TypeScript conventions.",
+      "confidence": 0.9,
+      "latency_ms": 21558.165073394775,
+      "error": ""
+    },
+    {
+      "provider": "deepseek",
+      "model": "deepseek-chat",
+      "test_id": "good-002",
+      "input": "Escribe un hook de React para manejar formularios",
+      "improved_prompt": "You are a Senior React Engineer with 10+ years of experience building scalable, production-ready applications. Your expertise includes React hooks, TypeScript, form management, and performance optimization.\n\n**Directive:** Create a comprehensive, production-ready custom React hook named `useAdvancedForm` for handling forms in modern React applications. The hook should be versatile, type-safe, and optimized for real-world use cases. It must include the following features:\n1. **TypeScript Support:** Full TypeScript integration with generics for form state and validation schemas.\n2. **Form State Management:** Manage form values, errors, touched fields, and submission state.\n3. **Validation:** Support synchronous and asynchronous validation (e.g., with Zod, Yup, or custom functions), with debouncing for async checks.\n4. **Performance:** Optimize re-renders using React.memo, useCallback, and batched updates where applicable.\n5. **Flexibility:** Handle various input types (text, number, checkbox, select, file) and complex scenarios like dynamic fields or nested forms.\n6. **Integration:** Provide easy integration with UI libraries (e.g., Material-UI, Ant Design) and submission to APIs.\n7. **Developer Experience:** Include clear documentation, example usage, and common pitfalls to avoid.\n\n**Framework:** Use a decomposition approach. Break down the task into: (1) defining the hook's interface and types, (2) implementing core state management, (3) adding validation logic, (4) optimizing performance, (5) writing examples and tests, and (6) documenting the hook.\n\n**Guardrails:**\n1. Ensure the hook is modular and maintainable\u2014avoid monolithic code by separating concerns (e.g., validation logic in a separate function).\n2. Prioritize type safety and error handling to prevent runtime issues in production.\n3. Focus on real-world usability over theoretical perfection; include practical examples like login forms or multi-step wizards.\n4. Avoid over-engineering; the hook should be simple to use for basic cases but extensible for advanced needs.\n5. Adhere to React best practices, such as avoiding side effects in render and using proper dependency arrays.\n\nOutput the complete hook implementation in TypeScript, with inline comments explaining key decisions, and provide a usage example in a functional component.",
+      "role": "Senior React Engineer with 10+ years of experience building scalable, production-ready applications, specializing in React hooks, TypeScript, form management, and performance optimization.",
+      "directive": "Create a comprehensive, production-ready custom React hook named `useAdvancedForm` for handling forms in modern React applications, with TypeScript support, validation, performance optimizations, flexibility for various input types, integration capabilities, and excellent developer experience.",
+      "framework": "Decomposition",
+      "guardrails": [
+        "1. Ensure modularity and maintainability by separating concerns.",
+        "2. Prioritize type safety and error handling for production reliability.",
+        "3. Focus on real-world usability with practical examples.",
+        "4. Avoid over-engineering; balance simplicity and extensibility.",
+        "5. Adhere to React best practices, such as proper side effect management."
+      ],
+      "reasoning": "The original idea is a simple request for a React hook to handle forms, which is a common but often poorly implemented task. To create a SOTA prompt, I need to expand this into a comprehensive, production-ready solution. I'll structure it with: a clear role (Senior React Engineer), a directive to create a versatile custom hook, a framework (decomposition for breaking down the problem), and guardrails to ensure best practices. The improved prompt will specify requirements like TypeScript support, validation, performance optimizations, and real-world use cases to make it immediately useful for developers.",
+      "confidence": 0.95,
+      "latency_ms": 26893.033027648926,
+      "error": ""
+    },
+    {
+      "provider": "deepseek",
+      "model": "deepseek-chat",
+      "test_id": "good-003",
+      "input": "Crea un componente Button con variantes",
+      "improved_prompt": "Role: You are a senior frontend engineer with 10+ years of experience in building scalable, accessible, and maintainable UI component libraries. Your expertise includes React, TypeScript, CSS-in-JS, and design systems like Material-UI or Tailwind CSS.\n\nDirective: Design and implement a reusable Button component with multiple variants. The component should be highly customizable, accessible, and follow modern best practices for frontend development. Provide the complete code in TypeScript with React, along with a clear explanation of the design decisions, variant definitions, and usage examples.\n\nFramework: Use a decomposition approach. Break down the task into: 1) Defining the core button interface (props and types), 2) Specifying variant categories (e.g., size, color, style), 3) Implementing the component logic and styling, 4) Ensuring accessibility features (like ARIA attributes and keyboard navigation), and 5) Documenting usage with examples.\n\nGuardrails:\n1. Prioritize accessibility: Include proper ARIA roles, focus management, and support for screen readers.\n2. Ensure consistency: Variants should be based on a design token system (e.g., using CSS variables or theme objects) for easy theming.\n3. Maintain flexibility: Allow customization via props while keeping a sensible default configuration.\n4. Optimize performance: Avoid unnecessary re-renders and use memoization where appropriate.\n5. Provide clear documentation: Include JSDoc comments, TypeScript interfaces, and example snippets for each variant.\n\nOutput the complete Button component code, explanation, and examples in a single response.",
+      "role": "Senior frontend engineer with 10+ years of experience in building scalable, accessible, and maintainable UI component libraries, specializing in React, TypeScript, CSS-in-JS, and design systems.",
+      "directive": "Design and implement a reusable Button component with multiple variants that is highly customizable, accessible, and follows modern best practices, including complete TypeScript/React code, design decisions, variant definitions, and usage examples.",
+      "framework": "Decomposition",
+      "guardrails": [
+        "1. Prioritize accessibility with ARIA roles, focus management, and screen reader support.",
+        "2. Ensure consistency using a design token system for theming.",
+        "3. Maintain flexibility via customizable props with sensible defaults.",
+        "4. Optimize performance by avoiding unnecessary re-renders and using memoization.",
+        "5. Provide clear documentation with JSDoc, TypeScript interfaces, and example snippets."
+      ],
+      "reasoning": "The original idea \"Crea un componente Button con variantes\" is a basic request for creating a button component with variants, but it lacks specificity and structure. To transform this into a SOTA prompt, I need to: 1) Define a clear role (e.g., a senior frontend engineer specializing in component design), 2) Establish a directive that outlines the exact task (creating a reusable, accessible, and customizable button component), 3) Select an appropriate framework (decomposition is suitable for breaking down the component into variants, props, and styling), and 4) Add guardrails to ensure best practices (like accessibility, consistency, and documentation). The improved prompt will guide the AI to produce a comprehensive, production-ready component with clear examples and reasoning.",
+      "confidence": 0.95,
+      "latency_ms": 23208.980321884155,
+      "error": ""
+    },
+    {
+      "provider": "deepseek",
+      "model": "deepseek-chat",
+      "test_id": "good-004",
+      "input": "Implementa un debounce utility en JavaScript",
+      "improved_prompt": "**Role:** You are a Senior JavaScript Engineer specializing in writing clean, production-ready, and performant utility functions. You adhere to modern ES6+ standards and best practices.\n\n**Directive:** Design and implement a comprehensive `debounce` utility function in vanilla JavaScript. Your implementation must:\n1. **Core Functionality:** Create a `debounce(func, wait, options = {})` function that delays invoking `func` until after `wait` milliseconds have elapsed since the last time the debounced function was called. It should return a new debounced function.\n2. **Advanced Features:** Support leading-edge invocation (immediate execution on first call) and trailing-edge invocation (execution after the wait period) via an `options` object (e.g., `{ leading: false, trailing: true }`). Ensure proper handling of the `maxWait` option to guarantee invocation after a maximum time.\n3. **Cancellation & Flushing:** Include methods `.cancel()` to cancel any pending invocation and `.flush()` to immediately invoke any pending trailing invocation.\n4. **Context & Arguments:** Properly preserve the `this` context and all arguments passed to the debounced function across invocations.\n5. **Testing & Examples:** Provide at least 3 practical usage examples (e.g., search input, window resize handler, button click) with clear explanations. Also, outline a simple test suite (pseudocode or using a framework like Jest) to verify correctness.\n6. **Documentation:** Add JSDoc-style comments documenting parameters, return value, and behavior.\n\n**Framework:** Use a **decomposition** approach. Break down the problem into logical components: (1) closure setup for state management, (2) timer logic with leading/trailing options, (3) method attachments (cancel/flush), and (4) example/test construction. Address each component step-by-step.\n\n**Guardrails:**\n1. **No External Dependencies:** Write pure vanilla JavaScript without libraries like Lodash.\n2. **Edge Case Handling:** Account for scenarios like rapid successive calls, zero wait time, `null`/`undefined` inputs, and concurrent invocations.\n3. **Performance & Memory:** Ensure no memory leaks (e.g., clear timeouts properly) and optimize for frequent calls.\n4. **Code Clarity:** Prioritize readability with meaningful variable names and comments for complex logic.\n5. **Browser & Node.js Compatibility:** The utility should work in both environments (consider Node's `setTimeout` vs. browser).",
+      "role": "Senior JavaScript Engineer specializing in writing clean, production-ready, and performant utility functions.",
+      "directive": "Design and implement a comprehensive `debounce` utility function in vanilla JavaScript with advanced features (leading/trailing options, cancellation, flushing), testing examples, and full documentation.",
+      "framework": "decomposition",
+      "guardrails": [
+        "1. No External Dependencies: Pure vanilla JavaScript only.",
+        "2. Edge Case Handling: Account for rapid calls, zero wait, null inputs, and concurrency.",
+        "3. Performance & Memory: Prevent leaks with proper timeout cleanup.",
+        "4. Code Clarity: Readable with meaningful names and comments.",
+        "5. Cross-Environment Compatibility: Work in both browser and Node.js."
+      ],
+      "reasoning": "The original idea is a simple request for a debounce utility implementation in JavaScript. To create a SOTA prompt, I need to expand this into a comprehensive, production-ready task. I'll define a clear role (Senior JavaScript Engineer), establish a directive that specifies functional requirements, testing, and documentation, select an appropriate framework (decomposition for breaking down the problem), and add guardrails for code quality, edge cases, and modern practices. This ensures the output is not just a function, but a robust, maintainable utility.",
+      "confidence": 0.95,
+      "latency_ms": 27373.00992012024,
+      "error": ""
+    },
+    {
+      "provider": "deepseek",
+      "model": "deepseek-chat",
+      "test_id": "good-005",
+      "input": "Dise\u00f1a un schema de Zod para validar usuarios",
+      "improved_prompt": "**Role:** You are an expert TypeScript developer and Zod schema architect with deep knowledge of data validation, security best practices, and scalable application design. You specialize in creating robust, type-safe schemas that prevent common vulnerabilities (e.g., injection, data corruption) and integrate seamlessly with modern web frameworks.\n\n**Directive:** Design a comprehensive Zod schema for validating user data in a web application, suitable for scenarios like user registration or profile updates. The schema must enforce strict validation rules, include common user fields (e.g., name, email, password), and output TypeScript types for full type safety. Ensure the schema is modular, extensible, and follows Zod best practices.\n\n**Framework:** Use a decomposition approach:\n1. **Analyze Requirements:** Identify core user fields and their validation constraints (e.g., email format, password strength).\n2. **Design Schema Structure:** Create a main `userSchema` using Zod primitives and custom refinements, organizing it into logical sections (e.g., required fields, optional fields).\n3. **Add Security and Validation:** Implement safeguards like sanitization, length limits, and regex patterns to prevent malformed data.\n4. **Generate TypeScript Types:** Derive static types (`User`, `UserInput`) from the schema for development use.\n5. **Provide Usage Examples:** Include code snippets for parsing, error handling, and integration in a real-world context.\n\n**Guardrails:**\n1. **Security-First Validation:** Reject unsafe inputs (e.g., SQL injection patterns, excessive lengths) and enforce strong password policies (min length, complexity).\n2. **TypeScript Integration:** Ensure the schema exports inferred TypeScript types (using `z.infer`) that match runtime validation.\n3. **Best Practices Compliance:** Follow Zod conventions\u2014use descriptive error messages, chain methods clearly, and avoid overly complex nested schemas.\n4. **Practicality and Extensibility:** Design the schema to be easily modified (e.g., adding new fields) and reusable across different parts of the application.\n5. **Error Handling Focus:** Include examples of how to handle validation errors gracefully, with user-friendly feedback.\n\n**Output:** Provide the complete Zod schema code in TypeScript, with detailed comments explaining key validation rules, and demonstrate its usage in a function like `validateUser(input)`.",
+      "role": "Expert TypeScript developer and Zod schema architect with deep knowledge of data validation, security best practices, and scalable application design.",
+      "directive": "Design a comprehensive Zod schema for validating user data in a web application, suitable for scenarios like user registration or profile updates, with strict validation rules, common user fields, TypeScript type generation, and modularity.",
+      "framework": "Decomposition",
+      "guardrails": [
+        "1. Security-first validation (reject unsafe inputs, enforce strong passwords)",
+        "2. TypeScript integration (export inferred types matching runtime validation)",
+        "3. Best practices compliance (descriptive errors, clear method chaining, avoid over-complexity)",
+        "4. Practicality and extensibility (easily modifiable and reusable)",
+        "5. Error handling focus (include examples for graceful error handling)"
+      ],
+      "reasoning": "The original idea is vague\u2014it requests a Zod schema for user validation but lacks specifics about user properties, validation rules, or use case. To create a high-quality prompt, I'll assume a common scenario: validating user data for a web application (e.g., registration or profile updates). I'll structure the prompt to define a clear role (Zod schema expert), directive (design a comprehensive schema), framework (decomposition to break down requirements), and guardrails (ensuring security, TypeScript compatibility, and best practices). This approach ensures the output is practical, secure, and aligned with modern development standards.",
+      "confidence": 0.95,
+      "latency_ms": 26446.316242218018,
+      "error": ""
+    }
+  ]
+}

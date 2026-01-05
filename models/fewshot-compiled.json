@@ -1,0 +1,7 @@
+{
+  "model_type": "KNNFewShot",
+  "k": 3,
+  "trainset_size": 66,
+  "trainset_path": "/Users/felipe_gonzalez/Developer/raycast_ext/datasets/exports/unified-fewshot-pool.json",
+  "created_at": "2026-01-05 10:15:53.636725"
+}

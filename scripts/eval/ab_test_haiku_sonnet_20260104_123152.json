@@ -1,0 +1,121 @@
+{
+  "timestamp": "20260104_123152",
+  "providers": [
+    {
+      "name": "Haiku 4.5",
+      "provider": "anthropic",
+      "model": "claude-haiku-4-5-20251001",
+      "key": "HEMDOV_ANTHROPIC_API_KEY"
+    },
+    {
+      "name": "Sonnet 4.5",
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-5-20250929",
+      "key": "HEMDOV_ANTHROPIC_API_KEY"
+    }
+  ],
+  "results": [
+    {
+      "provider": "Haiku 4.5",
+      "model": "claude-haiku-4-5-20251001",
+      "total_prompts": 5,
+      "successful": 5,
+      "failed": 0,
+      "avg_latency_ms": 7233.42,
+      "avg_confidence": 0.92,
+      "avg_prompt_length": 1426.0,
+      "results": [
+        {
+          "prompt_index": 1,
+          "latency_ms": 7031.23,
+          "confidence": 0.92,
+          "prompt_length": 1405,
+          "success": true
+        },
+        {
+          "prompt_index": 2,
+          "latency_ms": 7435.24,
+          "confidence": 0.92,
+          "prompt_length": 1397,
+          "success": true
+        },
+        {
+          "prompt_index": 3,
+          "latency_ms": 6555.11,
+          "confidence": 0.92,
+          "prompt_length": 1495,
+          "success": true
+        },
+        {
+          "prompt_index": 4,
+          "latency_ms": 7017.07,
+          "confidence": 0.92,
+          "prompt_length": 1379,
+          "success": true
+        },
+        {
+          "prompt_index": 5,
+          "latency_ms": 8128.43,
+          "confidence": 0.92,
+          "prompt_length": 1452,
+          "success": true
+        }
+      ]
+    },
+    {
+      "provider": "Sonnet 4.5",
+      "model": "claude-sonnet-4-5-20250929",
+      "total_prompts": 5,
+      "successful": 5,
+      "failed": 0,
+      "avg_latency_ms": 8742.14,
+      "avg_confidence": 0.92,
+      "avg_prompt_length": 1401.0,
+      "results": [
+        {
+          "prompt_index": 1,
+          "latency_ms": 7372.18,
+          "confidence": 0.92,
+          "prompt_length": 1494,
+          "success": true
+        },
+        {
+          "prompt_index": 2,
+          "latency_ms": 8554.36,
+          "confidence": 0.92,
+          "prompt_length": 1412,
+          "success": true
+        },
+        {
+          "prompt_index": 3,
+          "latency_ms": 6980.03,
+          "confidence": 0.92,
+          "prompt_length": 1385,
+          "success": true
+        },
+        {
+          "prompt_index": 4,
+          "latency_ms": 7356.39,
+          "confidence": 0.92,
+          "prompt_length": 1376,
+          "success": true
+        },
+        {
+          "prompt_index": 5,
+          "latency_ms": 13447.75,
+          "confidence": 0.92,
+          "prompt_length": 1336,
+          "success": true
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "haiku_latency_ms": 7233.42,
+    "sonnet_latency_ms": 8742.14,
+    "latency_diff_ms": -1508.7199999999993,
+    "haiku_confidence": 0.92,
+    "sonnet_confidence": 0.92,
+    "confidence_diff": 0.0
+  }
+}

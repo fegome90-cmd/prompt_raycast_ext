@@ -212,6 +212,9 @@ async def _save_history_async(
 
     Non-blocking async function that logs errors without failing the request.
     """
+    repo = None
+    success = False
+
     try:
         # Get repository with circuit breaker
         repo = await get_repository(settings)
@@ -257,13 +260,16 @@ async def _save_history_async(
 
         # Save to database
         await repo.save(history)
-
-        # Record success on circuit breaker
-        await _circuit_breaker.record_success()
+        success = True
         logger.info(f"Saved prompt history to database (latency: {latency_ms}ms)")
 
     except Exception as e:
         # Record failure on circuit breaker
         await _circuit_breaker.record_failure()
         logger.error(f"Failed to save prompt history: {e}", exc_info=True)
+
+    finally:
+        # Record success OUTSIDE try-except to prevent paradox
+        if success:
+            await _circuit_breaker.record_success()
 
