@@ -4,6 +4,7 @@ import { improvePromptWithHybrid, improvePromptWithOllama } from "./core/llm/imp
 import { ollamaHealthCheck } from "./core/llm/ollamaClient";
 import { loadConfig } from "./core/config";
 import { getCustomPatternSync } from "./core/templates/pattern";
+import { Typography } from "./core/design/typography";
 
 type Preferences = {
   ollamaBaseUrl?: string;
@@ -22,28 +23,138 @@ function PromptPreview(props: {
     clarifyingQuestions?: string[];
     assumptions?: string[];
   };
+  source?: "dspy" | "ollama";
+  onReset?: () => void;
 }) {
-  const metaLines: string[] = [];
-  if (props.meta?.confidence !== undefined) metaLines.push(`**Confidence:** ${props.meta.confidence}`);
+  // Build markdown content with better formatting
+  const sections: string[] = [];
+
+  // Main prompt in code block
+  sections.push("```text", props.prompt, "```");
+
+  // Metadata sections
   if (props.meta?.clarifyingQuestions?.length) {
-    metaLines.push("", "**Clarifying Questions:**", ...props.meta.clarifyingQuestions.map((q) => `- ${q}`));
+    sections.push("", "### ❓ Clarifying Questions", "");
+    props.meta.clarifyingQuestions.forEach((q, i) => {
+      sections.push(`${i + 1}. ${q}`);
+    });
   }
+
   if (props.meta?.assumptions?.length) {
-    metaLines.push("", "**Assumptions:**", ...props.meta.assumptions.map((a) => `- ${a}`));
+    sections.push("", "### 💡 Assumptions", "");
+    props.meta.assumptions.forEach((a, i) => {
+      sections.push(`${i + 1}. ${a}`);
+    });
   }
+
+  // Stats footer
+  const stats = [
+    props.meta?.confidence !== undefined ? `Confidence: ${Typography.confidence(props.meta.confidence)}` : null,
+    `Length: ${props.prompt.length} chars`,
+    `Words: ${props.prompt.split(/\s+/).length} words`,
+    `Source: ${props.source === "dspy" ? "DSPy + Ollama" : "Ollama"}`,
+  ].filter(Boolean);
+
+  sections.push("", "---", stats.join(" • "));
 
   return (
     <Detail
-      markdown={["```text", props.prompt, "```", metaLines.join("\n")].filter(Boolean).join("\n")}
+      markdown={sections.join("\n")}
+      metadata={
+        <Detail.Metadata>
+          {props.meta?.confidence !== undefined && (
+            <Detail.Metadata.Label
+              title="Confidence"
+              text={`${Math.round(props.meta.confidence)}%`}
+              icon={props.meta.confidence >= 70 ? "🟢" : props.meta.confidence >= 40 ? "🟡" : "🔴"}
+            />
+          )}
+
+          {props.meta?.clarifyingQuestions && props.meta.clarifyingQuestions.length > 0 && (
+            <Detail.Metadata.Label
+              title="Questions"
+              text={Typography.count("Questions", props.meta.clarifyingQuestions.length)}
+            />
+          )}
+
+          {props.meta?.assumptions && props.meta.assumptions.length > 0 && (
+            <Detail.Metadata.Label
+              title="Assumptions"
+              text={Typography.count("Assumptions", props.meta.assumptions.length)}
+            />
+          )}
+
+          <Detail.Metadata.Label
+            title="Length"
+            text={`${props.prompt.length} chars`}
+            icon="📝"
+          />
+
+          <Detail.Metadata.Label
+            title="Words"
+            text={`${props.prompt.split(/\s+/).length}`}
+            icon="📄"
+          />
+
+          <Detail.Metadata.Separator />
+
+          <Detail.Metadata.Label
+            title="Engine"
+            text={props.source === "dspy" ? "DSPy + Ollama" : "Ollama"}
+            icon={props.source === "dspy" ? "🚀" : "🔧"}
+          />
+        </Detail.Metadata>
+      }
       actions={
         <ActionPanel>
-          <Action
-            title="Copy Prompt"
-            onAction={async () => {
-              await Clipboard.copy(props.prompt);
-              await showToast({ style: Toast.Style.Success, title: "Copied prompt" });
-            }}
-          />
+          <ActionPanel.Section title="Copy">
+            <Action
+              title="Copy Prompt Only"
+              onAction={async () => {
+                await Clipboard.copy(props.prompt);
+                await showToast({
+                  style: Toast.Style.Success,
+                  title: "Prompt copied",
+                  message: `${props.prompt.length} characters`,
+                });
+              }}
+              shortcut={{ modifiers: ["cmd"], key: "c" }}
+            />
+
+            <Action
+              title="Copy with Stats"
+              onAction={async () => {
+                const withStats = [
+                  `# Improved Prompt`,
+                  "",
+                  props.prompt,
+                  "",
+                  "---",
+                  ...stats,
+                ].join("\n");
+                await Clipboard.copy(withStats);
+                await showToast({
+                  style: Toast.Style.Success,
+                  title: "Copied with stats",
+                  message: "Includes metadata",
+                });
+              }}
+            />
+          </ActionPanel.Section>
+
+          <ActionPanel.Section title="Regenerate">
+            <Action
+              title="Try Again"
+              shortcut={{ modifiers: ["cmd", "shift"], key: "r" }}
+              onAction={() => {
+                props.onReset?.();
+                showToast({
+                  style: Toast.Style.Animated,
+                  title: "Ready to regenerate",
+                });
+              }}
+            />
+          </ActionPanel.Section>
         </ActionPanel>
       }
     />
@@ -61,6 +172,7 @@ export default function Command() {
   const [preview, setPreview] = useState<{
     prompt: string;
     meta?: { confidence?: number; clarifyingQuestions?: string[]; assumptions?: string[] };
+    source?: "dspy" | "ollama";
   } | null>(null);
 
   // Show diagnostic toast if safe mode activated automatically
@@ -144,6 +256,7 @@ export default function Command() {
           clarifyingQuestions: result.clarifying_questions,
           assumptions: result.assumptions,
         },
+        source: dspyEnabled ? "dspy" : "ollama",
       });
     } catch (e) {
       const config = configState.config;
@@ -180,7 +293,14 @@ export default function Command() {
   }
 
   if (preview) {
-    return <PromptPreview prompt={preview.prompt} meta={preview.meta} />;
+    return (
+      <PromptPreview
+        prompt={preview.prompt}
+        meta={preview.meta}
+        source={preview.source}
+        onReset={() => setPreview(null)}
+      />
+    );
   }
 
   return (
