@@ -8,9 +8,14 @@ Identifies gates with:
 """
 
 import json
+import logging
 import sys
 from pathlib import Path
 from typing import Dict, List, Any
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logger = logging.getLogger(__name__)
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
@@ -31,8 +36,14 @@ def analyze_thresholds(results: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         Dictionary with threshold recommendations
     """
+    # Validate results structure
+    if "gate_statistics" not in results:
+        logger.error("Missing 'gate_statistics' in results")
+        return {"error": "Invalid results format - missing gate_statistics"}
+
     total = results.get("total_evaluated", 0)
     if total == 0:
+        logger.warning("No data to analyze - total_evaluated is 0")
         return {"error": "No data to analyze"}
 
     recommendations = {}
@@ -140,19 +151,30 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # Load results
-    with open(args.results, 'r') as f:
-        results = json.load(f)
+    # Load results with error handling
+    try:
+        with open(args.results, 'r') as f:
+            results = json.load(f)
+    except FileNotFoundError:
+        logger.error(f"Results file not found: {args.results}")
+        raise SystemExit(1)
+    except json.JSONDecodeError as e:
+        logger.error(f"Invalid JSON in results file: {e}")
+        raise SystemExit(1)
 
     # Analyze
     recommendations = analyze_thresholds(results)
 
-    # Save
+    # Save with error handling
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(output_path, 'w') as f:
-        json.dump(recommendations, f, indent=2)
+    try:
+        with open(output_path, 'w') as f:
+            json.dump(recommendations, f, indent=2)
+    except IOError as e:
+        logger.error(f"Failed to write recommendations: {e}")
+        raise SystemExit(1)
 
-    print(f"Analysis complete: {len(recommendations)} gates identified for tuning")
-    print(f"Recommendations saved to: {output_path}")
+    logger.info(f"Analysis complete: {len(recommendations)} gates identified for tuning")
+    logger.info(f"Recommendations saved to: {output_path}")

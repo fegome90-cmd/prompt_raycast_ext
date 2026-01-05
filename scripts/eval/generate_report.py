@@ -3,8 +3,13 @@ Generate markdown report from evaluation results.
 """
 
 import json
+import logging
 from pathlib import Path
 from datetime import datetime
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logger = logging.getLogger(__name__)
 
 
 def generate_markdown_report(
@@ -14,12 +19,31 @@ def generate_markdown_report(
 ):
     """Generate markdown report from evaluation results."""
 
-    # Load data
-    with open(results_path) as f:
-        results = json.load(f)
+    # Load data with error handling
+    try:
+        with open(results_path) as f:
+            results = json.load(f)
+    except FileNotFoundError:
+        logger.error(f"Results file not found: {results_path}")
+        raise SystemExit(1)
+    except json.JSONDecodeError as e:
+        logger.error(f"Invalid JSON in results file: {e}")
+        raise SystemExit(1)
 
-    with open(recommendations_path) as f:
-        recommendations = json.load(f)
+    try:
+        with open(recommendations_path) as f:
+            recommendations = json.load(f)
+    except FileNotFoundError:
+        logger.error(f"Recommendations file not found: {recommendations_path}")
+        raise SystemExit(1)
+    except json.JSONDecodeError as e:
+        logger.error(f"Invalid JSON in recommendations file: {e}")
+        raise SystemExit(1)
+
+    # Validate structure
+    if "gate_statistics" not in results:
+        logger.error("Missing 'gate_statistics' in results")
+        raise SystemExit(1)
 
     # Generate report
     report = f"""# Quality Gates Dataset Evaluation Report
@@ -105,14 +129,18 @@ This evaluation used the following approach:
 **Generated:** {datetime.now().isoformat()}
 """
 
-    # Write report
+    # Write report with error handling
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(output_path, 'w') as f:
-        f.write(report)
+    try:
+        with open(output_path, 'w') as f:
+            f.write(report)
+    except IOError as e:
+        logger.error(f"Failed to write report: {e}")
+        raise SystemExit(1)
 
-    print(f"Report generated: {output_path}")
+    logger.info(f"Report generated: {output_path}")
 
 
 if __name__ == "__main__":

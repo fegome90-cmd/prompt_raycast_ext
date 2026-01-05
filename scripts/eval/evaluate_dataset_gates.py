@@ -8,10 +8,15 @@ Analyzes gate effectiveness across real outputs to identify:
 """
 
 import json
+import logging
 import sys
 from pathlib import Path
 from typing import Dict, List, Any
 from collections import defaultdict
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logger = logging.getLogger(__name__)
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -37,9 +42,16 @@ def evaluate_dataset(
     Returns:
         Dictionary with evaluation results and statistics
     """
-    # Load dataset
-    with open(dataset_path, 'r') as f:
-        dataset = json.load(f)
+    # Load dataset with error handling
+    try:
+        with open(dataset_path, 'r') as f:
+            dataset = json.load(f)
+    except FileNotFoundError:
+        logger.error(f"Dataset file not found: {dataset_path}")
+        raise SystemExit(1)
+    except json.JSONDecodeError as e:
+        logger.error(f"Invalid JSON in dataset file: {e}")
+        raise SystemExit(1)
 
     # Apply limit
     if limit:
@@ -48,6 +60,7 @@ def evaluate_dataset(
     results = {
         "total_evaluated": 0,
         "skipped_count": 0,
+        "skipped_indices": [],
         "v0_1_pass_count": 0,
         "v0_2_fail_counts": defaultdict(int),
         "v0_2_warn_counts": defaultdict(int),
@@ -61,6 +74,8 @@ def evaluate_dataset(
         output = _get_nested_value(entry, output_field)
         if not output:
             results["skipped_count"] += 1
+            results["skipped_indices"].append(idx)
+            logger.debug(f"Skipping entry {idx}: empty output at '{output_field}'")
             continue
 
         # Run quality gates
@@ -150,14 +165,18 @@ if __name__ == "__main__":
         limit=args.limit
     )
 
-    # Save results
+    # Save results with error handling
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(output_path, 'w') as f:
-        json.dump(results, f, indent=2)
+    try:
+        with open(output_path, 'w') as f:
+            json.dump(results, f, indent=2)
+    except IOError as e:
+        logger.error(f"Failed to write results to {output_path}: {e}")
+        raise SystemExit(1)
 
-    print(f"Evaluation complete: {results['total_evaluated']} entries evaluated")
+    logger.info(f"Evaluation complete: {results['total_evaluated']} entries evaluated")
     if results['skipped_count'] > 0:
-        print(f"Skipped: {results['skipped_count']} entries with empty/missing outputs")
-    print(f"Results saved to: {output_path}")
+        logger.info(f"Skipped: {results['skipped_count']} entries (indices: {results['skipped_indices'][:10]}{'...' if len(results['skipped_indices']) > 10 else ''})")
+    logger.info(f"Results saved to: {output_path}")
