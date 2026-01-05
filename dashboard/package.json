@@ -1,48 +1,49 @@
 {
   "$schema": "https://www.raycast.com/schemas/extension.json",
-  "name": "prompt-renderer-local",
-  "title": "Prompt Renderer Local",
-  "description": "Convert selected/clipboard text into deterministic prompts using local templates and Ollama.",
+  "name": "prompt-improver-local",
+  "title": "Prompt Improver",
+  "description": "Transform rough prompts into polished, structured prompts using DSPy few-shot learning + local LLMs",
   "icon": "icon.png",
   "author": "thomas",
   "categories": [
-    "Productivity"
+    "Productivity",
+    "Developer Tools"
   ],
   "license": "MIT",
   "commands": [
     {
       "name": "promptify-quick",
-      "title": "Prompt Improver (Local)",
-      "description": "Improve a rough prompt into a ready-to-paste prompt using local Ollama",
+      "title": "Improve Prompt",
+      "description": "Transform rough ideas into structured, effective prompts using local AI",
       "mode": "view",
       "preferences": [
         {
           "name": "ollamaBaseUrl",
-          "description": "Base URL for Ollama",
+          "description": "Local Ollama server",
           "type": "text",
           "required": false,
           "default": "http://localhost:11434",
-          "title": "Ollama Base URL"
+          "title": "Ollama URL"
         },
         {
           "name": "dspyBaseUrl",
-          "description": "Base URL for DSPy backend",
+          "description": "DSPy backend with few-shot learning",
           "type": "text",
           "required": false,
           "default": "http://localhost:8000",
-          "title": "DSPy Base URL"
+          "title": "DSPy URL"
         },
         {
           "name": "dspyEnabled",
-          "description": "Enable DSPy backend (fallbacks to Ollama if off)",
+          "description": "Use DSPy for intelligent prompt improvement",
           "type": "checkbox",
           "required": false,
           "default": true,
-          "title": "DSPy Enabled"
+          "title": "Enable DSPy"
         },
         {
           "name": "model",
-          "description": "Ollama model name",
+          "description": "Ollama model for DSPy fallback",
           "type": "text",
           "required": false,
           "default": "hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M",
@@ -50,7 +51,7 @@
         },
         {
           "name": "fallbackModel",
-          "description": "Fallback Ollama model name (used only if the primary model fails)",
+          "description": "Backup model if primary fails",
           "type": "text",
           "required": false,
           "default": "devstral:24b",
@@ -58,7 +59,7 @@
         },
         {
           "name": "preset",
-          "description": "Improvement style preset",
+          "description": "Improvement approach",
           "type": "dropdown",
           "required": false,
           "default": "structured",
@@ -80,17 +81,23 @@
               "value": "coding"
             }
           ],
-          "title": "Preset"
+          "title": "Style"
         },
         {
           "name": "timeoutMs",
-          "description": "Timeout for Ollama calls",
+          "description": "Request timeout (milliseconds)",
           "type": "text",
           "required": false,
           "default": "60000",
-          "title": "Timeout (ms)"
+          "title": "Timeout"
         }
       ]
+    },
+    {
+      "name": "promptify-selected",
+      "title": "Promptify Selected",
+      "description": "Improve selected text (or clipboard) into a structured prompt using DSPy backend",
+      "mode": "view"
     }
   ],
   "dependencies": {
