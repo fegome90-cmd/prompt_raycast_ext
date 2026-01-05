@@ -57,11 +57,14 @@ Get overall metrics summary.
   "average_impact": 0.812,
   "grade_distribution": {
     "A+": 45,
-    "A": 38,
-    "B": 32,
-    "C": 25,
-    "D": 8,
-    "F": 2
+    "A": 20,
+    "A-": 18,
+    "B+": 15,
+    "B": 12,
+    "B-": 10,
+    "C+": 8,
+    "C": 5,
+    "D": 2
   }
 }
 ```
@@ -96,6 +99,8 @@ Analyze metric trends over time.
   ]
 }
 ```
+
+**Trend Values:** Possible values are `improving`, `declining`, `stable`, or `insufficient_data` (when fewer than 3 data points are available).
 
 **Example:**
 ```bash
@@ -134,11 +139,13 @@ Compare metrics between two groups (A/B testing).
     "performance_delta": -0.023,
     "impact_delta": -0.033,
     "winner": "group_b",
-    "significance": "high"
+    "significance": "not_calculated"
   },
-  "recommendation": "✅ Group B wins: +5.3% overall improvement with high statistical significance (p<0.01)"
+  "recommendation": "✅ Group B wins: +5.3% overall improvement"
 }
 ```
+
+**Note:** The `significance` field is currently hardcoded as `"not_calculated"` and will be implemented in a future update (statistical significance testing via t-test).
 
 **Example:**
 ```bash
@@ -204,21 +211,26 @@ Evaluates efficiency metrics.
 Evaluates user-facing impact.
 
 **Dimensions:**
-- `success_rate`: First-attempt acceptance rate (0-1)
-- `user_satisfaction`: Average user rating (1-5)
+- `copy_count`: Number of times prompt was copied to clipboard
+- `regeneration_count`: Number of times prompt was regenerated
+- `feedback_score`: User feedback rating (1-5)
 - `reuse_count`: Number of times prompt was reused
-- `impact_score`: Weighted average (0-1)
+- `success_rate`: First-attempt acceptance rate (0-1, calculated)
+- `impact_score`: Weighted average (0-1, calculated)
 
 ## Grade Calculation
 
 | Grade | Range | Description |
 |-------|-------|-------------|
 | A+ | ≥0.90 | Excellent |
-| A | ≥0.80 | Great |
+| A | ≥0.85 | Very good |
+| A- | ≥0.80 | Great |
+| B+ | ≥0.75 | Good plus |
 | B | ≥0.70 | Good |
-| C | ≥0.60 | Acceptable |
-| D | ≥0.50 | Below average |
-| F | <0.50 | Fail |
+| B- | ≥0.65 | Satisfactory plus |
+| C+ | ≥0.60 | Satisfactory |
+| C | ≥0.50 | Acceptable |
+| D | <0.50 | Below average |
 
 Grades are calculated separately for each dimension based on threshold configuration in `MetricsRegistry`.
 
