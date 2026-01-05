@@ -29,10 +29,25 @@ class Settings(BaseSettings):
     DSPY_COMPILED_PATH: Optional[str] = None
 
     # Few-Shot Settings
+    # USE_KNN_FEWSHOT is an alias for DSPY_FEWSHOT_ENABLED for backward compatibility
+    # USE_KNN_FEWSHOT takes precedence if both are set
+    USE_KNN_FEWSHOT: bool = True
     DSPY_FEWSHOT_ENABLED: bool = False
     DSPY_FEWSHOT_TRAINSET_PATH: Optional[str] = None
     DSPY_FEWSHOT_K: int = 3
     DSPY_FEWSHOT_COMPILED_PATH: Optional[str] = "models/prompt_improver_fewshot.json"
+
+    def get_fewshot_enabled(self) -> bool:
+        """Get the few-shot enabled flag, checking both USE_KNN_FEWSHOT and DSPY_FEWSHOT_ENABLED.
+
+        USE_KNN_FEWSHOT takes precedence if both are set.
+
+        Returns:
+            True if few-shot learning should be enabled
+        """
+        if self.USE_KNN_FEWSHOT:
+            return True
+        return self.DSPY_FEWSHOT_ENABLED
 
     # API Settings
     API_HOST: str = "0.0.0.0"
