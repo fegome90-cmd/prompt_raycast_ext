@@ -47,6 +47,7 @@ def evaluate_dataset(
 
     results = {
         "total_evaluated": 0,
+        "skipped_count": 0,
         "v0_1_pass_count": 0,
         "v0_2_fail_counts": defaultdict(int),
         "v0_2_warn_counts": defaultdict(int),
@@ -59,6 +60,7 @@ def evaluate_dataset(
         # Extract output using dot notation
         output = _get_nested_value(entry, output_field)
         if not output:
+            results["skipped_count"] += 1
             continue
 
         # Run quality gates
@@ -134,6 +136,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Evaluate quality gates on dataset")
     parser.add_argument("--dataset", required=True, help="Path to dataset JSON file")
     parser.add_argument("--output", default="eval/dataset-evaluation-results.json", help="Output path for results")
+    parser.add_argument("--output-field", default="outputs.improved_prompt", help="Dot-notation path to output field")
     parser.add_argument("--limit", type=int, help="Max entries to evaluate")
     parser.add_argument("--template", default="example_md", help="Template ID to use")
 
@@ -142,6 +145,7 @@ if __name__ == "__main__":
     # Run evaluation
     results = evaluate_dataset(
         dataset_path=args.dataset,
+        output_field=args.output_field,
         template_id=args.template,
         limit=args.limit
     )
@@ -154,4 +158,6 @@ if __name__ == "__main__":
         json.dump(results, f, indent=2)
 
     print(f"Evaluation complete: {results['total_evaluated']} entries evaluated")
+    if results['skipped_count'] > 0:
+        print(f"Skipped: {results['skipped_count']} entries with empty/missing outputs")
     print(f"Results saved to: {output_path}")
