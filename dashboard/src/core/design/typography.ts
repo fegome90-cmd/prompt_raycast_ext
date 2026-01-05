@@ -1,4 +1,4 @@
-import { tokens } from './tokens';
+import { tokens } from "./tokens";
 
 /**
  * Typography utilities for the Prompt Improver
@@ -10,33 +10,63 @@ import { tokens } from './tokens';
 
 export class Typography {
   /**
-   * Format a confidence score with appropriate styling
+   * Format a confidence score with technical geometric symbols
+   * Uses circle fill level to indicate quality: ◉ (high), ◎ (medium), ○ (low)
    */
   static confidence(score: number): string {
     const rounded = Math.round(score);
-    let icon = "⚡";
-
-    if (rounded >= 80) icon = "🟢";
-    else if (rounded >= 60) icon = "🟡";
-    else if (rounded >= 40) icon = "🟠";
-    else icon = "🔴";
-
-    return `${icon} ${rounded}%`;
+    // Technical geometric symbols - circle fill indicates quality
+    if (rounded >= 80) return `◉ ${rounded}%`;    // Full circle = high confidence
+    if (rounded >= 60) return `◎ ${rounded}%`;    // Half dot = medium
+    if (rounded >= 40) return `○ ${rounded}%`;     // Empty = low
+    return `○ ${rounded}%`;                        // Same as low
   }
 
   /**
-   * Format a count with appropriate icon
+   * Get only the confidence icon symbol (for metadata display)
+   */
+  static confidenceIcon(score: number): string {
+    const rounded = Math.round(score);
+    if (rounded >= 70) return "◉";    // High = full circle
+    if (rounded >= 40) return "◎";    // Medium = half dot
+    return "○";                       // Low = empty circle
+  }
+
+  /**
+   * Format a count with technical minimal symbols
+   * Uses single-letter and geometric symbols instead of emojis
    */
   static count(label: string, count: number): string {
-    const icons = {
-      "Questions": "❓",
-      "Assumptions": "💡",
-      "Characters": "📝",
-      "Words": "📄",
+    const symbols = {
+      Questions: "?",      // Question mark - direct, functional
+      Assumptions: "◐",   // Half-filled circle = partial/assumption
+      Characters: "#",     // Hash = count, technical
+      Words: "¶",          // Pilcrow = paragraph, document symbol
     };
 
-    const icon = icons[label as keyof typeof icons] || "•";
-    return `${icon} ${count}`;
+    const symbol = symbols[label as keyof typeof symbols] || "•";
+    return `${symbol} ${count}`;
+  }
+
+  /**
+   * Get only the count symbol (for metadata icon display)
+   */
+  static countSymbol(label: string): string {
+    const symbols = {
+      Questions: "?",
+      Assumptions: "◐",
+      Characters: "#",
+      Words: "¶",
+    };
+    return symbols[label as keyof typeof symbols] || "•";
+  }
+
+  /**
+   * Get icon symbol for engine/source display
+   * Technical symbols instead of emojis
+   */
+  static engine(source: "dspy" | "ollama"): string {
+    return source === "dspy" ? "⤒" : "○";  // ⤒ = forward/advanced, ○ = basic
   }
 
   /**
@@ -52,8 +82,8 @@ export class Typography {
    */
   static timestamp(date: Date): string {
     return date.toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
+      hour: "2-digit",
+      minute: "2-digit",
     });
   }
 }

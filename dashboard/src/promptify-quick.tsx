@@ -66,7 +66,7 @@ function PromptPreview(props: {
             <Detail.Metadata.Label
               title="Confidence"
               text={`${Math.round(props.meta.confidence)}%`}
-              icon={props.meta.confidence >= 70 ? "🟢" : props.meta.confidence >= 40 ? "🟡" : "🔴"}
+              icon={Typography.confidenceIcon(props.meta.confidence)}
             />
           )}
 
@@ -84,16 +84,16 @@ function PromptPreview(props: {
             />
           )}
 
-          <Detail.Metadata.Label title="Length" text={`${props.prompt.length} chars`} icon="📝" />
+          <Detail.Metadata.Label title="Length" text={`${props.prompt.length} chars`} icon={Typography.countSymbol("Characters")} />
 
-          <Detail.Metadata.Label title="Words" text={`${props.prompt.split(/\s+/).length}`} icon="📄" />
+          <Detail.Metadata.Label title="Words" text={`${props.prompt.split(/\s+/).length}`} icon={Typography.countSymbol("Words")} />
 
           <Detail.Metadata.Separator />
 
           <Detail.Metadata.Label
             title="Engine"
             text={props.source === "dspy" ? "DSPy + Ollama" : "Ollama"}
-            icon={props.source === "dspy" ? "🚀" : "🔧"}
+            icon={Typography.engine(props.source ?? "ollama")}
           />
         </Detail.Metadata>
       }
