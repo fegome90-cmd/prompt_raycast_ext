@@ -22,11 +22,7 @@ from hemdov.infrastructure.persistence.sqlite_prompt_repository import SQLitePro
 from api.circuit_breaker import CircuitBreaker
 from hemdov.domain.metrics.evaluators import (
     PromptMetricsCalculator,
-    PromptImprovementResult,
     ImpactData,
-)
-from hemdov.infrastructure.persistence.metrics_repository import (
-    SQLiteMetricsRepository,
 )
 
 logger = logging.getLogger(__name__)
@@ -194,7 +190,8 @@ async def improve_prompt(request: ImprovePromptRequest):
             # Extract confidence
             confidence_value = getattr(result, "confidence", None)
 
-            # Calculate metrics using calculate_from_history
+            # Calculate metrics using calculate_from_history with timing
+            metrics_start = time.time()
             metrics = _metrics_calculator.calculate_from_history(
                 original_idea=request.idea,
                 context=request.context,
@@ -210,10 +207,16 @@ async def improve_prompt(request: ImprovePromptRequest):
                 confidence=confidence_value,
                 impact_data=ImpactData(),  # TODO: Track user interactions
             )
+            metrics_duration_ms = int((time.time() - metrics_start) * 1000)
+
+            # Warn if too slow
+            if metrics_duration_ms > 10:
+                logger.warning(f"Metrics calculation took {metrics_duration_ms}ms (target: <10ms)")
 
             # Log metrics for monitoring
             logger.info(
-                f"Metrics calculated: overall={metrics.overall_score:.2f} ({metrics.grade}), "
+                f"Metrics calculated in {metrics_duration_ms}ms: "
+                f"overall={metrics.overall_score:.2f} ({metrics.grade}), "
                 f"quality={metrics.quality.composite_score:.2f}, "
                 f"performance={metrics.performance.performance_score:.2f}, "
                 f"latency={metrics.performance.latency_ms}ms"
@@ -230,7 +233,7 @@ async def improve_prompt(request: ImprovePromptRequest):
                 except Exception as e:
                     logger.error(f"Failed to save metrics: {e}")
         except Exception as e:
-            logger.error(f"Failed to calculate metrics: {e}")
+            logger.error(f"Failed to calculate metrics: {e}", exc_info=True)
             # Don't fail the request if metrics fail
 
         # Build response
