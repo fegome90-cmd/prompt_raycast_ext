@@ -8,6 +8,20 @@ from typing import List, Dict, Any, Set
 from hashlib import sha256
 from datetime import datetime
 
+# Import shared utilities to avoid code duplication
+try:
+    from .utils import load_dataset as _utils_load_dataset
+except ImportError:
+    from utils import load_dataset as _utils_load_dataset
+
+
+def load_dataset(path: Path) -> List[Dict[str, Any]]:
+    """Load JSON dataset, returning empty list if file not found."""
+    if not path.exists():
+        print(f"  ⚠️  {path.name}: NOT FOUND (skipping)")
+        return []
+    return _utils_load_dataset(str(path))
+
 
 def compute_io_hash(example: Dict[str, Any]) -> str:
     """Compute hash of (input, output) pair for deduplication."""
@@ -41,16 +55,6 @@ def normalize_example(example: Dict[str, Any]) -> Dict[str, Any]:
         },
         'metadata': example.get('metadata', {})
     }
-
-
-def load_dataset(path: Path) -> List[Dict[str, Any]]:
-    """Load JSON dataset."""
-    if not path.exists():
-        print(f"  ⚠️  {path.name}: NOT FOUND (skipping)")
-        return []
-
-    with open(path) as f:
-        return json.load(f)
 
 
 def merge_datasets(datasets: Dict[str, List[Dict[str, Any]]]) -> List[Dict[str, Any]]:
@@ -113,7 +117,7 @@ def generate_statistics(pool: List[Dict[str, Any]]) -> Dict[str, Any]:
     return stats
 
 
-def main():
+def main() -> int:
     """Merge all datasets into unified pool."""
     base_path = Path(__file__).parent.parent.parent
     datasets_path = base_path / 'datasets/exports'
@@ -150,7 +154,7 @@ def main():
     # Save unified pool
     print(f"\nSaving unified pool to {output_path.name}...")
 
-    with open(output_path, 'w') as f:
+    with open(output_path, 'w', encoding='utf-8') as f:
         json.dump({
             'metadata': {
                 'total_examples': len(unified_pool),
