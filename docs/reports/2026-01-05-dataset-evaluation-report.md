@@ -59,3 +59,19 @@ This evaluation used the following approach:
 ---
 
 **Generated:** 2026-01-05T18:33:37.361015
+
+## Threshold Adjustment Summary
+
+**Status:** No threshold changes required.
+
+**Rationale:** The 0% pass rate is due to dataset-template mismatch, not threshold configuration.
+
+The evaluation used the `example_md` template which expects code blocks,
+but the dataset contains improved prompts without code examples. This is a
+structural issue, not a threshold tuning issue.
+
+**Current thresholds remain appropriate for their intended use cases:**
+- A1_MAX_FILLER_COUNT: Catches excessive placeholder usage
+- P1_MAX_EMPTY_STEP_RATIO: Detects generic procedure steps
+- C1_MAX_GENERIC_RATIO: Identifies vague checklist items
+- E1_MIN_CODE_LINES: Ensures substantive code examples
