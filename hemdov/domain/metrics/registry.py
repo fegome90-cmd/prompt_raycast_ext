@@ -6,9 +6,13 @@ Provides centralized configuration for metric evaluation thresholds,
 alerting rules, and metric metadata.
 """
 
+import logging
+import threading
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 from enum import Enum
+
+logger = logging.getLogger(__name__)
 
 
 class MetricGrade(Enum):
@@ -143,6 +147,7 @@ class MetricsRegistry:
     """
 
     _instance: Optional["MetricsRegistry"] = None
+    _lock = threading.Lock()
 
     def __init__(self):
         """Initialize registry with defaults."""
@@ -151,15 +156,18 @@ class MetricsRegistry:
 
     @classmethod
     def get_instance(cls) -> "MetricsRegistry":
-        """Get singleton instance."""
+        """Get thread-safe singleton instance."""
         if cls._instance is None:
-            cls._instance = cls()
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = cls()
         return cls._instance
 
     def get_threshold(self, metric_name: str) -> MetricThreshold:
         """Get threshold configuration for a metric."""
-        # Handle nested names like "quality.coherence"
         base_metric = metric_name.split(".")[0]
+        if base_metric not in self.thresholds:
+            logger.warning(f"Unknown metric '{metric_name}', using 'overall' threshold")
         return self.thresholds.get(base_metric, DEFAULT_THRESHOLDS["overall"])
 
     def get_definition(self, metric_name: str) -> Optional[MetricDefinition]:
@@ -169,10 +177,8 @@ class MetricsRegistry:
     def is_acceptable(self, metric_name: str, value: float) -> bool:
         """Check if metric value meets minimum threshold."""
         threshold = self.get_threshold(metric_name)
-        if self.get_definition(metric_name):
-            higher_is_better = self.get_definition(metric_name).higher_is_better
-        else:
-            higher_is_better = True
+        definition = self.get_definition(metric_name)
+        higher_is_better = definition.higher_is_better if definition else True
 
         if higher_is_better:
             return value >= threshold.min_acceptable
@@ -181,6 +187,11 @@ class MetricsRegistry:
 
     def get_grade(self, metric_name: str, value: float) -> MetricGrade:
         """Get letter grade for a metric value."""
+        if not isinstance(value, (int, float)):
+            raise TypeError(f"Value must be numeric, got {type(value)}")
+        if value < 0 or value > 1:
+            logger.warning(f"Metric value {value} outside [0,1] range for {metric_name}")
+
         threshold = self.get_threshold(metric_name)
         return threshold.get_grade(value)
 
