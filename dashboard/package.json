@@ -2,7 +2,7 @@
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "prompt-improver-local",
   "title": "Prompt Improver",
-  "description": "Transform rough prompts into polished, structured prompts using DSPy few-shot learning + local LLMs",
+  "description": "Transform rough prompts into polished, structured prompts using DSPy few-shot learning with Anthropic Haiku",
   "icon": "icon.png",
   "author": "thomas",
   "categories": [
@@ -14,7 +14,7 @@
     {
       "name": "promptify-quick",
       "title": "Improve Prompt",
-      "description": "Transform rough ideas into structured, effective prompts using local AI",
+      "description": "Transform rough ideas into structured, effective prompts using DSPy + Anthropic Haiku",
       "mode": "view",
       "preferences": [
         {
@@ -43,7 +43,7 @@
         },
         {
           "name": "model",
-          "description": "Ollama model for DSPy fallback",
+          "description": "Primary model for improvement",
           "type": "text",
           "required": false,
           "default": "hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M",
