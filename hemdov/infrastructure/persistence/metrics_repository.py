@@ -59,9 +59,16 @@ class SQLiteMetricsRepository:
             if self.db_path != ":memory:":
                 Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
 
-            self._connection = await aiosqlite.connect(self.db_path)
-            self._connection.row_factory = aiosqlite.Row
-            await self._configure_connection(self._connection)
+            try:
+                self._connection = await aiosqlite.connect(self.db_path)
+                self._connection.row_factory = aiosqlite.Row
+                await self._configure_connection(self._connection)
+            except Exception:
+                # Clean up connection if initialization fails
+                if self._connection:
+                    await self._connection.close()
+                    self._connection = None
+                raise
 
     async def _configure_connection(self, conn: aiosqlite.Connection):
         """
@@ -253,19 +260,35 @@ class SQLiteMetricsRepository:
 
         Returns:
             PromptMetrics instance
+
+        Raises:
+            ValueError: If required keys are missing or JSON is invalid
         """
         # Deserialize JSON metrics
         try:
             metrics_dict = json.loads(row["metrics_json"])
         except (json.JSONDecodeError, TypeError) as e:
             logger.error(f"Failed to deserialize metrics JSON for prompt_id={row['prompt_id']}: {e}")
-            raise
+            raise ValueError(f"Invalid metrics JSON: {e}") from e
+
+        # Validate and extract metadata
+        metadata = metrics_dict.get("metadata", {})
+        if not metadata:
+            raise ValueError("Missing 'metadata' in metrics JSON")
+
+        measured_at_str = metadata.get("measured_at")
+        if not measured_at_str:
+            raise ValueError("Missing 'measured_at' in metadata")
+
+        framework_str = metadata.get("framework")
+        if not framework_str:
+            raise ValueError("Missing 'framework' in metadata")
 
         # Parse datetime
-        measured_at = datetime.fromisoformat(metrics_dict["metadata"]["measured_at"])
+        measured_at = datetime.fromisoformat(measured_at_str)
 
         # Parse framework enum
-        framework = FrameworkType(metrics_dict["metadata"]["framework"])
+        framework = FrameworkType(framework_str)
 
         # Reconstruct quality metrics
         quality_data = metrics_dict["quality"]
@@ -308,7 +331,7 @@ class SQLiteMetricsRepository:
             impact=impact,
             measured_at=measured_at,
             framework=framework,
-            provider=metrics_dict["metadata"]["provider"],
-            model=metrics_dict["metadata"]["model"],
-            backend=metrics_dict["metadata"]["backend"],
+            provider=metadata["provider"],
+            model=metadata["model"],
+            backend=metadata["backend"],
         )
