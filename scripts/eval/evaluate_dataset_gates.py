@@ -42,6 +42,13 @@ def evaluate_dataset(
     Returns:
         Dictionary with evaluation results and statistics
     """
+    # Validate output_field parameter
+    if not output_field or not isinstance(output_field, str):
+        raise ValueError(f"output_field must be a non-empty string, got: {output_field!r}")
+
+    if not output_field.strip():
+        raise ValueError("output_field cannot be empty or whitespace only")
+
     # Load dataset with error handling
     try:
         with open(dataset_path, 'r') as f:
@@ -69,7 +76,14 @@ def evaluate_dataset(
     }
 
     # Evaluate each entry
+    total_entries = len(dataset)
+    progress_interval = max(10, total_entries // 10)  # Report every 10 entries or 10% progress
+
     for idx, entry in enumerate(dataset):
+        # Report progress periodically
+        if idx > 0 and idx % progress_interval == 0:
+            logger.info(f"Progress: {idx}/{total_entries} entries evaluated ({idx*100//total_entries}%)")
+
         # Extract output using dot notation
         output = _get_nested_value(entry, output_field)
         if not output:
@@ -104,6 +118,8 @@ def evaluate_dataset(
             "v0_2_fail_count": report.v0_2_fail_count,
             "v0_2_warn_count": report.v0_2_warn_count
         })
+
+    logger.info(f"Progress: {total_entries}/{total_entries} entries evaluated (100%)")
 
     # Calculate statistics
     results["gate_statistics"] = _calculate_statistics(results)

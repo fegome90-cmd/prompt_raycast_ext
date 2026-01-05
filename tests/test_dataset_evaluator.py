@@ -3,14 +3,14 @@ import pytest
 import json
 import tempfile
 from pathlib import Path
-from scripts.eval.evaluate_dataset_gates import evaluate_dataset, _calculate_statistics
+from scripts.eval.evaluate_dataset_gates import evaluate_dataset, _calculate_statistics, _get_nested_value
 
 def test_evaluator_exists():
     """Test evaluator script can be imported."""
     assert callable(evaluate_dataset)
 
 def test_evaluator_returns_results():
-    """Test evaluator returns results dict with expected keys."""
+    """Test evaluator returns results dict with expected keys and values."""
     results = evaluate_dataset(
         dataset_path="datasets/exports/fewshot-train.json",
         output_field="outputs.improved_prompt",
@@ -25,6 +25,15 @@ def test_evaluator_returns_results():
     assert "v0_2_fail_counts" in results
     assert "gate_statistics" in results
     assert "skipped_indices" in results  # New field for tracking skips
+
+    # Check actual values (not just structure)
+    assert results["total_evaluated"] >= 0
+    assert results["skipped_count"] >= 0
+    assert isinstance(results["skipped_indices"], list)
+    assert results["v0_1_pass_count"] >= 0
+    assert results["v0_1_pass_count"] <= results["total_evaluated"]
+    assert isinstance(results["individual_results"], list)
+    assert len(results["individual_results"]) == results["total_evaluated"]
 
 
 def test_evaluator_handles_missing_dataset_file():
@@ -74,3 +83,31 @@ def test_calculate_statistics_normal_case():
     assert result["v0_1_pass_rate"] == 0.5
     assert result["A1_filler_fail_rate"] == 0.3
     assert result["A1_filler_warn_rate"] == 0.2
+
+
+def test_get_nested_value_basic():
+    """Test _get_nested_value with simple dot notation."""
+    data = {"outputs": {"improved_prompt": "Hello world"}}
+    result = _get_nested_value(data, "outputs.improved_prompt")
+    assert result == "Hello world"
+
+
+def test_get_nested_value_missing_key():
+    """Test _get_nested_value with missing intermediate key."""
+    data = {"outputs": {"improved_prompt": "Hello"}}
+    result = _get_nested_value(data, "outputs.nonexistent.key")
+    assert result is None
+
+
+def test_get_nested_value_non_dict_value():
+    """Test _get_nested_value when intermediate value is not a dict."""
+    data = {"outputs": "string value"}
+    result = _get_nested_value(data, "outputs.improved_prompt")
+    assert result is None
+
+
+def test_get_nested_value_empty_string():
+    """Test _get_nested_value returns empty string as-is."""
+    data = {"outputs": {"improved_prompt": ""}}
+    result = _get_nested_value(data, "outputs.improved_prompt")
+    assert result == ""

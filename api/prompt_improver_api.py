@@ -29,11 +29,6 @@ from api.quality_gates import evaluate_output, GateReport, get_template_summary
 logger = logging.getLogger(__name__)
 
 # Custom exceptions for better error handling
-class QualityGateValidationError(Exception):
-    """Raised when input validation fails."""
-    pass
-
-
 class QualityGateEvaluationError(Exception):
     """Raised when gate evaluation fails."""
     pass
@@ -408,7 +403,7 @@ async def evaluate_quality(request: EvaluateQualityRequest):
             gates=gates_dict
         )
 
-    except (QualityGateValidationError, QualityGateEvaluationError) as e:
+    except QualityGateEvaluationError as e:
         # Custom business logic errors
         logger.error(
             f"Quality gate error: {type(e).__name__} | "
@@ -420,15 +415,17 @@ async def evaluate_quality(request: EvaluateQualityRequest):
             detail="Quality gate evaluation failed. Please try again later."
         )
     except KeyError as e:
-        # Missing keys in output data
+        # Missing keys in output data - include the specific key name
+        missing_key = str(e) if e else "unknown"
         logger.warning(
-            f"Quality gate key error: {type(e).__name__} | "
+            f"Quality gate key error: KeyError | "
             f"template_id={request.template_id} | "
-            f"key={str(e)}"
+            f"missing_key={missing_key} | "
+            f"output_length={len(request.output)}"
         )
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid output format: missing required key"
+            detail=f"Invalid output format: missing required key '{missing_key}'"
         )
     except Exception as e:
         # Unexpected errors - log with full context, hide internals from client
