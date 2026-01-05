@@ -20,6 +20,14 @@ from hemdov.domain.entities.prompt_history import PromptHistory
 from hemdov.domain.repositories.prompt_repository import PromptRepository
 from hemdov.infrastructure.persistence.sqlite_prompt_repository import SQLitePromptRepository
 from api.circuit_breaker import CircuitBreaker
+from hemdov.domain.metrics.evaluators import (
+    PromptMetricsCalculator,
+    PromptImprovementResult,
+    ImpactData,
+)
+from hemdov.infrastructure.persistence.metrics_repository import (
+    SQLiteMetricsRepository,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +35,9 @@ router = APIRouter(prefix="/api/v1", tags=["prompts"])
 
 # Circuit breaker instance
 _circuit_breaker = CircuitBreaker(max_failures=5, timeout_seconds=300)
+
+# Metrics calculator
+_metrics_calculator = PromptMetricsCalculator()
 
 # Repository getter with circuit breaker
 async def get_repository(settings: Settings) -> Optional[PromptRepository]:
@@ -166,6 +177,61 @@ async def improve_prompt(request: ImprovePromptRequest):
 
         # Calculate latency
         latency_ms = int((time.time() - start_time) * 1000)
+
+        # Calculate comprehensive metrics
+        try:
+            # Extract model and provider from settings
+            model = settings.LLM_MODEL
+            provider = settings.LLM_PROVIDER
+
+            # Convert guardrails to list if it's a string
+            guardrails_list = (
+                result.guardrails.split("\n")
+                if isinstance(result.guardrails, str)
+                else result.guardrails
+            )
+
+            # Extract confidence
+            confidence_value = getattr(result, "confidence", None)
+
+            # Calculate metrics using calculate_from_history
+            metrics = _metrics_calculator.calculate_from_history(
+                original_idea=request.idea,
+                context=request.context,
+                improved_prompt=result.improved_prompt,
+                role=result.role,
+                directive=result.directive,
+                framework=result.framework,
+                guardrails=guardrails_list,
+                backend=backend,
+                model=model,
+                provider=provider,
+                latency_ms=latency_ms,
+                confidence=confidence_value,
+                impact_data=ImpactData(),  # TODO: Track user interactions
+            )
+
+            # Log metrics for monitoring
+            logger.info(
+                f"Metrics calculated: overall={metrics.overall_score:.2f} ({metrics.grade}), "
+                f"quality={metrics.quality.composite_score:.2f}, "
+                f"performance={metrics.performance.performance_score:.2f}, "
+                f"latency={metrics.performance.latency_ms}ms"
+            )
+
+            # Store metrics if SQLite is enabled
+            if settings.SQLITE_ENABLED:
+                try:
+                    metrics_repo = await get_repository(settings)
+                    if metrics_repo and hasattr(metrics_repo, 'save'):
+                        # Note: We need a metrics repository, not prompt repository
+                        # For now, just log that we would save it
+                        logger.debug("Metrics calculated successfully (persistence to be implemented)")
+                except Exception as e:
+                    logger.error(f"Failed to save metrics: {e}")
+        except Exception as e:
+            logger.error(f"Failed to calculate metrics: {e}")
+            # Don't fail the request if metrics fail
 
         # Build response
         response = ImprovePromptResponse(
