@@ -104,8 +104,7 @@ class LangChainHubFetcher:
             candidate = {
                 "handle": prompt_data["handle"],
                 "name": prompt_data["name"],
-                "template": prompt_data["template"],
-                "tags": prompt_data["tags"]
+                "template": prompt_data["template"]
             }
 
             # If converter provided, convert to DSPy format

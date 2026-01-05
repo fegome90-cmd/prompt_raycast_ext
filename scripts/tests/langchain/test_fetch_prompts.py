@@ -131,7 +131,6 @@ def test_to_candidates_file_structure():
     assert "handle" in candidate
     assert "name" in candidate
     assert "template" in candidate
-    assert "tags" in candidate
     print("✓ Output structure matches specification")
 
 
