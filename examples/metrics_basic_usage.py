@@ -20,7 +20,7 @@ from hemdov.domain.metrics.dimensions import (
 )
 
 
-async def main():
+async def main() -> None:
     """Calculate metrics for a sample prompt improvement."""
     print("=" * 60)
     print("Metrics Framework: Basic Usage Example")
@@ -67,10 +67,10 @@ You are working with sales data that needs to be analyzed for trends.
 
     # Impact data (user interactions)
     impact_data = ImpactData(
-        copied_to_clipboard=True,
-        regenerated=False,
-        user_feedback=5,  # 1-5 rating
-        reused_later=True,
+        copy_count=1,
+        regeneration_count=0,
+        feedback_score=5,  # 1-5 rating
+        reuse_count=1,
     )
 
     # Calculate metrics
