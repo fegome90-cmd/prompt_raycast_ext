@@ -44,7 +44,7 @@ export default function ConversationView() {
 
   const wizardEnabled = session?.wizard.enabled ?? false;
   const remainingTurns = session ? SessionManager.getRemainingTurns(session) : 0;
-  const isWizardComplete = session?.wizard.completed ?? true;
+  const isWizardComplete = session?.wizard.resolved ?? true;
 
   useEffect(() => {
     SessionManager.cleanupOldSessions();

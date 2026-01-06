@@ -44,6 +44,7 @@ export class SessionManager {
     maxTurns: number,
     nlacAnalysis?: { intent: IntentType; complexity: ComplexityLevel; confidence: number }
   ): Promise<ChatSession> {
+    const wizardEnabled = this.shouldEnableWizard(wizardMode, nlacAnalysis);
     const session: ChatSession = {
       id: randomUUID(),
       messages: [
@@ -56,7 +57,9 @@ export class SessionManager {
       ],
       inputContext: { originalInput: initialInput, preset, source },
       wizard: {
-        enabled: this.shouldEnableWizard(wizardMode, nlacAnalysis),
+        enabled: wizardEnabled,
+        bypassed: !wizardEnabled,
+        resolved: !wizardEnabled,
         config: {
           mode: wizardMode,
           maxTurns: this.calculateMaxTurns(maxTurns, nlacAnalysis?.complexity),
@@ -65,7 +68,6 @@ export class SessionManager {
           adaptiveTurns: true,
         },
         ambiguityScore: nlacAnalysis?.confidence ?? 0,
-        completed: !this.shouldEnableWizard(wizardMode, nlacAnalysis),
         nlacAnalysis,
       },
       createdAt: Date.now(),
@@ -113,10 +115,10 @@ export class SessionManager {
     session.messages.push(message);
     session.lastActivity = Date.now();
 
-    if (session.wizard.enabled && !session.wizard.completed) {
+    if (session.wizard.enabled && !session.wizard.resolved) {
       session.wizard.config.currentTurn++;
       if (session.wizard.config.currentTurn >= session.wizard.config.maxTurns) {
-        session.wizard.completed = true;
+        session.wizard.resolved = true;
       }
     }
 
@@ -150,7 +152,7 @@ export class SessionManager {
 
     if (ambiguityInfo) {
       session.wizard.ambiguityScore = ambiguityInfo.confidence;
-      session.wizard.completed = !ambiguityInfo.isAmbiguous;
+      session.wizard.resolved = !ambiguityInfo.isAmbiguous;
     }
 
     sessionCache.set(session);
@@ -161,7 +163,7 @@ export class SessionManager {
   static shouldContinueWizard(session: ChatSession): boolean {
     return (
       session.wizard.enabled &&
-      !session.wizard.completed &&
+      !session.wizard.resolved &&
       session.wizard.config.currentTurn < session.wizard.config.maxTurns
     );
   }
@@ -173,7 +175,7 @@ export class SessionManager {
   static async completeWizard(sessionId: string): Promise<ChatSession> {
     const session = sessionCache.get(sessionId);
     if (!session) throw new Error(`Session not found: ${sessionId}`);
-    session.wizard.completed = true;
+    session.wizard.resolved = true;
     sessionCache.set(session);
     await this.saveSession(session);
     return session;
@@ -199,10 +201,15 @@ export class SessionManager {
   }
 
   static async deleteSession(sessionId: string): Promise<void> {
-    sessionCache.delete(sessionId);
+    // Delete file first, then cache
     try {
       await fs.unlink(join(SESSIONS_DIR, `${sessionId}.json`));
-    } catch {}
+    } catch (error) {
+      console.warn(`[SessionManager] Failed to delete session file: ${error}`);
+      // Don't remove from cache if file deletion failed
+      return;
+    }
+    sessionCache.delete(sessionId);
   }
 
   private static async saveSession(session: ChatSession): Promise<void> {
@@ -210,7 +217,10 @@ export class SessionManager {
       await fs.mkdir(SESSIONS_DIR, { recursive: true });
       await fs.writeFile(join(SESSIONS_DIR, `${session.id}.json`), JSON.stringify(session, null, 2), "utf-8");
     } catch (error) {
-      console.error("[SessionManager] Failed to save session:", error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error("[SessionManager] Failed to save session:", errorMessage);
+      // Propagate to caller so they can handle it
+      throw new Error(`Failed to persist session ${session.id}: ${errorMessage}`);
     }
   }
 

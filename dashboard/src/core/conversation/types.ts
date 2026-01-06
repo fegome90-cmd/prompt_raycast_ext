@@ -52,9 +52,10 @@ export interface ChatSession {
   };
   wizard: {
     enabled: boolean;
+    bypassed: boolean;  // true if wizard was never enabled
+    resolved: boolean;  // true if conversation reached clarity
     config: WizardConfig;
     ambiguityScore: number;
-    completed: boolean;
     nlacAnalysis?: {
       intent: IntentType;
       complexity: ComplexityLevel;

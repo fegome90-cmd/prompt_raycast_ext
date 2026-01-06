@@ -27,7 +27,8 @@ describe("SessionManager", () => {
       );
 
       expect(session.wizard.enabled).toBe(true);
-      expect(session.wizard.completed).toBe(false);
+      expect(session.wizard.bypassed).toBe(false);
+      expect(session.wizard.resolved).toBe(false);
       expect(session.wizard.nlacAnalysis).toEqual({
         intent: "GENERATE",
         complexity: "SIMPLE",
@@ -46,7 +47,8 @@ describe("SessionManager", () => {
       );
 
       expect(session.wizard.enabled).toBe(false);
-      expect(session.wizard.completed).toBe(true);
+      expect(session.wizard.bypassed).toBe(true);
+      expect(session.wizard.resolved).toBe(true);
     });
 
     it("should always enable wizard in always mode", async () => {
@@ -60,7 +62,8 @@ describe("SessionManager", () => {
       );
 
       expect(session.wizard.enabled).toBe(true);
-      expect(session.wizard.completed).toBe(false);
+      expect(session.wizard.bypassed).toBe(false);
+      expect(session.wizard.resolved).toBe(false);
     });
 
     it("should never enable wizard in off mode", async () => {
@@ -74,7 +77,8 @@ describe("SessionManager", () => {
       );
 
       expect(session.wizard.enabled).toBe(false);
-      expect(session.wizard.completed).toBe(true);
+      expect(session.wizard.bypassed).toBe(true);
+      expect(session.wizard.resolved).toBe(true);
     });
 
     it("should use adaptive max turns based on complexity", async () => {
@@ -173,7 +177,7 @@ describe("SessionManager", () => {
 
       const updated = await SessionManager.appendUserMessage(session.id, "response");
 
-      expect(updated.wizard.completed).toBe(true);
+      expect(updated.wizard.resolved).toBe(true);
     });
   });
 
@@ -197,7 +201,7 @@ describe("SessionManager", () => {
       expect(updated.messages[1].role).toBe("assistant");
       expect(updated.messages[1].content).toBe("Clarification question");
       expect(updated.wizard.ambiguityScore).toBe(0.6);
-      expect(updated.wizard.completed).toBe(false);
+      expect(updated.wizard.resolved).toBe(false);
     });
 
     it("should complete wizard when isAmbiguous is false", async () => {
@@ -215,7 +219,7 @@ describe("SessionManager", () => {
         isAmbiguous: false,
       });
 
-      expect(updated.wizard.completed).toBe(true);
+      expect(updated.wizard.resolved).toBe(true);
     });
   });
 
@@ -280,7 +284,7 @@ describe("SessionManager", () => {
 
       const updated = await SessionManager.completeWizard(session.id);
 
-      expect(updated.wizard.completed).toBe(true);
+      expect(updated.wizard.resolved).toBe(true);
     });
   });
 

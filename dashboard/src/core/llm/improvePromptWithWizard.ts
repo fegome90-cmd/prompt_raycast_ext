@@ -2,6 +2,13 @@ import { SessionManager } from "../conversation/SessionManager";
 import type { ChatSession, WizardMode, IntentType, ComplexityLevel } from "../conversation/types";
 import { improvePromptWithHybrid, type ImprovePromptPreset } from "./improvePrompt";
 
+// Complexity thresholds for heuristic analysis
+const COMPLEXITY_THRESHOLDS = {
+  SIMPLE_MAX_WORDS: 10,
+  MODERATE_MAX_WORDS: 20,
+  LOW_CONFIDENCE_MAX_WORDS: 5,
+} as const;
+
 interface WizardOptions {
   rawInput: string;
   preset: ImprovePromptPreset;
@@ -62,7 +69,11 @@ export async function improvePromptWithWizard(options: WizardOptions): Promise<{
         { isAmbiguous: false, confidence: result.confidence }
       );
 
-      return { session: SessionManager.getSession(session.id)!, isComplete: true, needsClarification: false };
+      const updatedSession = SessionManager.getSession(session.id);
+      if (!updatedSession) {
+        throw new Error(`Session ${session.id} was lost from cache`);
+      }
+      return { session: updatedSession, isComplete: true, needsClarification: false };
     } catch (error) {
       await SessionManager.deleteSession(session.id);
       throw error;
@@ -82,7 +93,11 @@ export async function improvePromptWithWizard(options: WizardOptions): Promise<{
     isAmbiguous: true,
   });
 
-  return { session: SessionManager.getSession(session.id)!, isComplete: false, needsClarification: true };
+  const updatedSession = SessionManager.getSession(session.id);
+  if (!updatedSession) {
+    throw new Error(`Session ${session.id} was lost from cache`);
+  }
+  return { session: updatedSession, isComplete: false, needsClarification: true };
 }
 
 export async function continueWizard(
@@ -93,7 +108,17 @@ export async function continueWizard(
   const session = SessionManager.getSession(sessionId);
   if (!session) throw new Error("Session not found");
 
-  await SessionManager.appendUserMessage(sessionId, userResponse);
+  // Validate response length
+  const trimmedResponse = userResponse.trim();
+  if (trimmedResponse.length > 0 && trimmedResponse.length < 3) {
+    throw new Error("Response too short - please provide more details or press Enter to skip");
+  }
+
+  // Don't count empty responses as turns (user is skipping)
+  const isSkipping = trimmedResponse === "";
+  if (!isSkipping) {
+    await SessionManager.appendUserMessage(sessionId, userResponse);
+  }
 
   if (SessionManager.shouldContinueWizard(session)) {
     const followUp = ["What specific details can you provide?"];
@@ -102,7 +127,11 @@ export async function continueWizard(
       isAmbiguous: true,
     });
 
-    return { session: SessionManager.getSession(session.id)!, isComplete: false };
+    const updatedSession = SessionManager.getSession(session.id);
+    if (!updatedSession) {
+      throw new Error(`Session ${session.id} was lost from cache`);
+    }
+    return { session: updatedSession, isComplete: false };
   }
 
   // Generate final prompt
@@ -128,8 +157,13 @@ export async function continueWizard(
 
     await SessionManager.completeWizard(sessionId);
 
+    const finalSession = SessionManager.getSession(sessionId);
+    if (!finalSession) {
+      throw new Error(`Session ${sessionId} was lost from cache`);
+    }
+
     return {
-      session: SessionManager.getSession(sessionId)!,
+      session: finalSession,
       isComplete: true,
       prompt: result.improved_prompt,
     };
@@ -141,19 +175,33 @@ export async function continueWizard(
 
 // Placeholder for NLaC analysis (will call backend in Phase 2)
 async function analyzeInput(input: string): Promise<NLaCAnalysis> {
-  // Basic validation
   const trimmed = input.trim();
   if (!trimmed) {
-    return { intent: "ANALYZE" as const, complexity: "SIMPLE" as const, confidence: 0 };
+    return { intent: "ANALYZE", complexity: "SIMPLE", confidence: 0 };
   }
 
-  // Simple heuristic for now
   const tokenCount = trimmed.split(/\s+/).length;
-  const complexity = tokenCount < 10 ? "SIMPLE" : tokenCount < 20 ? "MODERATE" : "COMPLEX";
-  const intent = trimmed.toLowerCase().includes("create") || trimmed.toLowerCase().includes("build") ? "GENERATE" : "ANALYZE";
-  const confidence = tokenCount < 5 ? 0.4 : 0.8;
+  const complexity =
+    tokenCount < COMPLEXITY_THRESHOLDS.SIMPLE_MAX_WORDS
+      ? "SIMPLE"
+      : tokenCount < COMPLEXITY_THRESHOLDS.MODERATE_MAX_WORDS
+        ? "MODERATE"
+        : "COMPLEX";
 
-  return { intent: intent as any, complexity: complexity as any, confidence };
+  // Proper type guards instead of 'as any'
+  let intent: IntentType = "ANALYZE";
+  const lowerInput = trimmed.toLowerCase();
+  if (lowerInput.includes("create") || lowerInput.includes("build")) {
+    intent = "GENERATE";
+  } else if (lowerInput.includes("debug") || lowerInput.includes("fix")) {
+    intent = "DEBUG";
+  } else if (lowerInput.includes("refactor") || lowerInput.includes("improve")) {
+    intent = "REFACTOR";
+  }
+
+  const confidence = tokenCount < COMPLEXITY_THRESHOLDS.LOW_CONFIDENCE_MAX_WORDS ? 0.4 : 0.8;
+
+  return { intent, complexity, confidence };
 }
 
 function generateClarificationQuestions(analysis: NLaCAnalysis): string[] {
