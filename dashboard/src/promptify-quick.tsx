@@ -354,7 +354,7 @@ export default function Command() {
 
   return (
     <Form
-      isLoading={isLoading}
+      // isLoading={isLoading}  // Removed - conflicts with ProgressiveToast, shows native progress bar
       actions={
         <ActionPanel>
           <ActionPanel.Section title="Improve">
