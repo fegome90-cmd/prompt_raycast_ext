@@ -31,23 +31,39 @@ function PromptPreview(props: {
   // Build markdown content with better formatting
   const sections: string[] = [];
 
-  // Header and main prompt in code block
-  sections.push("## Improved Prompt", "", "```text", props.prompt, "```");
+  // Header
+  sections.push("## Improved Prompt");
+
+  // Metadata line: source + confidence (Apple-style minimal)
+  if (props.meta?.confidence || props.source) {
+    const metaLine = [
+      props.source === "dspy" ? "⤒ DSPy + Haiku" : "○ Ollama",
+      props.meta?.confidence ? `${Math.round(props.meta.confidence)}% confidence` : null,
+    ].filter(Boolean).join(" • ");
+
+    sections.push("", `*${metaLine}*`);
+  }
+
+  // Main prompt in code block
+  sections.push("", "```text", props.prompt, "```");
 
   // Metadata sections
   if (props.meta?.clarifyingQuestions?.length) {
     sections.push("", "", "### Clarifying Questions", "");
-    props.meta.clarifyingQuestions.forEach((q, i) => {
-      sections.push(`${i + 1}. ${q}`);
+    props.meta.clarifyingQuestions.forEach((q) => {
+      sections.push(`- ${q}`);
     });
   }
 
   if (props.meta?.assumptions?.length) {
     sections.push("", "", "### Assumptions", "");
-    props.meta.assumptions.forEach((a, i) => {
-      sections.push(`${i + 1}. ${a}`);
+    props.meta.assumptions.forEach((a) => {
+      sections.push(`- ${a}`);
     });
   }
+
+  // Visual separator at end
+  sections.push("", "---", "");
 
   // Stats for "Copy with stats" action
   const stats = [
