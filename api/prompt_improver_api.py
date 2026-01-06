@@ -14,6 +14,7 @@ import asyncio
 from typing import Optional, Dict, Any
 
 from eval.src.dspy_prompt_improver import PromptImprover
+from eval.src.strategy_selector import StrategySelector
 from hemdov.interfaces import container
 from hemdov.infrastructure.config import Settings
 from hemdov.domain.entities.prompt_history import PromptHistory
@@ -129,6 +130,27 @@ def get_fewshot_improver(settings: Settings):
     return _fewshot_improver
 
 
+# Initialize strategy selector (lazy loading)
+_strategy_selector: StrategySelector | None = None
+
+
+def get_strategy_selector(settings: Settings) -> StrategySelector:
+    """Get or initialize StrategySelector with all three strategies."""
+    global _strategy_selector
+
+    if _strategy_selector is None:
+        # Create selector with few-shot configuration from settings
+        selector = StrategySelector(
+            trainset_path=settings.DSPY_FEWSHOT_TRAINSET_PATH,
+            compiled_path=settings.DSPY_FEWSHOT_COMPILED_PATH,
+            fewshot_k=settings.DSPY_FEWSHOT_K
+        )
+        _strategy_selector = selector
+        logger.info("StrategySelector initialized with SimpleStrategy, ModerateStrategy, ComplexStrategy")
+
+    return _strategy_selector
+
+
 @router.post("/improve-prompt", response_model=ImprovePromptResponse)
 async def improve_prompt(request: ImprovePromptRequest):
     """
@@ -160,23 +182,34 @@ async def improve_prompt(request: ImprovePromptRequest):
             status_code=400, detail="Idea must be at least 5 characters"
         )
 
-    # Get module
+    # Get settings
     settings = container.get(Settings)
 
-    # Use few-shot if enabled
-    if settings.DSPY_FEWSHOT_ENABLED:
-        improver = get_fewshot_improver(settings)
-        backend = "few-shot"
-    else:
-        improver = get_prompt_improver(settings)
-        backend = "zero-shot"
+    # Use StrategySelector for intelligent strategy routing
+    selector = get_strategy_selector(settings)
+    strategy = selector.select(request.idea, request.context)
+    complexity = selector.get_complexity(request.idea, request.context)
+
+    # Log strategy selection for observability
+    logger.info(
+        f"Strategy selected: {strategy.name} | "
+        f"Complexity: {complexity.value} | "
+        f"Idea length: {len(request.idea)} | "
+        f"Context length: {len(request.context)}"
+    )
 
     # Start timer for latency
     start_time = time.time()
 
-    # Improve prompt
+    # Improve prompt using selected strategy with timeout
+    STRATEGY_TIMEOUT_SECONDS = 60
+
     try:
-        result = improver(original_idea=request.idea, context=request.context)
+        # Run synchronous strategy.improve in thread with timeout
+        result = await asyncio.wait_for(
+            asyncio.to_thread(strategy.improve, original_idea=request.idea, context=request.context),
+            timeout=STRATEGY_TIMEOUT_SECONDS
+        )
 
         # Calculate latency
         latency_ms = int((time.time() - start_time) * 1000)
@@ -207,7 +240,7 @@ async def improve_prompt(request: ImprovePromptRequest):
                 directive=result.directive,
                 framework=result.framework,
                 guardrails=guardrails_list,
-                backend=backend,
+                backend=strategy.name,  # Use strategy name instead of backend
                 model=model,
                 provider=provider,
                 latency_ms=latency_ms,
@@ -250,7 +283,7 @@ async def improve_prompt(request: ImprovePromptRequest):
             # Unexpected errors - log with full context but don't fail the request
             logger.error(
                 f"Unexpected error in metrics calculation: {type(e).__name__}: {e} | "
-                f"backend={backend} | model={model}",
+                f"strategy={strategy.name} | model={model}",
                 exc_info=True
             )
 
@@ -265,7 +298,7 @@ async def improve_prompt(request: ImprovePromptRequest):
             else result.guardrails,
             reasoning=getattr(result, "reasoning", None),
             confidence=getattr(result, "confidence", None),
-            backend=backend,
+            backend=strategy.name,  # Use strategy name instead of backend
         )
 
         # Save history asynchronously (non-blocking)
@@ -274,12 +307,21 @@ async def improve_prompt(request: ImprovePromptRequest):
             original_idea=request.idea,
             context=request.context,
             result=result,
-            backend=backend,
+            backend=strategy.name,  # Use strategy name instead of backend
             latency_ms=latency_ms
         ))
 
         return response
 
+    except asyncio.TimeoutError:
+        logger.critical(
+            f"Strategy {strategy.name} timed out after {STRATEGY_TIMEOUT_SECONDS}s | "
+            f"idea_length: {len(request.idea)}"
+        )
+        raise HTTPException(
+            status_code=504,  # Gateway Timeout
+            detail="Prompt improvement took too long. Please try with a shorter prompt."
+        )
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Prompt improvement failed: {str(e)}"
