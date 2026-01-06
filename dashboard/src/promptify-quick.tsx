@@ -35,14 +35,14 @@ function PromptPreview(props: {
 
   // Metadata sections
   if (props.meta?.clarifyingQuestions?.length) {
-    sections.push("", "### ❓ Clarifying Questions", "");
+    sections.push("", "### ? Clarifying Questions", "");
     props.meta.clarifyingQuestions.forEach((q, i) => {
       sections.push(`${i + 1}. ${q}`);
     });
   }
 
   if (props.meta?.assumptions?.length) {
-    sections.push("", "### 💡 Assumptions", "");
+    sections.push("", "### ◐ Assumptions", "");
     props.meta.assumptions.forEach((a, i) => {
       sections.push(`${i + 1}. ${a}`);
     });
@@ -53,7 +53,7 @@ function PromptPreview(props: {
     props.meta?.confidence !== undefined ? `Confidence: ${Typography.confidence(props.meta.confidence)}` : null,
     `Length: ${props.prompt.length} chars`,
     `Words: ${props.prompt.split(/\s+/).length} words`,
-    `Source: ${props.source === "dspy" ? "DSPy + Ollama" : "Ollama"}`,
+    `Source: ${props.source === "dspy" ? "DSPy + Haiku" : "Ollama"}`,
   ].filter(Boolean);
 
   sections.push("", "---", stats.join(" • "));
@@ -85,6 +85,8 @@ function PromptPreview(props: {
             />
           )}
 
+          <Detail.Metadata.Separator />
+
           <Detail.Metadata.Label title="Length" text={`${props.prompt.length} chars`} icon={Typography.countSymbol("Characters")} />
 
           <Detail.Metadata.Label title="Words" text={`${props.prompt.split(/\s+/).length}`} icon={Typography.countSymbol("Words")} />
@@ -93,7 +95,7 @@ function PromptPreview(props: {
 
           <Detail.Metadata.Label
             title="Engine"
-            text={props.source === "dspy" ? "DSPy + Ollama" : "Ollama"}
+            text={props.source === "dspy" ? "DSPy + Haiku" : "Ollama"}
             icon={Typography.engine(props.source ?? "ollama")}
           />
         </Detail.Metadata>
@@ -102,7 +104,7 @@ function PromptPreview(props: {
         <ActionPanel>
           <ActionPanel.Section title="Copy">
             <Action
-              title="Copy Prompt Only"
+              title="Copy prompt only"
               onAction={async () => {
                 await Clipboard.copy(props.prompt);
                 await ToastHelper.success("Copied", `${props.prompt.length} characters`);
@@ -111,7 +113,7 @@ function PromptPreview(props: {
             />
 
             <Action
-              title="Copy with Stats"
+              title="Copy with stats"
               onAction={async () => {
                 const withStats = [`# Improved Prompt`, "", props.prompt, "", "---", ...stats].join("\n");
                 await Clipboard.copy(withStats);
@@ -122,11 +124,11 @@ function PromptPreview(props: {
 
           <ActionPanel.Section title="Regenerate">
             <Action
-              title="Try Again"
+              title="Try again"
               shortcut={{ modifiers: ["cmd", "shift"], key: "r" }}
               onAction={() => {
                 props.onReset?.();
-                ToastHelper.loading("Ready to regenerate");
+                ToastHelper.loading("Ready to improve again");
               }}
             />
           </ActionPanel.Section>
@@ -138,7 +140,7 @@ function PromptPreview(props: {
 
 function getPlaceholder(preset?: "default" | "specific" | "structured" | "coding"): string {
   const placeholders = {
-    default: "Paste your rough prompt here… (⌘I for quick improve)",
+    default: "Paste your rough prompt here… (⌘I to improve)",
     specific: "What specific task should this prompt accomplish?",
     structured: "Paste your prompt - we'll add structure and clarity…",
     coding: "Describe what you want the code to do…",
@@ -305,7 +307,7 @@ export default function Command() {
               disabled={isLoading}
             />
             <Action
-              title="Quick Improve"
+              title="Quick improve"
               subtitle="Use default settings"
               shortcut={{ modifiers: ["cmd"], key: "i" }}
               onAction={() => {
@@ -320,7 +322,7 @@ export default function Command() {
           {inputText.trim() && (
             <ActionPanel.Section title="Edit">
               <Action
-                title="Clear Input"
+                title="Clear input"
                 onAction={() => setInputText("")}
                 shortcut={{ modifiers: ["cmd"], key: "backspace" }}
                 style={Action.Style.Destructive}
@@ -331,7 +333,7 @@ export default function Command() {
 
           <ActionPanel.Section title="Settings">
             <Action.OpenInBrowser
-              title="Open Preferences"
+              title="Open preferences"
               url="raycast://extensions/preferences/thomas.prompt-renderer-local"
               shortcut={{ modifiers: ["ctrl"], key: "," }}
             />
@@ -360,14 +362,14 @@ function parseTimeoutMs(value: string | undefined, fallback: number): number {
 function buildErrorHint(error: unknown): string | null {
   const message = error instanceof Error ? error.message : String(error);
   const lower = message.toLowerCase();
-  if (lower.includes("timed out")) return "Try increasing Timeout (ms)";
+  if (lower.includes("timed out")) return "try increasing timeout (ms)";
   if (
     lower.includes("failed calling ollama") ||
     lower.includes("connect") ||
     lower.includes("econnrefused") ||
     lower.includes("not reachable")
   )
-    return "Check `ollama serve` is running";
+    return "check `ollama serve` is running";
   if (lower.includes("model") && lower.includes("not found")) return "Pull the model first: `ollama pull <model>`";
   return null;
 }
@@ -375,9 +377,9 @@ function buildErrorHint(error: unknown): string | null {
 function buildDSPyHint(error: unknown): string | null {
   const message = error instanceof Error ? error.message : String(error);
   const lower = message.toLowerCase();
-  if (lower.includes("timed out")) return "Try increasing Timeout (ms)";
+  if (lower.includes("timed out")) return "try increasing timeout (ms)";
   if (lower.includes("connect") || lower.includes("econnrefused") || lower.includes("not reachable")) {
-    return "Check the DSPy backend is running";
+    return "check the DSPy backend is running";
   }
   return null;
 }
