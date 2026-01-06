@@ -1,13 +1,33 @@
 // dashboard/src/promptify-selected.tsx
-import { Action, ActionPanel, Clipboard, Detail, showToast, Toast, getPreferenceValues } from "@raycast/api";
+import { Action, ActionPanel, Clipboard, Detail, getPreferenceValues } from "@raycast/api";
 import { useState, useEffect } from "react";
 import { getInput } from "./core/input/getInput";
 import { improvePromptWithHybrid } from "./core/llm/improvePrompt";
 import { handleBackendError, NoInputDetail } from "./core/errors/handlers";
 import { logTtvMeasurement } from "./core/metrics/ttvLogger";
 import { loadConfig } from "./core/config";
+import { ToastHelper } from "./core/design/toast";
 
 const LOG_PREFIX = "[PromptifySelected]";
+
+type LoadingStage =
+  | "idle"
+  | "validating"
+  | "connecting"
+  | "analyzing"
+  | "improving"
+  | "success"
+  | "error";
+
+const STAGE_MESSAGES = {
+  idle: "",
+  validating: "Validating input...",
+  connecting: "Connecting to DSPy...",
+  analyzing: "Analyzing prompt structure...",
+  improving: "Applying few-shot learning...",
+  success: "Complete!",
+  error: "Failed",
+} as const;
 
 type Preferences = {
   dspyBaseUrl?: string;
@@ -17,6 +37,7 @@ type Preferences = {
 
 export default function Command() {
   const [isLoading, setIsLoading] = useState(true);
+  const [loadingStage, setLoadingStage] = useState<LoadingStage>("idle");
   const [result, setResult] = useState<{
     prompt: string;
     source: "selection" | "clipboard";
@@ -30,7 +51,8 @@ export default function Command() {
       console.log(`${LOG_PREFIX} 🚀 Starting prompt improvement...`);
 
       try {
-        // Get input (selection or clipboard)
+        // Stage 1: Validation
+        setLoadingStage("validating");
         console.log(`${LOG_PREFIX} 📥 Getting input...`);
         const input = await getInput();
 
@@ -38,17 +60,18 @@ export default function Command() {
           console.log(`${LOG_PREFIX} ❌ No input detected`);
           setError(<NoInputDetail />);
           setIsLoading(false);
+          setLoadingStage("idle");
           return;
         }
 
         console.log(`${LOG_PREFIX} ✅ Input received: ${input.source} (${input.text.length} chars)`);
         console.log(`${LOG_PREFIX} 📄 Input preview: "${input.text.substring(0, 100)}..."`);
 
-        // Show loading toast
-        await showToast({
-          style: Toast.Style.Animated,
-          title: "Improving prompt...",
-        });
+        setIsLoading(true);
+
+        // Stage 2: Connection
+        setLoadingStage("connecting");
+        await ToastHelper.loading("Improving prompt...");
 
         // Load config
         console.log(`${LOG_PREFIX} ⚙️ Loading configuration...`);
@@ -74,7 +97,12 @@ export default function Command() {
           throw new Error("DSPy backend is disabled in preferences");
         }
 
+        // Stage 3: Analysis
+        setLoadingStage("analyzing");
         console.log(`${LOG_PREFIX} 🌐 Calling backend: ${dspyBaseUrl}/api/v1/improve-prompt`);
+
+        // Stage 4: Improvement
+        setLoadingStage("improving");
         const response = await improvePromptWithHybrid({
           rawInput: input.text,
           preset: "structured",
@@ -110,7 +138,8 @@ export default function Command() {
           // Silent failure - don't block main flow
         });
 
-        // Set result
+        // Stage 5: Success
+        setLoadingStage("success");
         setResult({
           prompt: response.improved_prompt,
           source: input.source,
@@ -118,19 +147,13 @@ export default function Command() {
         });
 
         console.log(`${LOG_PREFIX} 🎉 Success! TTV: ${ttv_ms}ms, Source: ${input.source}`);
-        await showToast({
-          style: Toast.Style.Success,
-          title: "Prompt improved!",
-          message: `TTV: ${ttv_ms}ms • Source: ${input.source}`,
-        });
+        await ToastHelper.success("Prompt improved!", `TTV: ${ttv_ms}ms • ${input.source}`);
       } catch (e) {
+        setLoadingStage("error");
         const errorDetail = handleBackendError(e, t0);
         console.error(`${LOG_PREFIX} ❌ Error:`, e);
         setError(errorDetail);
-        await showToast({
-          style: Toast.Style.Failure,
-          title: "Failed to improve prompt",
-        });
+        await ToastHelper.error("Failed to improve prompt", e instanceof Error ? e.message : String(e));
       } finally {
         setIsLoading(false);
       }
@@ -171,5 +194,10 @@ export default function Command() {
     );
   }
 
-  return <Detail markdown="## Loading..." isLoading={isLoading} />;
+  return (
+    <Detail
+      markdown={`## ${STAGE_MESSAGES[loadingStage] || "Loading..."}${loadingStage !== "idle" ? `\n\n_${loadingStage}_` : ""}`}
+      isLoading={isLoading}
+    />
+  );
 }

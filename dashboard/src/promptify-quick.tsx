@@ -26,6 +26,27 @@ const PLACEHOLDERS = {
 const LOG_PREFIX = "[PromptifyQuick]";
 const FALLBACK_PREFIX = "[Fallback]";
 
+// Loading stage type for progressive status updates
+type LoadingStage =
+  | "idle"
+  | "validating"
+  | "connecting"
+  | "analyzing"
+  | "improving"
+  | "success"
+  | "error";
+
+// Stage messages for user-facing status display
+const STAGE_MESSAGES = {
+  idle: "",
+  validating: "Validating input...",
+  connecting: "Connecting to DSPy...",
+  analyzing: "Analyzing prompt structure...",
+  improving: "Applying few-shot learning...",
+  success: "Complete!",
+  error: "Failed",
+} as const;
+
 type Preferences = {
   ollamaBaseUrl?: string;
   model?: string;
@@ -210,7 +231,7 @@ export default function Command() {
 
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  // const [loadingStage, setLoadingStage] = useState<LoadingStage | null>(null);
+  const [loadingStage, setLoadingStage] = useState<LoadingStage>("idle");
   const [preview, setPreview] = useState<{
     prompt: string;
     meta?: { confidence?: number; clarifyingQuestions?: string[]; assumptions?: string[] };
@@ -231,24 +252,20 @@ export default function Command() {
     console.log(`${LOG_PREFIX} 🚀 Starting prompt improvement (manual input)...`);
     const text = values.inputText.trim();
 
-    // Stage 1: Validating (instant, no toast)
+    // Stage 1: Validation
+    setLoadingStage("validating");
     if (!text.length) {
       await ToastHelper.error("Empty Input", "Paste or type some text first");
+      setLoadingStage("idle");
       return;
     }
     if (text.length < 5) {
       await ToastHelper.error("Input Too Short", "Please enter at least 5 characters");
+      setLoadingStage("idle");
       return;
     }
 
     setIsLoading(true);
-    // NOTE: Toast doesn't display reliably in Raycast extensions.
-    // Using Form.isLoading for native progress bar instead.
-    // const toast = await showToast({
-    //   style: Toast.Style.Animated,
-    //   title: "Improving your prompt...",
-    //   message: "This may take a few seconds",
-    // });
 
     try {
       const config = configState.config;
@@ -262,12 +279,22 @@ export default function Command() {
       const executionMode = preferences.executionMode ?? "legacy";
       const useBackend = executionMode !== "ollama"; // legacy or nlac requires backend
 
+      // Stage 2: Connection
+      setLoadingStage("connecting");
+      console.log(`${LOG_PREFIX} 🔌 Connecting to ${useBackend ? "backend" : "Ollama"}...`);
+
+      // Stage 3: Analysis
+      setLoadingStage("analyzing");
+      console.log(`${LOG_PREFIX} 🔍 Analyzing prompt structure and complexity...`);
+
       // Progress happens automatically - Form.isLoading shows native progress bar
       if (!useBackend) {
         const health = await ollamaHealthCheck({ baseUrl, timeoutMs: Math.min(2_000, timeoutMs) });
         console.log(`${LOG_PREFIX} 🏥 Ollama health check result: ${health.ok ? "OK" : `FAILED - ${health.error}`}`);
         if (!health.ok) {
+          setLoadingStage("error");
           await ToastHelper.error("Ollama is not reachable", health.error);
+          setLoadingStage("idle");
           return;
         }
       }
@@ -289,6 +316,10 @@ export default function Command() {
       // ⚡ DO NOT use different values for timeoutMs and dspyTimeoutMs
 
       console.log(`${LOG_PREFIX} 🌐 Using ${useBackend ? `${executionMode} backend` : "Ollama"} path ${useBackend ? `(dspyBaseUrl: ${dspyBaseUrl})` : `(model: ${model})`}`);
+
+      // Stage 4: Improvement
+      setLoadingStage("improving");
+      console.log(`${LOG_PREFIX} ⚙️ Generating improved prompt with ${useBackend ? executionMode : "Ollama"}...`);
 
       const result = useBackend
         ? await improvePromptWithHybrid({
@@ -317,6 +348,10 @@ export default function Command() {
             systemPattern: getCustomPatternSync(),
           });
 
+      // Stage 5: Finalizing
+      setLoadingStage("success");
+      console.log(`${LOG_PREFIX} 🎨 Finalizing result and copying to clipboard...`);
+
       const finalPrompt = result.improved_prompt.trim();
       await Clipboard.copy(finalPrompt);
 
@@ -337,6 +372,8 @@ export default function Command() {
 
       await ToastHelper.success("Copied to clipboard", `${finalPrompt.length} characters • Saved to history`);
 
+      // Clear loading stage on success
+      setLoadingStage("idle");
       console.log(`${LOG_PREFIX} ✅ Prompt improved successfully (${finalPrompt.length} chars, source: ${useBackend ? executionMode : "Ollama"})`);
 
       setPreview({
@@ -349,6 +386,7 @@ export default function Command() {
         source: useBackend ? "dspy" : "ollama",
       });
     } catch (e) {
+      setLoadingStage("error");
       const config = configState.config;
       const baseUrl = preferences.ollamaBaseUrl?.trim() || config.ollama.baseUrl;
       const model = preferences.model?.trim() || config.ollama.model;
@@ -372,16 +410,17 @@ export default function Command() {
           e instanceof Error ? e.message : String(e),
           `${dspyBaseUrl}${hint ? ` — ${hint}` : ""}`,
         );
-        return;
+      } else {
+        await ToastHelper.error(
+          "Prompt improvement failed",
+          e instanceof Error ? e.message : String(e),
+          `(${model} @ ${baseUrl})${hint ? ` — ${hint}` : ""}`,
+        );
       }
-
-      await ToastHelper.error(
-        "Prompt improvement failed",
-        e instanceof Error ? e.message : String(e),
-        `(${model} @ ${baseUrl})${hint ? ` — ${hint}` : ""}`,
-      );
     } finally {
       setIsLoading(false);
+      // Clear loading stage on completion (success or error)
+      setLoadingStage("idle");
     }
   }
 
@@ -399,6 +438,7 @@ export default function Command() {
   return (
     <Form
       isLoading={isLoading}
+      navigationTitle={`Prompt Improver${loadingStage !== "idle" ? ` — ${STAGE_MESSAGES[loadingStage]}` : ""}`}
       actions={
         <ActionPanel>
           <ActionPanel.Section title="Improve">
@@ -441,6 +481,7 @@ export default function Command() {
         </ActionPanel>
       }
     >
+      {loadingStage !== "idle" && <Form.Description text={`${STAGE_MESSAGES[loadingStage]}`} />}
       <Form.TextArea
         id="inputText"
         title="Prompt"

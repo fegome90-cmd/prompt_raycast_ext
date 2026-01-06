@@ -14,8 +14,30 @@ import { SessionManager } from "./core/conversation/SessionManager";
 import { improvePromptWithWizard, continueWizard } from "./core/llm/improvePromptWithWizard";
 import { type ImprovePromptPreset } from "./core/llm/improvePrompt";
 import type { ChatSession } from "./core/conversation/types";
+import { tokens } from "./core/design/tokens";
+import { Typography } from "./core/design/typography";
+import { ToastHelper } from "./core/design/toast";
 
 const DEFAULT_MODEL = "hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M";
+
+type LoadingStage =
+  | "idle"
+  | "validating"
+  | "connecting"
+  | "analyzing"
+  | "improving"
+  | "success"
+  | "error";
+
+const STAGE_MESSAGES = {
+  idle: "",
+  validating: "Validating input...",
+  connecting: "Connecting to DSPy...",
+  analyzing: "Analyzing prompt structure...",
+  improving: "Applying few-shot learning...",
+  success: "Complete!",
+  error: "Failed",
+} as const;
 
 type Preferences = {
   wizardMode?: "auto" | "always" | "off";
@@ -40,6 +62,7 @@ export default function ConversationView() {
   const [session, setSession] = useState<ChatSession | null>(null);
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingStage, setLoadingStage] = useState<LoadingStage>("idle");
   const [showFollowUpForm, setShowFollowUpForm] = useState(false);
 
   const wizardEnabled = session?.wizard.enabled ?? false;
@@ -51,10 +74,29 @@ export default function ConversationView() {
   }, []);
 
   const handleInitialSubmit = async (values: { input: string }) => {
+    // Stage 1: Validation
+    setLoadingStage("validating");
+
+    if (!values.input?.trim() || values.input.length < 5) {
+      await ToastHelper.error("Input too short", "Please provide at least 5 characters");
+      setLoadingStage("idle");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
+      // Stage 2: Connection
+      setLoadingStage("connecting");
+
       const config = getConfig(preferences);
+
+      // Stage 3: Analysis
+      setLoadingStage("analyzing");
+
+      // Stage 4: Improvement
+      setLoadingStage("improving");
+
       const result = await improvePromptWithWizard({
         rawInput: values.input,
         preset: config.preset as ImprovePromptPreset,
@@ -66,32 +108,45 @@ export default function ConversationView() {
         dspyTimeoutMs: config.dspyTimeoutMs,
       });
 
+      // Stage 5: Success
+      setLoadingStage("success");
       setSession(result.session);
       setInputText("");
 
       if (result.isComplete) {
         await Clipboard.copy(result.session.messages[result.session.messages.length - 1].content);
-        await showToast({ style: Toast.Style.Success, title: "Prompt copied to clipboard" });
+        await ToastHelper.success("Prompt copied to clipboard");
       }
     } catch (error) {
-      await showToast({
-        style: Toast.Style.Failure,
-        title: "Failed to process",
-        message: error instanceof Error ? error.message : String(error),
-      });
+      setLoadingStage("error");
+      await ToastHelper.error("Failed to process", error instanceof Error ? error.message : String(error));
     } finally {
       setIsLoading(false);
+      setLoadingStage("idle");
     }
   };
 
   const handleFollowUpSubmit = async (values: { response: string }) => {
     if (!session) return;
 
+    // Stage 1: Validation
+    setLoadingStage("validating");
+
     setIsLoading(true);
     setShowFollowUpForm(false);
 
     try {
+      // Stage 2: Connection
+      setLoadingStage("connecting");
+
       const config = getConfig(preferences);
+
+      // Stage 3: Analysis
+      setLoadingStage("analyzing");
+
+      // Stage 4: Improvement
+      setLoadingStage("improving");
+
       const result = await continueWizard(session.id, values.response, {
         baseUrl: config.baseUrl,
         model: config.model,
@@ -100,21 +155,21 @@ export default function ConversationView() {
         preset: config.preset as ImprovePromptPreset,
       });
 
+      // Stage 5: Success
+      setLoadingStage("success");
       setSession(result.session);
       setInputText("");
 
       if (result.isComplete && result.prompt) {
         await Clipboard.copy(result.prompt);
-        await showToast({ style: Toast.Style.Success, title: "Prompt copied to clipboard" });
+        await ToastHelper.success("Prompt copied to clipboard");
       }
     } catch (error) {
-      await showToast({
-        style: Toast.Style.Failure,
-        title: "Failed to continue",
-        message: error instanceof Error ? error.message : String(error),
-      });
+      setLoadingStage("error");
+      await ToastHelper.error("Failed to continue", error instanceof Error ? error.message : String(error));
     } finally {
       setIsLoading(false);
+      setLoadingStage("idle");
     }
   };
 
@@ -124,7 +179,17 @@ export default function ConversationView() {
     setIsLoading(true);
 
     try {
+      // Stage 2: Connection
+      setLoadingStage("connecting");
+
       const config = getConfig(preferences);
+
+      // Stage 3: Analysis
+      setLoadingStage("analyzing");
+
+      // Stage 4: Improvement
+      setLoadingStage("improving");
+
       const result = await continueWizard(session.id, "", {
         baseUrl: config.baseUrl,
         model: config.model,
@@ -133,20 +198,20 @@ export default function ConversationView() {
         preset: config.preset as ImprovePromptPreset,
       });
 
+      // Stage 5: Success
+      setLoadingStage("success");
       setSession(result.session);
 
       if (result.prompt) {
         await Clipboard.copy(result.prompt);
-        await showToast({ style: Toast.Style.Success, title: "Prompt copied to clipboard" });
+        await ToastHelper.success("Prompt copied to clipboard");
       }
     } catch (error) {
-      await showToast({
-        style: Toast.Style.Failure,
-        title: "Failed to skip wizard",
-        message: error instanceof Error ? error.message : String(error),
-      });
+      setLoadingStage("error");
+      await ToastHelper.error("Failed to skip wizard", error instanceof Error ? error.message : String(error));
     } finally {
       setIsLoading(false);
+      setLoadingStage("idle");
     }
   };
 
@@ -197,6 +262,7 @@ export default function ConversationView() {
           value={inputText}
           onChange={setInputText}
         />
+        {loadingStage !== "idle" && <Form.Description text={`${STAGE_MESSAGES[loadingStage]}`} />}
       </Form>
     );
   }
@@ -204,7 +270,7 @@ export default function ConversationView() {
   // Conversation list view
   return (
     <List
-      navigationTitle="Prompt Conversation"
+      navigationTitle={`Prompt Conversation${loadingStage !== "idle" ? ` — ${STAGE_MESSAGES[loadingStage]}` : ""}`}
       isLoading={isLoading}
       actions={
         <ActionPanel>
@@ -222,19 +288,25 @@ export default function ConversationView() {
       {session.messages.map((msg) => (
         <List.Item
           key={msg.timestamp}
-          icon={msg.role === "user" ? "👤" : "🤖"}
+          icon={msg.role === "user" ? "•" : "⤒"}
           title={msg.content.slice(0, 80) + (msg.content.length > 80 ? "..." : "")}
           subtitle={formatTimestamp(msg.timestamp)}
-          accessories={[{ text: msg.metadata?.turnNumber ? `Turn ${msg.metadata.turnNumber}` : undefined }]}
+          accessories={[
+            { text: msg.metadata?.turnNumber ? `T${msg.metadata.turnNumber}` : undefined },
+            { icon: msg.role === "user" ? "" : Typography.engine("dspy") },
+          ]}
         />
       ))}
 
       {wizardEnabled && !isWizardComplete && (
         <List.Item
-          icon="🔮"
-          title="Wizard Mode Active"
+          icon="◐"
+          title="Wizard Active"
           subtitle={`${remainingTurns} turn${remainingTurns > 1 ? "s" : ""} remaining`}
-          accessories={[{ text: "Press Enter to provide more details" }]}
+          accessories={[
+            { text: "Enter: Respond" },
+            { text: `⤒ ${remainingTurns}` },
+          ]}
           actions={
             <ActionPanel>
               <Action title="Provide Details" onAction={() => setShowFollowUpForm(true)} shortcut={{ modifiers: ["cmd"], key: "enter" }} />
@@ -246,7 +318,7 @@ export default function ConversationView() {
 
       {isWizardComplete && session.messages.length > 1 && (
         <List.Item
-          icon="✅"
+          icon={tokens.semantic.success.icon}
           title="Prompt Ready"
           subtitle="Click to copy and view details"
           actions={
@@ -268,10 +340,10 @@ function formatTimestamp(timestamp: number): string {
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
 
-  if (diffMs < 60000) return "Just now";
+  if (diffMs < 60000) return "now";
   if (diffMs < 3600000) {
     const mins = Math.floor(diffMs / 60000);
-    return `${mins}m ago`;
+    return `${mins}m`;
   }
-  return date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+  return Typography.timestamp(date);
 }

@@ -1,13 +1,25 @@
-import { Action, ActionPanel, Detail, List, showToast, Toast } from "@raycast/api";
+import { Action, ActionPanel, Detail, List } from "@raycast/api";
 import { getPromptById, getPromptHistory, formatTimestamp, clearHistory } from "./core/promptStorage";
 import { Typography } from "./core/design/typography";
+import { ToastHelper } from "./core/design/toast";
 import type { PromptEntry } from "./core/promptStorage";
 import React from "react";
 
+type LoadingStage = "idle" | "loading" | "success" | "error";
+
+const STAGE_MESSAGES = {
+  idle: "",
+  loading: "Loading history...",
+  success: "Loaded",
+  error: "Failed",
+} as const;
+
 export default function Command() {
+  const [loadingStage, setLoadingStage] = React.useState<LoadingStage>("idle");
+
   return (
     <List
-      navigationTitle="Prompt History"
+      navigationTitle={`Prompt History${loadingStage !== "idle" && loadingStage !== "success" ? ` — ${STAGE_MESSAGES[loadingStage]}` : ""}`}
       actions={
         <ActionPanel>
           <Action
@@ -16,44 +28,49 @@ export default function Command() {
             shortcut={{ modifiers: ["cmd", "shift"], key: "d" }}
             onAction={async () => {
               await clearHistory();
-              await showToast({
-                style: Toast.Style.Success,
-                title: "History cleared",
-              });
+              await ToastHelper.success("History cleared");
             }}
           />
         </ActionPanel>
       }
     >
-      <PromptHistoryList />
+      <PromptHistoryList setLoadingStage={setLoadingStage} />
     </List>
   );
 }
 
-function PromptHistoryList() {
+function PromptHistoryList({ setLoadingStage }: { setLoadingStage: React.Dispatch<React.SetStateAction<LoadingStage>> }) {
   const [entries, setEntries] = React.useState<PromptEntry[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [loadingStage, setLoadingStageLocal] = React.useState<LoadingStage>("idle");
 
   React.useEffect(() => {
     (async () => {
       try {
+        setLoadingStage("loading");
+        setLoadingStageLocal("loading");
         const history = await getPromptHistory(20);
         setEntries(history);
+        setLoadingStage("success");
+        setLoadingStageLocal("success");
       } catch (error) {
         console.error("[PromptHistory] Failed to load:", error);
-        await showToast({
-          style: Toast.Style.Failure,
-          title: "Failed to load history",
-          message: error instanceof Error ? error.message : String(error),
-        });
+        setLoadingStage("error");
+        setLoadingStageLocal("error");
+        await ToastHelper.error("Failed to load history", error instanceof Error ? error.message : String(error));
       } finally {
         setIsLoading(false);
       }
     })();
-  }, []);
+  }, [setLoadingStage]);
 
   if (isLoading) {
-    return <List.Item.Detail markdown="## Loading..." isLoading={true} />;
+    return (
+      <List.Item.Detail
+        markdown={`## ${STAGE_MESSAGES[loadingStage] || "Loading..."}${loadingStage !== "idle" ? `\n\n_${loadingStage}_` : ""}`}
+        isLoading={true}
+      />
+    );
   }
 
   if (entries.length === 0) {
@@ -118,11 +135,7 @@ function PromptHistoryList() {
                       .join("\n");
 
                     // Show in a toast for now (could be a detail view)
-                    await showToast({
-                      style: Toast.Style.Success,
-                      title: "Prompt copied with metadata",
-                      message: "Paste to view full details",
-                    });
+                    await ToastHelper.success("Prompt copied with metadata", "Paste to view full details");
                   }}
                 />
               </ActionPanel.Section>
