@@ -45,25 +45,28 @@ function PromptPreview(props: {
   }
 
   // Main prompt in code block
-  sections.push("", "```text", props.prompt, "```");
+  sections.push("```text", props.prompt, "```");
 
   // Metadata sections
   if (props.meta?.clarifyingQuestions?.length) {
-    sections.push("", "", "### Clarifying Questions", "");
+    sections.push("", "### Clarifying Questions", "");
     props.meta.clarifyingQuestions.forEach((q) => {
       sections.push(`- ${q}`);
     });
   }
 
   if (props.meta?.assumptions?.length) {
-    sections.push("", "", "### Assumptions", "");
+    sections.push("", "### Assumptions", "");
     props.meta.assumptions.forEach((a) => {
       sections.push(`- ${a}`);
     });
   }
 
   // Visual separator at end
-  sections.push("", "---", "");
+  const hasMetadataSections = props.meta?.clarifyingQuestions?.length || props.meta?.assumptions?.length;
+  if (hasMetadataSections) {
+    sections.push("", "---", "");
+  }
 
   // Stats for "Copy with stats" action
   const stats = [
@@ -355,7 +358,7 @@ export default function Command() {
           <ActionPanel.Section title="Improve">
             <Action.SubmitForm
               title={isLoading ? "Improving…" : "Improve Prompt"}
-              subtitle={`${dspyEnabled ? "DSPy ⤒ " : ""}${Typography.truncate(preferences.model || "Ollama", 20)}`}
+              subtitle={`${dspyEnabled ? "⤒ DSPy " : ""}${Typography.truncate(preferences.model || "Ollama", 20)}`}
               onSubmit={handleGenerateFinal}
               shortcut={{ modifiers: ["cmd", "shift"], key: "enter" }}
               disabled={isLoading}
