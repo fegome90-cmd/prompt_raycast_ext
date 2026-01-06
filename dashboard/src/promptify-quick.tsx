@@ -248,17 +248,17 @@ export default function Command() {
       const dspyEnabled = preferences.dspyEnabled ?? config.dspy.enabled;
 
       // Stage 3: Processing
-      progress.update("Analyzing your prompt...");
+      await progress.update("Analyzing your prompt...");
 
       if (!dspyEnabled) {
         const health = await ollamaHealthCheck({ baseUrl, timeoutMs: Math.min(2_000, timeoutMs) });
         if (!health.ok) {
-          progress.error("Ollama is not reachable", health.error, `Check ${baseUrl}`);
+          await progress.error("Ollama is not reachable", health.error, `Check ${baseUrl}`);
           return;
         }
       }
 
-      progress.update("Generating improvements...");
+      await progress.update("Generating improvements...");
 
       const result = dspyEnabled
         ? await improvePromptWithHybrid({
@@ -287,12 +287,12 @@ export default function Command() {
           });
 
       // Stage 4: Finalizing
-      progress.update("Finalizing result...");
+      await progress.update("Finalizing result...");
 
       const finalPrompt = result.improved_prompt.trim();
       await Clipboard.copy(finalPrompt);
 
-      progress.success("Copied to clipboard", `${finalPrompt.length} characters`);
+      await progress.success("Copied to clipboard", `${finalPrompt.length} characters`);
 
       setPreview({
         prompt: finalPrompt,
@@ -321,7 +321,7 @@ export default function Command() {
       });
 
       if (dspyEnabled) {
-        progress.error(
+        await progress.error(
           "DSPy backend not available",
           e instanceof Error ? e.message : String(e),
           `${dspyBaseUrl}${hint ? ` — ${hint}` : ""}`,
@@ -329,7 +329,7 @@ export default function Command() {
         return;
       }
 
-      progress.error(
+      await progress.error(
         "Prompt improvement failed",
         e instanceof Error ? e.message : String(e),
         `(${model} @ ${baseUrl})${hint ? ` — ${hint}` : ""}`,
