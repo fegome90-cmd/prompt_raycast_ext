@@ -30,8 +30,8 @@ function PromptPreview(props: {
   // Build markdown content with better formatting
   const sections: string[] = [];
 
-  // Main prompt in code block
-  sections.push("```text", props.prompt, "```");
+  // Header and main prompt in code block
+  sections.push("## Improved Prompt", "", "```text", props.prompt, "```");
 
   // Metadata sections
   if (props.meta?.clarifyingQuestions?.length) {
