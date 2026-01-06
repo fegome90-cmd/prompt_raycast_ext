@@ -38,7 +38,9 @@ function PromptPreview(props: {
     const metaLine = [
       props.source === "dspy" ? "⤒ DSPy + Haiku" : "○ Ollama",
       props.meta?.confidence ? `${Math.round(props.meta.confidence)}% confidence` : null,
-    ].filter(Boolean).join(" • ");
+    ]
+      .filter(Boolean)
+      .join(" • ");
 
     sections.push("", `*${metaLine}*`);
   }
@@ -185,7 +187,7 @@ function getPlaceholder(preset?: "default" | "specific" | "structured" | "coding
   return placeholders[preset || "structured"];
 }
 
-type LoadingStage = "validating" | "connecting" | "processing" | "finalizing";
+// type LoadingStage = "validating" | "connecting" | "processing" | "finalizing";
 
 export default function Command() {
   const preferences = getPreferenceValues<Preferences>();
@@ -195,11 +197,11 @@ export default function Command() {
   const isInSafeMode = configState.safeMode;
 
   // Compute DSPy enabled state for use in JSX
-  const dspyEnabled = preferences.dspyEnabled ?? configState.config.dspy.enabled;
+  // const dspyEnabled = preferences.dspyEnabled ?? configState.config.dspy.enabled;
 
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [loadingStage, setLoadingStage] = useState<LoadingStage | null>(null);
+  // const [loadingStage, setLoadingStage] = useState<LoadingStage | null>(null);
   const [preview, setPreview] = useState<{
     prompt: string;
     meta?: { confidence?: number; clarifyingQuestions?: string[]; assumptions?: string[] };
@@ -258,6 +260,21 @@ export default function Command() {
         }
       }
 
+      // ⚡ INVARIANT: Frontend timeout synchronization with DSPy backend
+      //
+      // The timeoutMs variable (from preferences.timeoutMs) MUST be used for BOTH:
+      // - options.timeoutMs (Ollama/local LM timeout)
+      // - options.dspyTimeoutMs (DSPy backend timeout - forwards to Anthropic Haiku)
+      //
+      // Previous bug (2025-01-05):
+      // - Used config.dspy.timeoutMs (30s) for dspyTimeoutMs
+      // - Frontend aborted at 28s with AbortError before Haiku completed (~40s)
+      // - Fix: Use preferences.timeoutMs (120s) for BOTH timeout values
+      //
+      // See defaults.ts:58-80 for CRITICAL comment about 3-layer synchronization
+      //
+      // ⚡ DO NOT use config.dspy.timeoutMs here - it's a fallback default only
+      // ⚡ DO NOT use different values for timeoutMs and dspyTimeoutMs
       const result = dspyEnabled
         ? await improvePromptWithHybrid({
             rawInput: text,
