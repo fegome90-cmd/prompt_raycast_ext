@@ -79,6 +79,7 @@ export class DSPyPromptImproverClient {
         context: request.context || "",
       }),
       timeout: this.config.timeoutMs,
+      operation: "DSPy improvePrompt (/api/v1/improve-prompt)",
     });
     const latencyMs = Date.now() - startTime;
 
@@ -114,6 +115,7 @@ export class DSPyPromptImproverClient {
     const response = await fetchWithTimeout(url, {
       method: "GET",
       timeout: 30000, // Increased to 30s for slow Anthropic responses
+      operation: "DSPy health check (/health)",
     });
 
     console.log(`[DSPy HealthCheck] 📥 Response status: ${response.status}, ok: ${response.ok}`);
@@ -138,6 +140,7 @@ export class DSPyPromptImproverClient {
     const response = await fetchWithTimeout(`${this.config.baseUrl}/`, {
       method: "GET",
       timeout: 5000,
+      operation: "DSPy getBackendInfo (/)",
     });
 
     if (!response.ok) {

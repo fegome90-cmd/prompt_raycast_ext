@@ -76,6 +76,7 @@ export async function callOllamaChat(
       },
       body: JSON.stringify(requestBody),
       timeout: timeoutMs,
+      operation: `Ollama /api/chat (model: ${model})`,
     });
 
     if (!response.ok) {
@@ -118,6 +119,7 @@ export async function ollamaHealthCheckChat(options: {
     const response = await fetchWithTimeout(url, {
       method: "GET",
       timeout: options.timeoutMs,
+      operation: "Ollama health check (/api/tags)",
     });
 
     if (!response.ok) {

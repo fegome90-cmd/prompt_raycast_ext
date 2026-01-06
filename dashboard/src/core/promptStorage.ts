@@ -22,6 +22,8 @@ const STORAGE_DIR = join(STORAGE_BASE, "prompts");
 const HISTORY_FILE = join(STORAGE_DIR, "history.jsonl");
 const MAX_HISTORY = 20;
 
+const LOG_PREFIX = "[PromptStorage]";
+
 /**
  * Ensure storage directory exists
  */
@@ -29,7 +31,9 @@ async function ensureStorageDir(): Promise<void> {
   try {
     await fs.mkdir(STORAGE_DIR, { recursive: true });
   } catch (error) {
-    // Directory might already exist, ignore error
+    // Log error for debugging (EEXIST is OK, but permission errors are not)
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`${LOG_PREFIX} ⚠️ Failed to create storage directory: ${message}`);
   }
 }
 
@@ -68,7 +72,9 @@ export async function getPromptHistory(limit: number = 10): Promise<PromptEntry[
       .map((line) => {
         try {
           return JSON.parse(line) as PromptEntry;
-        } catch {
+        } catch (error) {
+          // Log warning for corrupted entries (helps detect data corruption)
+          console.warn(`${LOG_PREFIX} ⚠️ Skipping malformed JSON line (${line.length} chars): ${(error instanceof Error ? error.message : String(error)).substring(0, 50)}`);
           return null;
         }
       })

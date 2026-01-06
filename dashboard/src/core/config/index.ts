@@ -194,7 +194,8 @@ export function mergeWithDefaults(rawPrefs: RawPreferences): Record<string, unkn
       // Set the value
       setNested(merged, path, value);
     } catch {
-      // Silently skip unknown config paths (backwards compatibility)
+      // Log warning for unknown config paths (helps detect typos)
+      console.warn(`[Config] ⚠️ Skipping unknown config path: ${path.join(".")} (value: ${JSON.stringify(value).substring(0, 50)})`);
       continue;
     }
   }

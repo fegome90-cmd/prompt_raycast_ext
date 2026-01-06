@@ -374,8 +374,9 @@ async function callImprover(args: {
             latencyMs,
           },
         };
-      } catch {
-        // Extraction also failed
+      } catch (e) {
+        // Extraction succeeded but validation failed - log for debugging
+        console.warn(`[improvePrompt] ⚠️ Extracted JSON failed validation: ${e instanceof Error ? e.message : String(e)}`);
       }
     }
 

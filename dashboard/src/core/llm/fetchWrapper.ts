@@ -5,6 +5,7 @@
 
 export interface FetchOptions extends RequestInit {
   timeout?: number;
+  operation?: string; // Description of operation for better error messages
 }
 
 /**
@@ -12,7 +13,7 @@ export interface FetchOptions extends RequestInit {
  * Matches the interface used by existing node-fetch code
  */
 export async function fetchWithTimeout(url: string, options: FetchOptions = {}): Promise<Response> {
-  const { timeout, ...fetchOptions } = options;
+  const { timeout, operation, ...fetchOptions } = options;
 
   // ⚡ INVARIANT: AbortController lifecycle for timeout enforcement
   //
@@ -36,6 +37,19 @@ export async function fetchWithTimeout(url: string, options: FetchOptions = {}):
         ...fetchOptions,
         signal: controller.signal,
       });
+    } catch (error) {
+      // Enhance AbortError with operation context
+      if (error instanceof Error && error.name === "AbortError") {
+        const enhancedError = new Error(
+          operation
+            ? `${operation} timed out after ${timeout}ms`
+            : `Request to ${url} timed out after ${timeout}ms`,
+        );
+        enhancedError.name = "AbortError";
+        enhancedError.cause = error;
+        throw enhancedError;
+      }
+      throw error;
     } finally {
       clearTimeout(timeoutId);
     }
