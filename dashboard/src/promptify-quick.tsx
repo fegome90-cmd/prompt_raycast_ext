@@ -1,4 +1,4 @@
-import { Action, ActionPanel, Clipboard, Detail, Form, getPreferenceValues, Toast, showToast } from "@raycast/api";
+import { Action, ActionPanel, Clipboard, Detail, Form, getPreferenceValues } from "@raycast/api";
 import { useState, useEffect } from "react";
 import { improvePromptWithHybrid, improvePromptWithOllama } from "./core/llm/improvePrompt";
 import { ollamaHealthCheck } from "./core/llm/ollamaClient";
@@ -230,13 +230,13 @@ export default function Command() {
     }
 
     setIsLoading(true);
-    // Show a single loading toast that stays up throughout the operation
-    // Raycast doesn't support progressive toast updates well
-    const toast = await showToast({
-      style: Toast.Style.Animated,
-      title: "Improving your prompt...",
-      message: "This may take a few seconds",
-    });
+    // NOTE: Toast doesn't display reliably in Raycast extensions.
+    // Using Form.isLoading for native progress bar instead.
+    // const toast = await showToast({
+    //   style: Toast.Style.Animated,
+    //   title: "Improving your prompt...",
+    //   message: "This may take a few seconds",
+    // });
 
     try {
       const config = configState.config;
@@ -249,13 +249,11 @@ export default function Command() {
       const dspyBaseUrl = preferences.dspyBaseUrl?.trim() || config.dspy.baseUrl;
       const dspyEnabled = preferences.dspyEnabled ?? config.dspy.enabled;
 
-      // Progress happens automatically - the toast stays animated during work
+      // Progress happens automatically - Form.isLoading shows native progress bar
       if (!dspyEnabled) {
         const health = await ollamaHealthCheck({ baseUrl, timeoutMs: Math.min(2_000, timeoutMs) });
         if (!health.ok) {
-          toast.style = Toast.Style.Failure;
-          toast.title = "Ollama is not reachable";
-          toast.message = health.error;
+          await ToastHelper.error("Ollama is not reachable", health.error);
           return;
         }
       }
@@ -289,9 +287,7 @@ export default function Command() {
       const finalPrompt = result.improved_prompt.trim();
       await Clipboard.copy(finalPrompt);
 
-      toast.style = Toast.Style.Success;
-      toast.title = "Copied to clipboard";
-      toast.message = `${finalPrompt.length} characters`;
+      await ToastHelper.success("Copied to clipboard", `${finalPrompt.length} characters`);
 
       setPreview({
         prompt: finalPrompt,
@@ -319,15 +315,20 @@ export default function Command() {
         dspyEnabled,
       });
 
-      toast.style = Toast.Style.Failure;
       if (dspyEnabled) {
-        toast.title = "DSPy backend not available";
-        toast.message = `${e instanceof Error ? e.message : String(e)}${hint ? ` — ${hint}` : ""}`;
+        await ToastHelper.error(
+          "DSPy backend not available",
+          e instanceof Error ? e.message : String(e),
+          `${dspyBaseUrl}${hint ? ` — ${hint}` : ""}`,
+        );
         return;
       }
 
-      toast.title = "Prompt improvement failed";
-      toast.message = `${e instanceof Error ? e.message : String(e)} (${model} @ ${baseUrl})${hint ? ` — ${hint}` : ""}`;
+      await ToastHelper.error(
+        "Prompt improvement failed",
+        e instanceof Error ? e.message : String(e),
+        `(${model} @ ${baseUrl})${hint ? ` — ${hint}` : ""}`,
+      );
     } finally {
       setIsLoading(false);
     }
@@ -346,7 +347,7 @@ export default function Command() {
 
   return (
     <Form
-      // isLoading={isLoading}  // Removed - conflicts with ProgressiveToast, shows native progress bar
+      isLoading={isLoading}
       actions={
         <ActionPanel>
           <ActionPanel.Section title="Improve">
