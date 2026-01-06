@@ -99,6 +99,12 @@
       "title": "Promptify Selected",
       "description": "Improve selected text (or clipboard) into a structured prompt using DSPy backend",
       "mode": "view"
+    },
+    {
+      "name": "prompt-history",
+      "title": "Prompt History",
+      "description": "View and copy previously generated prompts",
+      "mode": "view"
     }
   ],
   "dependencies": {

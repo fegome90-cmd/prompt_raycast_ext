@@ -6,6 +6,7 @@ import { loadConfig } from "./core/config";
 import { getCustomPatternSync } from "./core/templates/pattern";
 import { Typography } from "./core/design/typography";
 import { ToastHelper } from "./core/design/toast";
+import { savePrompt, formatTimestamp } from "./core/promptStorage";
 
 // Engine display names (used in metadata)
 const ENGINE_NAMES = {
@@ -312,7 +313,22 @@ export default function Command() {
       const finalPrompt = result.improved_prompt.trim();
       await Clipboard.copy(finalPrompt);
 
-      await ToastHelper.success("Copied to clipboard", `${finalPrompt.length} characters`);
+      // Save to local history for persistence
+      await savePrompt({
+        prompt: finalPrompt,
+        meta: {
+          confidence: result.confidence,
+          clarifyingQuestions: result.clarifying_questions,
+          assumptions: result.assumptions,
+        },
+        source: dspyEnabled ? "dspy" : "ollama",
+        inputLength: text.length,
+        preset,
+      }).catch((error) => {
+        console.error("[Promptify] Failed to save prompt:", error);
+      });
+
+      await ToastHelper.success("Copied to clipboard", `${finalPrompt.length} characters • Saved to history`);
 
       setPreview({
         prompt: finalPrompt,
