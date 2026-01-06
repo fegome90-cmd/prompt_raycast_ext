@@ -1,6 +1,6 @@
 # tests/test_metrics_repository.py
 import pytest
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from hemdov.infrastructure.persistence.metrics_repository import (
     SQLiteMetricsRepository,
 )
@@ -41,7 +41,7 @@ async def test_save_metrics():
             backend="zero-shot",
         ),
         impact=ImpactMetrics(),
-        measured_at=datetime.now(timezone.utc),
+        measured_at=datetime.now(UTC),
         framework=FrameworkType.CHAIN_OF_THOUGHT,
         provider="anthropic",
         model="claude-haiku-4-5-20251001",
@@ -89,7 +89,7 @@ async def test_save_metrics_retrieves_full_data():
             feedback_score=5,
             reuse_count=2,
         ),
-        measured_at=datetime.now(timezone.utc),
+        measured_at=datetime.now(UTC),
         framework=FrameworkType.ROLE_PLAYING,
         provider="anthropic",
         model="claude-haiku-4-5-20251001",
@@ -152,7 +152,7 @@ async def test_get_all_pagination():
                 backend="zero-shot",
             ),
             impact=ImpactMetrics(),
-            measured_at=datetime.now(timezone.utc),
+            measured_at=datetime.now(UTC),
             framework=FrameworkType.CHAIN_OF_THOUGHT,
             provider="anthropic",
             model="claude-haiku-4-5-20251001",
@@ -201,7 +201,7 @@ async def test_update_existing_metrics():
             backend="zero-shot",
         ),
         impact=ImpactMetrics(),
-        measured_at=datetime.now(timezone.utc),
+        measured_at=datetime.now(UTC),
         framework=FrameworkType.CHAIN_OF_THOUGHT,
         provider="anthropic",
         model="claude-haiku-4-5-20251001",
@@ -231,7 +231,7 @@ async def test_update_existing_metrics():
             backend="few-shot",
         ),
         impact=ImpactMetrics(copy_count=2),
-        measured_at=datetime.now(timezone.utc),
+        measured_at=datetime.now(UTC),
         framework=FrameworkType.TREE_OF_THOUGHTS,
         provider="anthropic",
         model="claude-haiku-4-5-20251001",
@@ -277,7 +277,7 @@ async def test_close_connection():
             backend="zero-shot",
         ),
         impact=ImpactMetrics(),
-        measured_at=datetime.now(timezone.utc),
+        measured_at=datetime.now(UTC),
         framework=FrameworkType.CHAIN_OF_THOUGHT,
         provider="anthropic",
         model="claude-haiku-4-5-20251001",

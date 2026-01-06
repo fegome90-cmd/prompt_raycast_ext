@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 import tempfile
 import aiosqlite
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 
 
 @pytest.fixture
