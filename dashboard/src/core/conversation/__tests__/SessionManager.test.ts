@@ -81,7 +81,8 @@ describe("SessionManager", () => {
       expect(session.wizard.resolved).toBe(true);
     });
 
-    it("should use adaptive max turns based on complexity", async () => {
+    it("should use user's configured maxTurns regardless of complexity", async () => {
+      // Complexity controls IF wizard runs (shouldEnableWizard), not HOW LONG
       const simpleSession = await SessionManager.createSession(
         "simple",
         "structured",
@@ -91,7 +92,7 @@ describe("SessionManager", () => {
         { intent: "ANALYZE", complexity: "SIMPLE", confidence: 0.5 }
       );
 
-      expect(simpleSession.wizard.config.maxTurns).toBe(1);
+      expect(simpleSession.wizard.config.maxTurns).toBe(3);
 
       const complexSession = await SessionManager.createSession(
         "complex with many requirements",
@@ -102,7 +103,7 @@ describe("SessionManager", () => {
         { intent: "GENERATE", complexity: "COMPLEX", confidence: 0.5 }
       );
 
-      expect(complexSession.wizard.config.maxTurns).toBe(3);
+      expect(complexSession.wizard.config.maxTurns).toBe(1);
     });
 
     it("should enable wizard at exact confidence threshold (0.7)", async () => {

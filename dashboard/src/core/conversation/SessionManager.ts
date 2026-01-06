@@ -92,13 +92,9 @@ export class SessionManager {
   }
 
   private static calculateMaxTurns(baseMaxTurns: number, complexity?: ComplexityLevel): number {
-    if (!complexity) return baseMaxTurns;
-    switch (complexity) {
-      case "SIMPLE": return 1;
-      case "MODERATE": return Math.min(baseMaxTurns, 2);
-      case "COMPLEX": return Math.max(baseMaxTurns, 3);
-      default: return baseMaxTurns;
-    }
+    // Always use the user's configured maxTurns from preferences
+    // Complexity is used in shouldEnableWizard() to decide IF wizard runs, not HOW LONG
+    return baseMaxTurns;
   }
 
   static async appendUserMessage(sessionId: string, content: string): Promise<ChatSession> {
