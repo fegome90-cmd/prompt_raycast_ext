@@ -22,6 +22,10 @@ const PLACEHOLDERS = {
   coding: "Describe what you want the code to do…",
 } as const;
 
+// Logging prefixes for consistent filtering in Console.app
+const LOG_PREFIX = "[PromptifyQuick]";
+const FALLBACK_PREFIX = "[Fallback]";
+
 type Preferences = {
   ollamaBaseUrl?: string;
   model?: string;
@@ -227,7 +231,7 @@ export default function Command() {
   }, [isInSafeMode, safeModeToastShown, configState.source]);
 
   async function handleGenerateFinal(values: { inputText: string }) {
-    console.log(`[PromptifyQuick] 🚀 Starting prompt improvement (manual input)...`);
+    console.log(`${LOG_PREFIX} 🚀 Starting prompt improvement (manual input)...`);
     const text = values.inputText.trim();
 
     // Stage 1: Validating (instant, no toast)
@@ -263,6 +267,7 @@ export default function Command() {
       // Progress happens automatically - Form.isLoading shows native progress bar
       if (!dspyEnabled) {
         const health = await ollamaHealthCheck({ baseUrl, timeoutMs: Math.min(2_000, timeoutMs) });
+        console.log(`${LOG_PREFIX} 🏥 Ollama health check result: ${health.ok ? "OK" : `FAILED - ${health.error}`}`);
         if (!health.ok) {
           await ToastHelper.error("Ollama is not reachable", health.error);
           return;
@@ -284,6 +289,9 @@ export default function Command() {
       //
       // ⚡ DO NOT use config.dspy.timeoutMs here - it's a fallback default only
       // ⚡ DO NOT use different values for timeoutMs and dspyTimeoutMs
+
+      console.log(`${LOG_PREFIX} 🌐 Using ${dspyEnabled ? "DSPy hybrid" : "Ollama"} path ${dspyEnabled ? `(dspyBaseUrl: ${dspyBaseUrl})` : `(model: ${model})`}`);
+
       const result = dspyEnabled
         ? await improvePromptWithHybrid({
             rawInput: text,
@@ -325,10 +333,12 @@ export default function Command() {
         inputLength: text.length,
         preset,
       }).catch((error) => {
-        console.error("[Promptify] Failed to save prompt:", error);
+        console.error(`${LOG_PREFIX} ❌ Failed to save prompt:`, error);
       });
 
       await ToastHelper.success("Copied to clipboard", `${finalPrompt.length} characters • Saved to history`);
+
+      console.log(`${LOG_PREFIX} ✅ Prompt improved successfully (${finalPrompt.length} chars, source: ${dspyEnabled ? "DSPy" : "Ollama"})`);
 
       setPreview({
         prompt: finalPrompt,
@@ -348,7 +358,7 @@ export default function Command() {
       const hint = dspyEnabled ? buildDSPyHint(e) : buildErrorHint(e);
 
       // Debug logging
-      console.error("[Promptify] Error details:", {
+      console.error(`${LOG_PREFIX} ❌ Error details:`, {
         error: e instanceof Error ? e.message : String(e),
         preferencesModel: preferences.model,
         configModel: config.ollama.model,
@@ -499,8 +509,8 @@ async function runWithModelFallback(args: {
     if (!args.fallbackModel || args.fallbackModel === args.model) throw e;
     if (!shouldTryFallback(e)) throw e;
 
-    console.log(`[Fallback] ⚠️ Primary model (${args.model}) failed, attempting fallback...`);
-    console.log(`[Fallback] 🔄 Retrying with model: ${args.fallbackModel}`);
+    console.log(`${FALLBACK_PREFIX} ⚠️ Primary model (${args.model}) failed, attempting fallback...`);
+    console.log(`${FALLBACK_PREFIX} 🔄 Retrying with model: ${args.fallbackModel}`);
     await ToastHelper.loading("Retrying with fallback model…", args.fallbackModel);
 
     const result = await improvePromptWithOllama({
@@ -515,7 +525,7 @@ async function runWithModelFallback(args: {
       },
     });
 
-    console.log(`[Fallback] ✅ Fallback successful with ${args.fallbackModel}`);
+    console.log(`${FALLBACK_PREFIX} ✅ Fallback successful with ${args.fallbackModel}`);
     return result;
   }
 }

@@ -105,6 +105,16 @@ export async function improvePromptWithHybrid(args: {
 
     const dspyClient = createDSPyClient({
       baseUrl: dspyBaseUrl,
+      // ⚡ INVARIANT: DSPy timeout MUST fall back to frontend timeout (preferences.timeoutMs)
+      //
+      // This fallback pattern enforces the invariant that BOTH timeoutMs and dspyTimeoutMs
+      // must use the same value from preferences.timeoutMs (120s default).
+      //
+      // See: promptify-quick.tsx:272-286 for the full invariant explanation
+      // See: dashboard/src/core/config/defaults.ts:58-80 for 3-layer sync (frontend→config→backend)
+      //
+      // ⚡ DO NOT change to: config.dspy.timeoutMs - would break 3-layer sync and cause AbortError
+      // ⚡ DO NOT remove this fallback - it ensures DSPy uses the same timeout as Ollama
       timeoutMs: args.options.dspyTimeoutMs ?? args.options.timeoutMs,
     });
 
