@@ -119,6 +119,7 @@
   },
   "scripts": {
     "setup": "./setup.sh",
+    "predev": "./scripts/check-localhost-permission.sh",
     "build": "ray build -e dist",
     "dev": "ray develop",
     "fix-lint": "ray lint --fix",
