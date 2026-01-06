@@ -54,7 +54,7 @@ describe("Task 2 - Latency Accumulation Bug", () => {
         if (callCount === 1) {
           // First call: attempt 1 - invalid JSON that can't be parsed
           return {
-            raw: '{invalid json',
+            raw: "{invalid json",
             latencyMs: latency1,
             model: req.model,
           };
@@ -144,14 +144,14 @@ describe("Task 2 - Latency Accumulation Bug", () => {
         if (callCount === 1) {
           // First call: attempt 1 - invalid JSON
           return {
-            raw: '{invalid json',
+            raw: "{invalid json",
             latencyMs: latency1,
             model: req.model,
           };
         } else {
           // Second call: attempt 2 - repair fails (still invalid JSON)
           return {
-            raw: '{still invalid json', // Still invalid JSON
+            raw: "{still invalid json", // Still invalid JSON
             latencyMs: latency2,
             model: req.model,
           };
@@ -252,7 +252,7 @@ describe("Task 2 - Latency Accumulation Bug", () => {
         if (callCount === 1) {
           // Invalid JSON to trigger repair
           return {
-            raw: '{invalid',
+            raw: "{invalid",
             latencyMs: latency1,
             model: req.model,
           };

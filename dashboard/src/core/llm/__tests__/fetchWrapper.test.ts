@@ -18,14 +18,14 @@ describe("fetchWrapper", () => {
       fetchWithTimeout("http://localhost:1/nonexistent", {
         method: "GET",
         timeout: 100,
-      })
+      }),
     ).rejects.toThrow();
   }, 10000);
 
   test("fetchWithTimeout works with headers and body", async () => {
     const response = await fetchWithTimeout("http://localhost:8000/health", {
       method: "GET",
-      headers: { "Accept": "application/json" },
+      headers: { Accept: "application/json" },
       timeout: 5000,
     });
 

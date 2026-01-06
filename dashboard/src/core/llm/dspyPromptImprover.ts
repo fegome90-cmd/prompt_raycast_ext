@@ -41,23 +41,40 @@ export class DSPyPromptImproverClient {
    * Improve a raw idea using DSPy backend
    */
   async improvePrompt(request: DSPyPromptImproverRequest): Promise<DSPyPromptImproverResponse> {
-    const response = await fetchWithTimeout(`${this.config.baseUrl}/api/v1/improve-prompt`, {
-      method: 'POST',
+    const url = `${this.config.baseUrl}/api/v1/improve-prompt`;
+    console.log(`[DSPy improvePrompt] 🌐 Calling POST ${url}`);
+    console.log(`[DSPy improvePrompt] 📤 Request payload:`, {
+      idea_length: request.idea.length,
+      idea_preview: request.idea.substring(0, 100),
+      context_length: request.context?.length || 0,
+      timeoutMs: this.config.timeoutMs,
+    });
+
+    const startTime = Date.now();
+    const response = await fetchWithTimeout(url, {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         idea: request.idea,
-        context: request.context || ''
+        context: request.context || "",
       }),
-      timeout: this.config.timeoutMs
+      timeout: this.config.timeoutMs,
     });
+    const latencyMs = Date.now() - startTime;
+
+    console.log(`[DSPy improvePrompt] 📥 Response: status=${response.status}, ok=${response.ok}, latency=${latencyMs}ms`);
 
     if (!response.ok) {
+      const errorText = await response.text().catch(() => "");
+      console.error(`[DSPy improvePrompt] ❌ Error response:`, errorText);
       throw new Error(`DSPy backend error: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
+    console.log(`[DSPy improvePrompt] ✅ Success - improved_prompt length: ${data.improved_prompt?.length || 0}`);
+
     return data as DSPyPromptImproverResponse;
   }
 
@@ -70,16 +87,24 @@ export class DSPyPromptImproverClient {
     model: string;
     dspy_configured: boolean;
   }> {
-    const response = await fetchWithTimeout(`${this.config.baseUrl}/health`, {
-      method: 'GET',
-      timeout: 5000
+    const url = `${this.config.baseUrl}/health`;
+    console.log(`[DSPy HealthCheck] Attempting: ${url}`);
+    console.log(`[DSPy HealthCheck] Config:`, this.config);
+
+    const response = await fetchWithTimeout(url, {
+      method: "GET",
+      timeout: 30000, // Increased to 30s for slow Anthropic responses
     });
+
+    console.log(`[DSPy HealthCheck] Response status: ${response.status}, ok: ${response.ok}`);
 
     if (!response.ok) {
       throw new Error(`Health check failed: ${response.status}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+    console.log(`[DSPy HealthCheck] Success:`, data);
+    return data;
   }
 
   /**
@@ -91,8 +116,8 @@ export class DSPyPromptImproverClient {
     endpoints: Record<string, string>;
   }> {
     const response = await fetchWithTimeout(`${this.config.baseUrl}/`, {
-      method: 'GET',
-      timeout: 5000
+      method: "GET",
+      timeout: 5000,
     });
 
     if (!response.ok) {
@@ -108,8 +133,8 @@ export class DSPyPromptImproverClient {
  */
 export function createDSPyClient(overrideConfig?: Partial<DSPyBackendConfig>): DSPyPromptImproverClient {
   const defaultConfig: DSPyBackendConfig = {
-    baseUrl: 'http://localhost:8000',
-    timeoutMs: 30000
+    baseUrl: "http://localhost:8000",
+    timeoutMs: 30000,
   };
 
   const config = { ...defaultConfig, ...overrideConfig };
@@ -122,7 +147,7 @@ export function createDSPyClient(overrideConfig?: Partial<DSPyBackendConfig>): D
 export async function improvePromptWithDSPy(
   rawInput: string,
   preset: string = "default",
-  context?: string
+  context?: string,
 ): Promise<{
   improved_prompt: string;
   role: string;
@@ -134,7 +159,7 @@ export async function improvePromptWithDSPy(
 }> {
   try {
     const client = createDSPyClient();
-    
+
     // Check if backend is healthy
     try {
       await client.healthCheck();
@@ -146,12 +171,12 @@ export async function improvePromptWithDSPy(
     // Call DSPy backend
     const result = await client.improvePrompt({
       idea: rawInput,
-      context: context || ''
+      context: context || "",
     });
 
     return result;
   } catch (error) {
-    console.error('DSPy prompt improvement failed:', error);
+    console.error("DSPy prompt improvement failed:", error);
     throw error;
   }
 }

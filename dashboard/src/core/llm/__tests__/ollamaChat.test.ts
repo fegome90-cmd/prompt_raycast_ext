@@ -4,11 +4,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import {
-  callOllamaChat,
-  ollamaHealthCheckChat,
-  type OllamaMessage,
-} from "../ollamaChat";
+import { callOllamaChat, ollamaHealthCheckChat, type OllamaMessage } from "../ollamaChat";
 
 // Helper to check if Ollama is running
 async function isOllamaAvailable(): Promise<boolean> {
@@ -82,9 +78,7 @@ describe("ollamaChat - Integration Tests", () => {
 
       const options = { ...defaultOptions, timeoutMs: 100 };
 
-      await expect(callOllamaChat(systemPrompt, userPrompt, options)).rejects.toThrow(
-        "timed out"
-      );
+      await expect(callOllamaChat(systemPrompt, userPrompt, options)).rejects.toThrow("timed out");
     });
 
     it("should handle connection errors gracefully", async () => {

@@ -22,7 +22,8 @@ describe("Novaeus-Promptist-7B Integration", () => {
     // Mock implementation simulating Novaeus-Promptist-7B response
     mockCallOllamaChat.mockResolvedValue(
       JSON.stringify({
-        improved_prompt: "Actúa como un experto en análisis de datos. Tu tarea es procesar el dataset proporcionado y generar un informe estructurado que incluya: 1) Resumen ejecutivo, 2) Análisis de tendencias clave, 3) Recomendaciones accionables. Input: Dataset CSV con métricas de ventas mensuales. Output: Informe en formato Markdown con tablas y visualizaciones.",
+        improved_prompt:
+          "Actúa como un experto en análisis de datos. Tu tarea es procesar el dataset proporcionado y generar un informe estructurado que incluya: 1) Resumen ejecutivo, 2) Análisis de tendencias clave, 3) Recomendaciones accionables. Input: Dataset CSV con métricas de ventas mensuales. Output: Informe en formato Markdown con tablas y visualizaciones.",
         clarifying_questions: [
           "¿Qué período de tiempo cubre el dataset?",
           "¿Qué nivel de detalle se requiere en las recomendaciones?",
@@ -32,7 +33,7 @@ describe("Novaeus-Promptist-7B Integration", () => {
           "Se dispone de recursos para análisis estadístico básico",
         ],
         confidence: 0.85,
-      })
+      }),
     );
   });
 
@@ -159,9 +160,7 @@ Always include version requirements and environment details.`;
   describe("Error Handling", () => {
     it("throws ImprovePromptError on failure", async () => {
       // Mock that simulates failure
-      mockCallOllamaChat.mockRejectedValueOnce(
-        new Error("Ollama API error: 404 Not Found - model not found")
-      );
+      mockCallOllamaChat.mockRejectedValueOnce(new Error("Ollama API error: 404 Not Found - model not found"));
 
       await expect(
         improvePromptWithOllama({
@@ -172,7 +171,7 @@ Always include version requirements and environment details.`;
             model: "hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M",
             timeoutMs: 30000,
           },
-        })
+        }),
       ).rejects.toThrow();
     });
   });

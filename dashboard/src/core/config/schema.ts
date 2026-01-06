@@ -31,10 +31,7 @@ export const OllamaConfigSchema = z
       .min(1_000, "timeoutMs must be at least 1s (1000ms)")
       .max(120_000, "timeoutMs must not exceed 2 minutes (120000ms)"),
 
-    temperature: z
-      .number()
-      .min(0, "temperature must be between 0 and 2")
-      .max(2, "temperature must be between 0 and 2"),
+    temperature: z.number().min(0, "temperature must be between 0 and 2").max(2, "temperature must be between 0 and 2"),
 
     healthCheckTimeoutMs: z
       .number()

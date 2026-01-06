@@ -26,9 +26,7 @@ describe("T1.2.B4.5 — Metadata survives failure", () => {
 
   it("preserves wrapper metadata on JSON parse failure", async () => {
     // Mock that returns invalid JSON
-    mockCallOllamaChat.mockResolvedValueOnce(
-      "Text without JSON at all"
-    );
+    mockCallOllamaChat.mockResolvedValueOnce("Text without JSON at all");
 
     try {
       await improvePromptWithOllama({
@@ -55,7 +53,7 @@ describe("T1.2.B4.5 — Metadata survives failure", () => {
   it("preserves extraction metadata when extraction succeeds but validation fails", async () => {
     // Mock that returns text with embedded JSON that validates incorrectly
     mockCallOllamaChat.mockResolvedValueOnce(
-      'Some text before {"improved_prompt": "test", "clarifying_questions": "not an array"}'
+      'Some text before {"improved_prompt": "test", "clarifying_questions": "not an array"}',
     );
 
     try {
@@ -87,7 +85,7 @@ describe("T1.2.B4.5 — Metadata survives failure", () => {
         clarifying_questions: [],
         assumptions: [],
         confidence: 0.8,
-      })
+      }),
     );
 
     const result = await improvePromptWithOllama({
@@ -106,9 +104,7 @@ describe("T1.2.B4.5 — Metadata survives failure", () => {
 
   it("handles API errors and preserves error metadata", async () => {
     // Mock that simulates API error
-    mockCallOllamaChat.mockRejectedValueOnce(
-      new Error("Ollama API error: 404 Not Found")
-    );
+    mockCallOllamaChat.mockRejectedValueOnce(new Error("Ollama API error: 404 Not Found"));
 
     try {
       await improvePromptWithOllama({

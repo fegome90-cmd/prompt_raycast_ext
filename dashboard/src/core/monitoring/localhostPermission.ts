@@ -19,10 +19,7 @@ interface LocalhostPermissionCheckResult {
 /**
  * Check if a fetch error is likely caused by missing localhost permission
  */
-export function checkLocalhostPermission(
-  error: unknown,
-  url: string
-): LocalhostPermissionCheckResult {
+export function checkLocalhostPermission(error: unknown, url: string): LocalhostPermissionCheckResult {
   // Not a localhost URL - not our concern
   if (!url.includes("localhost") && !url.includes("127.0.0.1")) {
     return { hasPermission: true };
@@ -131,7 +128,7 @@ export function logLocalhostError(url: string, error: unknown): void {
  */
 export async function fetchWithPermissionCheck(
   url: string,
-  options?: RequestInit & { timeout?: number }
+  options?: RequestInit & { timeout?: number },
 ): Promise<Response> {
   try {
     const response = await fetch(url, options);

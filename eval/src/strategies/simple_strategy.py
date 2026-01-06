@@ -1,7 +1,10 @@
 # eval/src/strategies/simple_strategy.py
+import logging
 import dspy
 from hemdov.domain.dspy_modules.prompt_improver import PromptImproverSignature
 from .base import PromptImproverStrategy
+
+logger = logging.getLogger(__name__)
 
 
 class SimpleStrategy(PromptImproverStrategy):
@@ -18,29 +21,42 @@ class SimpleStrategy(PromptImproverStrategy):
         self._max_length = max_length
 
     def improve(self, original_idea: str, context: str) -> dspy.Prediction:
-        """Generate concise prompt improvement."""
-        result = self.improver(original_idea=original_idea, context=context)
+        """
+        Generate concise prompt improvement.
+
+        Args:
+            original_idea: User's original prompt idea
+            context: Additional context (optional)
+
+        Returns:
+            dspy.Prediction with improved_prompt, role, directive, framework, guardrails
+
+        Raises:
+            ValueError: If DSPy Prediction validation fails
+            TypeError: If inputs are not strings
+        """
+        # Input validation
+        self._validate_inputs(original_idea, context)
+
+        try:
+            result = self.improver(original_idea=original_idea, context=context)
+        except Exception as e:
+            logger.error(f"DSPy Predict error in SimpleStrategy: {e}")
+            raise RuntimeError(f"DSPy PromptImprover failed: {e}") from e
+
+        # Validate Prediction structure
+        self._validate_prediction(result)
 
         # Truncate if exceeds max length
         if len(result.improved_prompt) > self._max_length:
-            result.improved_prompt = self._truncate_at_sentence(result.improved_prompt)
+            result.improved_prompt = self._truncate_at_sentence(
+                result.improved_prompt,
+                self._max_length,
+                add_suffix=True
+            )
 
         return result
 
     @property
     def name(self) -> str:
         return "simple"
-
-    def _truncate_at_sentence(self, text: str) -> str:
-        """Truncate at last complete sentence within limit."""
-        truncated = text[:self._max_length]
-        last_period = truncated.rfind('.')
-        last_newline = truncated.rfind('\n')
-
-        # Use the last sentence boundary
-        if last_period > self._max_length * 0.7:
-            return truncated[:last_period + 1]
-        elif last_newline > self._max_length * 0.7:
-            return truncated[:last_newline]
-        else:
-            return truncated + "..."

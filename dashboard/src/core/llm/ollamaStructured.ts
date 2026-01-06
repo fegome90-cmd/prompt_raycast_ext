@@ -97,7 +97,17 @@ export async function ollamaGenerateStructured<T>(request: StructuredRequest<T>)
 
     // Schema mismatch on attempt 1
     if (mode !== "extract+repair") {
-      return failResult("schema_mismatch", raw1, 1, parse1.usedExtraction, false, summarizeZodError(validation.error), latency1, latency1, undefined);
+      return failResult(
+        "schema_mismatch",
+        raw1,
+        1,
+        parse1.usedExtraction,
+        false,
+        summarizeZodError(validation.error),
+        latency1,
+        latency1,
+        undefined,
+      );
     }
 
     // Attempt repair
@@ -117,7 +127,17 @@ export async function ollamaGenerateStructured<T>(request: StructuredRequest<T>)
 
   // Parse failed on attempt 1
   if (mode !== "extract+repair") {
-    return failResult("invalid_json", raw1, 1, parse1.usedExtraction, false, parse1.error, latency1, latency1, undefined);
+    return failResult(
+      "invalid_json",
+      raw1,
+      1,
+      parse1.usedExtraction,
+      false,
+      parse1.error,
+      latency1,
+      latency1,
+      undefined,
+    );
   }
 
   // Attempt repair
@@ -235,9 +255,7 @@ function coerceStringArray(value: unknown): string[] {
 
   // Log warning when dropping non-null, non-undefined, non-object values
   if (value !== null && value !== undefined && typeof value !== "object") {
-    console.warn(
-      `[COERCION] Unexpected array type: ${typeof value}, value: ${String(value).slice(0, 100)}`
-    );
+    console.warn(`[COERCION] Unexpected array type: ${typeof value}, value: ${String(value).slice(0, 100)}`);
   }
 
   return []; // null, undefined, or other types → empty array
@@ -280,7 +298,17 @@ function parseAndValidateAttempt2<T>(
     }
 
     // Schema mismatch after repair
-    return failResult("schema_mismatch", rawAttempt1, 2, false, true, summarizeZodError(validation.error), latencyMs, attempt1Latency, attempt2Latency);
+    return failResult(
+      "schema_mismatch",
+      rawAttempt1,
+      2,
+      false,
+      true,
+      summarizeZodError(validation.error),
+      latencyMs,
+      attempt1Latency,
+      attempt2Latency,
+    );
   } catch (e) {
     // Invalid JSON after repair
     return failResult(

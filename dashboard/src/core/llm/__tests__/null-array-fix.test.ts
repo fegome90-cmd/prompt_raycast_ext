@@ -180,15 +180,9 @@ describe("coerceStringArray - Data Loss Detection", () => {
     const result = coerceStringArray("a string instead of array");
 
     expect(result).toEqual([]);
-    expect(consoleSpy).toHaveBeenCalledWith(
-      expect.stringContaining("[COERCION] Unexpected array type")
-    );
-    expect(consoleSpy).toHaveBeenCalledWith(
-      expect.stringContaining("string")
-    );
-    expect(consoleSpy).toHaveBeenCalledWith(
-      expect.stringContaining("a string instead of array")
-    );
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("[COERCION] Unexpected array type"));
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("string"));
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("a string instead of array"));
 
     consoleSpy.mockRestore();
   });

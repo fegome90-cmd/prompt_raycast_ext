@@ -29,7 +29,12 @@ describe("dspy hybrid config", () => {
     const result = await improvePromptWithHybrid({
       rawInput: "x",
       preset: "default",
-      options: { baseUrl: "http://localhost:11434", model: "x", timeoutMs: 30000, dspyBaseUrl: "http://localhost:8000" },
+      options: {
+        baseUrl: "http://localhost:11434",
+        model: "x",
+        timeoutMs: 30000,
+        dspyBaseUrl: "http://localhost:8000",
+      },
     });
 
     expect(result._metadata?.backend).toBe("dspy");
@@ -52,7 +57,12 @@ describe("dspy hybrid config", () => {
     const result = await improvePromptWithHybrid({
       rawInput: "x",
       preset: "default",
-      options: { baseUrl: "http://localhost:11434", model: "x", timeoutMs: 30000, dspyBaseUrl: "http://localhost:8000" },
+      options: {
+        baseUrl: "http://localhost:11434",
+        model: "x",
+        timeoutMs: 30000,
+        dspyBaseUrl: "http://localhost:8000",
+      },
     });
 
     expect(result._metadata?.backend).toBe("ollama");

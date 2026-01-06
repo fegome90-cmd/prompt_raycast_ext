@@ -57,9 +57,9 @@ export const DEFAULTS = {
 
     /**
      * Default request timeout (ms)
-     * 30s keeps parity with Ollama timeouts
+     * 120s allows for Anthropic Haiku API latency (~30-50s per request)
      */
-    timeoutMs: 30_000,
+    timeoutMs: 120_000,
 
     /**
      * Enable DSPy backend first, fallback to Ollama if unavailable

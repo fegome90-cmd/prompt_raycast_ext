@@ -45,7 +45,7 @@ export async function ollamaHealthCheck(args: {
     const url = new URL("/api/version", args.baseUrl).toString();
     const res = await fetchWithTimeout(url, {
       method: "GET",
-      timeout: args.timeoutMs
+      timeout: args.timeoutMs,
     });
     if (!res.ok) return { ok: false, error: `HTTP ${res.status} ${res.statusText}` };
     const data = (await res.json()) as Partial<OllamaVersionResponse>;

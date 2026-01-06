@@ -19,6 +19,68 @@ sys.path.insert(0, str(project_root))
 import pytest
 from unittest.mock import patch, MagicMock, AsyncMock
 from fastapi.testclient import TestClient
+import dspy
+
+# Configure DSPy with mock LM BEFORE importing main (which imports dspy modules)
+# This prevents "No LM is loaded" error at module import time
+class MockLM(dspy.BaseLM):
+    """Mock LM for testing that satisfies DSPy's instance check."""
+    def __init__(self):
+        # Don't call super().__init__() to avoid API key validation
+        self.provider = "test"
+        self.model = "test-model"
+        self.kwargs = {}  # Required by DSPy
+
+    def basic_request(self, prompt, **kwargs):
+        """Return a mock response with DSPy-parsable structured text."""
+        # DSPy Predict parses text to extract fields defined in PromptImproverSignature
+        # Return structured text that DSPy can parse into a Prediction object
+        structured_output = """Improved Prompt: You are a World-Class Software Architect with 15+ years of experience in designing scalable, maintainable systems. Design an Architecture Decision Record (ADR) process that enables teams to make informed, documented architectural decisions.
+
+**[ROLE & PERSONA]**
+World-Class Software Architect
+
+**[CORE DIRECTIVE]**
+Design an Architecture Decision Record (ADR) process
+
+**[EXECUTION FRAMEWORK]**
+chain-of-thought
+
+**[CONSTRAINTS & GUARDRAILS]**
+- Keep ADRs concise and focused
+- Include context and decision rationale
+- Document alternatives considered
+
+**Reasoning**
+Selected this role for expertise in software architecture and the framework for systematic decision-making.
+
+**Confidence**
+0.87"""
+
+        response = MagicMock()
+        response.prompt = prompt
+        response.output = [structured_output]  # DSPy expects list of completions
+        response.usage = MagicMock()
+        response.usage.prompt_tokens = 10
+        response.usage.completion_tokens = 20
+        return response
+
+    def __call__(self, *args, **kwargs):
+        """Make the mock callable like a real LM with flexible signature."""
+        # DSPy may call with different signatures:
+        # - lm(prompt)
+        # - lm(*args, **kwargs)
+        # Extract prompt from first arg if available
+        if args:
+            prompt = args[0]
+        else:
+            prompt = kwargs.get('prompt', '')
+        return self.basic_request(prompt, **kwargs)
+
+# Configure DSPy globally for all tests
+dspy.settings.configure(lm=MockLM())
+
+# Now import main - DSPy is already configured
 from main import app
 
 
@@ -71,12 +133,18 @@ class TestImprovePromptSuccess:
         - Response contains all expected fields
         - Response has correct structure
         """
-        # Mock the PromptImprover module
-        with patch('api.prompt_improver_api.get_prompt_improver') as mock_get_improver:
-            # Setup mock improver
-            mock_improver = MagicMock()
-            mock_improver.return_value = mock_dspy_result
-            mock_get_improver.return_value = mock_improver
+        # Mock the StrategySelector to return a mock strategy
+        with patch('api.prompt_improver_api.get_strategy_selector') as mock_get_selector:
+            # Create mock strategy
+            mock_strategy = MagicMock()
+            mock_strategy.name = "SimpleStrategy"
+            mock_strategy.improve.return_value = mock_dspy_result
+
+            # Setup mock selector
+            mock_selector = MagicMock()
+            mock_selector.select.return_value = mock_strategy
+            mock_selector.get_complexity.return_value = MagicMock(value="low")
+            mock_get_selector.return_value = mock_selector
 
             # Mock repository to avoid actual DB operations
             with patch('api.prompt_improver_api.get_repository', return_value=AsyncMock()):
@@ -90,6 +158,11 @@ class TestImprovePromptSuccess:
                 )
 
                 # Assert response status
+                if response.status_code != 200:
+                    print(f"\n=== ERROR DETAILS ===")
+                    print(f"Status: {response.status_code}")
+                    print(f"Response: {response.text}")
+                    print(f"===================\n")
                 assert response.status_code == 200
 
                 # Assert response structure
@@ -108,11 +181,11 @@ class TestImprovePromptSuccess:
                 assert data["directive"] == mock_dspy_result.directive
                 assert data["framework"] == mock_dspy_result.framework
                 assert len(data["guardrails"]) == 3
-                assert data["backend"] == "zero-shot"
+                assert data["backend"] == "SimpleStrategy"  # API returns strategy name
 
-                # Verify improver was called with correct arguments
-                mock_improver.assert_called_once()
-                call_kwargs = mock_improver.call_args[1]
+                # Verify strategy was called with correct arguments
+                mock_strategy.improve.assert_called_once()
+                call_kwargs = mock_strategy.improve.call_args[1]
                 assert "original_idea" in call_kwargs
                 assert "context" in call_kwargs
 
@@ -235,12 +308,18 @@ class TestPersistenceDisabled:
         - Response contains all expected fields
         - No errors are raised from missing persistence
         """
-        # Mock the PromptImprover module
-        with patch('api.prompt_improver_api.get_prompt_improver') as mock_get_improver:
-            # Setup mock improver
-            mock_improver = MagicMock()
-            mock_improver.return_value = mock_dspy_result
-            mock_get_improver.return_value = mock_improver
+        # Mock the StrategySelector to return a mock strategy
+        with patch('api.prompt_improver_api.get_strategy_selector') as mock_get_selector:
+            # Create mock strategy
+            mock_strategy = MagicMock()
+            mock_strategy.name = "ModerateStrategy"
+            mock_strategy.improve.return_value = mock_dspy_result
+
+            # Setup mock selector
+            mock_selector = MagicMock()
+            mock_selector.select.return_value = mock_strategy
+            mock_selector.get_complexity.return_value = MagicMock(value="medium")
+            mock_get_selector.return_value = mock_selector
 
             # Mock Settings to disable persistence
             with patch('api.prompt_improver_api.container') as mock_container:
@@ -285,12 +364,18 @@ class TestPersistenceDisabled:
         # Import the module to patch the circuit breaker at module level
         import api.prompt_improver_api as api_module
 
-        # Mock the PromptImprover module
-        with patch('api.prompt_improver_api.get_prompt_improver') as mock_get_improver:
-            # Setup mock improver
-            mock_improver = MagicMock()
-            mock_improver.return_value = mock_dspy_result
-            mock_get_improver.return_value = mock_improver
+        # Mock the StrategySelector to return a mock strategy
+        with patch('api.prompt_improver_api.get_strategy_selector') as mock_get_selector:
+            # Create mock strategy
+            mock_strategy = MagicMock()
+            mock_strategy.name = "ComplexStrategy"
+            mock_strategy.improve.return_value = mock_dspy_result
+
+            # Setup mock selector
+            mock_selector = MagicMock()
+            mock_selector.select.return_value = mock_strategy
+            mock_selector.get_complexity.return_value = MagicMock(value="high")
+            mock_get_selector.return_value = mock_selector
 
             # Mock circuit breaker to be open (should_attempt returns False)
             original_breaker = api_module._circuit_breaker
@@ -369,10 +454,17 @@ class TestResponseFormat:
         - Guardrails field is a list in response
         - String guardrails are converted to list
         """
-        with patch('api.prompt_improver_api.get_prompt_improver') as mock_get_improver:
-            mock_improver = MagicMock()
-            mock_improver.return_value = mock_dspy_result
-            mock_get_improver.return_value = mock_improver
+        with patch('api.prompt_improver_api.get_strategy_selector') as mock_get_selector:
+            # Create mock strategy
+            mock_strategy = MagicMock()
+            mock_strategy.name = "SimpleStrategy"
+            mock_strategy.improve.return_value = mock_dspy_result
+
+            # Setup mock selector
+            mock_selector = MagicMock()
+            mock_selector.select.return_value = mock_strategy
+            mock_selector.get_complexity.return_value = MagicMock(value="low")
+            mock_get_selector.return_value = mock_selector
 
             with patch('api.prompt_improver_api.get_repository', return_value=AsyncMock()):
                 response = client.post(
@@ -390,16 +482,23 @@ class TestResponseFormat:
 
     def test_response_includes_backend_field(self, client, mock_dspy_result):
         """
-        GREEN: Test that backend field indicates zero-shot or few-shot.
+        GREEN: Test that backend field indicates strategy name.
 
         Verifies:
         - Backend field is present in response
-        - Backend value is either "zero-shot" or "few-shot"
+        - Backend value is one of the strategy names
         """
-        with patch('api.prompt_improver_api.get_prompt_improver') as mock_get_improver:
-            mock_improver = MagicMock()
-            mock_improver.return_value = mock_dspy_result
-            mock_get_improver.return_value = mock_improver
+        with patch('api.prompt_improver_api.get_strategy_selector') as mock_get_selector:
+            # Create mock strategy
+            mock_strategy = MagicMock()
+            mock_strategy.name = "ModerateStrategy"
+            mock_strategy.improve.return_value = mock_dspy_result
+
+            # Setup mock selector
+            mock_selector = MagicMock()
+            mock_selector.select.return_value = mock_strategy
+            mock_selector.get_complexity.return_value = MagicMock(value="medium")
+            mock_get_selector.return_value = mock_selector
 
             with patch('api.prompt_improver_api.get_repository', return_value=AsyncMock()):
                 response = client.post(
@@ -413,7 +512,7 @@ class TestResponseFormat:
                 assert response.status_code == 200
                 data = response.json()
                 assert "backend" in data
-                assert data["backend"] in ["zero-shot", "few-shot"]
+                assert data["backend"] in ["SimpleStrategy", "ModerateStrategy", "ComplexStrategy"]
 
 
 class TestNonBlockingSave:
@@ -435,11 +534,18 @@ class TestNonBlockingSave:
         async def slow_save(*args, **kwargs):
             await asyncio.sleep(1)
 
-        # Mock the PromptImprover module
-        with patch('api.prompt_improver_api.get_prompt_improver') as mock_get_improver:
-            mock_improver = MagicMock()
-            mock_improver.return_value = mock_dspy_result
-            mock_get_improver.return_value = mock_improver
+        # Mock the StrategySelector to return a mock strategy
+        with patch('api.prompt_improver_api.get_strategy_selector') as mock_get_selector:
+            # Create mock strategy
+            mock_strategy = MagicMock()
+            mock_strategy.name = "SimpleStrategy"
+            mock_strategy.improve.return_value = mock_dspy_result
+
+            # Setup mock selector
+            mock_selector = MagicMock()
+            mock_selector.select.return_value = mock_strategy
+            mock_selector.get_complexity.return_value = MagicMock(value="low")
+            mock_get_selector.return_value = mock_selector
 
             # Mock repository
             with patch('api.prompt_improver_api.get_repository', return_value=AsyncMock()):

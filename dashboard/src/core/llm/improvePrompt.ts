@@ -100,10 +100,15 @@ export async function improvePromptWithHybrid(args: {
   };
 
   try {
+    const dspyBaseUrl = args.options.dspyBaseUrl ?? "http://localhost:8000";
+    console.log(`[improvePromptWithDSPy] Creating DSPy client with baseUrl: ${dspyBaseUrl}`);
+
     const dspyClient = createDSPyClient({
-      baseUrl: args.options.dspyBaseUrl ?? "http://localhost:8000",
+      baseUrl: dspyBaseUrl,
       timeoutMs: args.options.dspyTimeoutMs ?? args.options.timeoutMs,
     });
+
+    console.log(`[improvePromptWithDSPy] Calling healthCheck...`);
 
     // Check if DSPy backend is available
     const health = await dspyClient.healthCheck();
@@ -138,6 +143,14 @@ export async function improvePromptWithHybrid(args: {
       throw new ImprovePromptError("DSPy backend not available", undefined, dspyFailureMeta);
     }
   } catch (error) {
+    console.error("[improvePromptWithDSPy] DSPy call failed:", error);
+    console.error("[improvePromptWithDSPy] Error details:", {
+      name: error instanceof Error ? error.name : "unknown",
+      message: error instanceof Error ? error.message : String(error),
+      cause: error instanceof Error && error.cause ? error.cause : "no cause",
+      isImprovePromptError: error instanceof ImprovePromptError,
+    });
+
     if (dspyRequired) {
       if (error instanceof ImprovePromptError) {
         throw error;
@@ -317,20 +330,16 @@ async function callImprover(args: {
   } catch (e) {
     // Ollama API error - wrap with metadata
     const latencyMs = Date.now() - startTime;
-    throw new ImprovePromptError(
-      e instanceof Error ? e.message : String(e),
-      e,
-      {
-        wrapper: {
-          attempt: 1,
-          usedRepair: false,
-          usedExtraction: false,
-          failureReason: "ollama_api_error",
-          latencyMs,
-          validationError: e instanceof Error ? e.message : String(e),
-        },
-      }
-    );
+    throw new ImprovePromptError(e instanceof Error ? e.message : String(e), e, {
+      wrapper: {
+        attempt: 1,
+        usedRepair: false,
+        usedExtraction: false,
+        failureReason: "ollama_api_error",
+        latencyMs,
+        validationError: e instanceof Error ? e.message : String(e),
+      },
+    });
   }
 
   const latencyMs = Date.now() - startTime;
@@ -361,20 +370,16 @@ async function callImprover(args: {
     }
 
     // Both failed - throw error
-    throw new ImprovePromptError(
-      `Failed to generate valid response: could not parse JSON output`,
-      e,
-      {
-        wrapper: {
-          attempt: 1,
-          usedRepair: false,
-          usedExtraction: false,
-          failureReason: "non-json",
-          latencyMs,
-          validationError: String(e),
-        },
-      }
-    );
+    throw new ImprovePromptError(`Failed to generate valid response: could not parse JSON output`, e, {
+      wrapper: {
+        attempt: 1,
+        usedRepair: false,
+        usedExtraction: false,
+        failureReason: "non-json",
+        latencyMs,
+        validationError: String(e),
+      },
+    });
   }
 
   return {
@@ -411,16 +416,18 @@ function extractJsonFromResponse(response: string): unknown | null {
 function buildImprovePrompts(
   rawInput: string,
   preset: ImprovePromptPreset,
-  systemPattern?: string
+  systemPattern?: string,
 ): { systemPrompt: string; userPrompt: string } {
   const presetRules = presetToRules(preset);
 
   // System prompt: Sets AI behavior and role
-  const systemPrompt = systemPattern || [
-    "You are an expert prompt improver.",
-    "Your job: rewrite the user's input into a ready-to-paste prompt for a chat LLM.",
-    "You specialize in creating clear, actionable prompts with explicit instructions.",
-  ].join("\n");
+  const systemPrompt =
+    systemPattern ||
+    [
+      "You are an expert prompt improver.",
+      "Your job: rewrite the user's input into a ready-to-paste prompt for a chat LLM.",
+      "You specialize in creating clear, actionable prompts with explicit instructions.",
+    ].join("\n");
 
   // User prompt: Contains the task and data
   const userPrompt = [

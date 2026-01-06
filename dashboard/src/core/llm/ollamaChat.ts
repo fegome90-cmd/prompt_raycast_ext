@@ -42,7 +42,7 @@ export interface OllamaChatOptions {
 export async function callOllamaChat(
   systemPrompt: string,
   userPrompt: string,
-  options: OllamaChatOptions
+  options: OllamaChatOptions,
 ): Promise<string> {
   const { baseUrl, model, timeoutMs, temperature = 0.1 } = options;
 
@@ -76,17 +76,13 @@ export async function callOllamaChat(
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(
-        `Ollama API error: ${response.status} ${response.statusText} - ${errorText}`
-      );
+      throw new Error(`Ollama API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const data = (await response.json()) as OllamaChatResponse;
 
     if (!data.message || !data.message.content) {
-      throw new Error(
-        `Invalid Ollama response: missing message.content. Response: ${JSON.stringify(data)}`
-      );
+      throw new Error(`Invalid Ollama response: missing message.content. Response: ${JSON.stringify(data)}`);
     }
 
     return data.message.content;

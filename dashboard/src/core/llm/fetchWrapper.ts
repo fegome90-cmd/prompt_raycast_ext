@@ -11,10 +11,7 @@ export interface FetchOptions extends RequestInit {
  * Wrapper around native fetch with timeout support
  * Matches the interface used by existing node-fetch code
  */
-export async function fetchWithTimeout(
-  url: string,
-  options: FetchOptions = {}
-): Promise<Response> {
+export async function fetchWithTimeout(url: string, options: FetchOptions = {}): Promise<Response> {
   const { timeout, ...fetchOptions } = options;
 
   if (timeout) {

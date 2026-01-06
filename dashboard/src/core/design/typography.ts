@@ -16,10 +16,10 @@ export class Typography {
   static confidence(score: number): string {
     const rounded = Math.round(score);
     // Technical geometric symbols - circle fill indicates quality
-    if (rounded >= 80) return `◉ ${rounded}%`;    // Full circle = high confidence
-    if (rounded >= 60) return `◎ ${rounded}%`;    // Half dot = medium
-    if (rounded >= 40) return `○ ${rounded}%`;     // Empty = low
-    return `○ ${rounded}%`;                        // Same as low
+    if (rounded >= 80) return `◉ ${rounded}%`; // Full circle = high confidence
+    if (rounded >= 60) return `◎ ${rounded}%`; // Half dot = medium
+    if (rounded >= 40) return `○ ${rounded}%`; // Empty = low
+    return `○ ${rounded}%`; // Same as low
   }
 
   /**
@@ -27,9 +27,9 @@ export class Typography {
    */
   static confidenceIcon(score: number): string {
     const rounded = Math.round(score);
-    if (rounded >= 70) return "◉";    // High = full circle
-    if (rounded >= 40) return "◎";    // Medium = half dot
-    return "○";                       // Low = empty circle
+    if (rounded >= 70) return "◉"; // High = full circle
+    if (rounded >= 40) return "◎"; // Medium = half dot
+    return "○"; // Low = empty circle
   }
 
   /**
@@ -38,10 +38,10 @@ export class Typography {
    */
   static count(label: string, count: number): string {
     const symbols = {
-      Questions: "?",      // Question mark - direct, functional
-      Assumptions: "◐",   // Half-filled circle = partial/assumption
-      Characters: "#",     // Hash = count, technical
-      Words: "¶",          // Pilcrow = paragraph, document symbol
+      Questions: "?", // Question mark - direct, functional
+      Assumptions: "◐", // Half-filled circle = partial/assumption
+      Characters: "#", // Hash = count, technical
+      Words: "¶", // Pilcrow = paragraph, document symbol
     };
 
     const symbol = symbols[label as keyof typeof symbols] || "•";
@@ -66,7 +66,7 @@ export class Typography {
    * Technical symbols instead of emojis
    */
   static engine(source: "dspy" | "ollama"): string {
-    return source === "dspy" ? "⤒" : "○";  // ⤒ = forward/advanced, ○ = basic
+    return source === "dspy" ? "⤒" : "○"; // ⤒ = forward/advanced, ○ = basic
   }
 
   /**
