@@ -3,11 +3,30 @@ import { getSelectedText, Clipboard } from "@raycast/api";
 
 const LOG_PREFIX = "[Input]";
 
+/**
+ * 📝 CONTEXT: Why 5-character minimum input requirement?
+ *
+ * Historical context (2025-01-06):
+ * - Users would accidentally trigger "Promptify Selected" on short selections
+ * - Common issues: Single character "a", clipboard fragments like "x", "test"
+ * - This caused backend calls with meaningless input, wasting time and API quota
+ *
+ * Decision: Set minimum to 5 characters
+ * - Low enough: Doesn't block legitimate single-word prompts ("help", "fix it")
+ * - High enough: Prevents accidental triggers on meaningless fragments
+ *
+ * ⚡ INVARIANT: Both getSelectedText() and Clipboard.readText() enforce this minimum
+ * ⚡ INVARIANT: If selection < 5 chars, we try clipboard as fallback
+ * ⚡ INVARIANT: If clipboard < 5 chars, we return { source: "none", text: "" }
+ *
+ * 🔴 DO NOT lower this minimum below 5 - will re-introduce accidental triggers
+ * 🔴 DO NOT make different minimums for selection vs clipboard - must be consistent
+ */
 export async function getInput(): Promise<{
   source: "selection" | "clipboard" | "none";
   text: string;
 }> {
-  console.log(`${LOG_PREFIX} Starting input detection...`);
+  console.log(`${LOG_PREFIX} 🚀 Starting input detection...`);
 
   // Try getSelectedText()
   try {

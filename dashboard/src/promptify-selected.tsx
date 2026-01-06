@@ -54,7 +54,9 @@ export default function Command() {
         console.log(`${LOG_PREFIX} ⚙️ Loading configuration...`);
         const configState = loadConfig();
         const config = configState.config;
-        console.log(`${LOG_PREFIX} ⚙️ Config loaded - DSPy baseUrl: ${config.dspy.baseUrl}, enabled: ${config.dspy.enabled}`);
+        console.log(
+          `${LOG_PREFIX} ⚙️ Config loaded - DSPy baseUrl: ${config.dspy.baseUrl}, enabled: ${config.dspy.enabled}`,
+        );
 
         // Get preferences
         const preferences = getPreferenceValues<Preferences>();
@@ -62,7 +64,9 @@ export default function Command() {
         const dspyEnabled = preferences.dspyEnabled ?? config.dspy.enabled;
         const timeoutMs = Number.parseInt(preferences.timeoutMs || "120000", 10);
 
-        console.log(`${LOG_PREFIX} 🔧 Final config: dspyBaseUrl=${dspyBaseUrl}, dspyEnabled=${dspyEnabled}, timeoutMs=${timeoutMs}`);
+        console.log(
+          `${LOG_PREFIX} 🔧 Final config: dspyBaseUrl=${dspyBaseUrl}, dspyEnabled=${dspyEnabled}, timeoutMs=${timeoutMs}`,
+        );
 
         // Call backend
         if (!dspyEnabled) {

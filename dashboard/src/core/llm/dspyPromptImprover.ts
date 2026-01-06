@@ -40,6 +40,24 @@ export class DSPyPromptImproverClient {
   /**
    * Improve a raw idea using DSPy backend
    */
+  /**
+   * ⚠️ RISK: Network operation with multiple failure modes
+   *
+   * This method makes HTTP calls to DSPy backend. Common failures:
+   * - Network errors: ECONNREFUSED, timeout, DNS failure
+   * - Backend errors: 5xx, rate limits, malformed JSON
+   * - Edge cases: Empty responses, missing fields, schema changes
+   *
+   * Mitigations in place:
+   * - fetchWithTimeout enforces timeout (prevents hangs)
+   * - Response validation (checks response.ok)
+   * - Comprehensive logging (request/response/latency)
+   *
+   * 🔴 DO NOT remove try/catch - errors must be caught and logged
+   * 🔴 DO NOT remove console.log statements - critical for debugging
+   * 🔴 DO NOT reduce timeout without checking defaults.ts:58-80 CRITICAL comment
+   * 🔴 DO NOT change this to NOT use fetchWithTimeout wrapper
+   */
   async improvePrompt(request: DSPyPromptImproverRequest): Promise<DSPyPromptImproverResponse> {
     const url = `${this.config.baseUrl}/api/v1/improve-prompt`;
     console.log(`[DSPy improvePrompt] 🌐 Calling POST ${url}`);
@@ -64,7 +82,9 @@ export class DSPyPromptImproverClient {
     });
     const latencyMs = Date.now() - startTime;
 
-    console.log(`[DSPy improvePrompt] 📥 Response: status=${response.status}, ok=${response.ok}, latency=${latencyMs}ms`);
+    console.log(
+      `[DSPy improvePrompt] 📥 Response: status=${response.status}, ok=${response.ok}, latency=${latencyMs}ms`,
+    );
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => "");
@@ -88,22 +108,22 @@ export class DSPyPromptImproverClient {
     dspy_configured: boolean;
   }> {
     const url = `${this.config.baseUrl}/health`;
-    console.log(`[DSPy HealthCheck] Attempting: ${url}`);
-    console.log(`[DSPy HealthCheck] Config:`, this.config);
+    console.log(`[DSPy HealthCheck] 🌐 Attempting: ${url}`);
+    console.log(`[DSPy HealthCheck] ⚙️ Config:`, this.config);
 
     const response = await fetchWithTimeout(url, {
       method: "GET",
       timeout: 30000, // Increased to 30s for slow Anthropic responses
     });
 
-    console.log(`[DSPy HealthCheck] Response status: ${response.status}, ok: ${response.ok}`);
+    console.log(`[DSPy HealthCheck] 📥 Response status: ${response.status}, ok: ${response.ok}`);
 
     if (!response.ok) {
       throw new Error(`Health check failed: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log(`[DSPy HealthCheck] Success:`, data);
+    console.log(`[DSPy HealthCheck] ✅ Success:`, data);
     return data;
   }
 

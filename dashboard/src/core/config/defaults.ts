@@ -56,8 +56,26 @@ export const DEFAULTS = {
     baseUrl: "http://localhost:8000",
 
     /**
-     * Default request timeout (ms)
-     * 120s allows for Anthropic Haiku API latency (~30-50s per request)
+     * 🔴 CRITICAL: Default request timeout (ms) - SYNCHRONIZED ACROSS 3 LAYERS
+     *
+     * ⚡ INVARIANT: Frontend timeout MUST match backend timeout to prevent AbortError
+     *
+     * Three locations MUST have same timeout value:
+     * 1. UI: package.json → timeoutMs preference (default: 120000ms)
+     * 2. Frontend config: HERE (defaults.ts → dspy.timeoutMs)
+     * 3. Backend: .env → ANTHROPIC_TIMEOUT (default: 120s)
+     *
+     * Consequences of mismatch:
+     * - Frontend < Backend: AbortError "operation was aborted" at frontend timeout
+     * - Frontend > Backend: Unnecessary wait, poor UX
+     *
+     * Context (2025-01-06):
+     * - Anthropic Haiku API takes ~30-50s per request
+     * - Previous bug: Using config.dspy.timeoutMs (30s) caused AbortError at ~28s
+     * - Fixed by using preferences.timeoutMs (120s) consistently in promptify-quick.tsx:274
+     *
+     * 🔴 DO NOT change timeout values without updating ALL three locations above
+     * 🔴 DO NOT reduce below 90s - Haiku API needs ~30-50s, plus overhead
      */
     timeoutMs: 120_000,
 
