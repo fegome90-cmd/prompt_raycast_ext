@@ -236,7 +236,7 @@ class TestPromptObject:
     def test_minimal_prompt_object(self):
         """Test minimal PromptObject creation."""
         prompt_id = str(uuid4())
-        now = datetime.now(datetime.UTC).isoformat()
+        now = datetime.now(UTC).isoformat()
 
         prompt = PromptObject(
             id=prompt_id,
@@ -264,8 +264,8 @@ class TestPromptObject:
                 "strategy": "SimpleStrategy",
                 "confidence": 0.95
             },
-            created_at=datetime.now(datetime.UTC).isoformat(),
-            updated_at=datetime.now(datetime.UTC).isoformat()
+            created_at=datetime.now(UTC).isoformat(),
+            updated_at=datetime.now(UTC).isoformat()
         )
         assert prompt.strategy_meta["strategy"] == "SimpleStrategy"
         assert prompt.strategy_meta["confidence"] == 0.95
@@ -282,8 +282,8 @@ class TestPromptObject:
                 "format": "markdown",
                 "include_tests": True
             },
-            created_at=datetime.now(datetime.UTC).isoformat(),
-            updated_at=datetime.now(datetime.UTC).isoformat()
+            created_at=datetime.now(UTC).isoformat(),
+            updated_at=datetime.now(UTC).isoformat()
         )
         assert prompt.constraints["max_tokens"] == 500
         assert prompt.constraints["include_tests"] is True
@@ -296,8 +296,8 @@ class TestPromptObject:
             intent_type=IntentType.GENERATE,
             template="Test",
             is_active=True,
-            created_at=datetime.now(datetime.UTC).isoformat(),
-            updated_at=datetime.now(datetime.UTC).isoformat()
+            created_at=datetime.now(UTC).isoformat(),
+            updated_at=datetime.now(UTC).isoformat()
         )
         prompt_inactive = PromptObject(
             id=str(uuid4()),
@@ -305,15 +305,15 @@ class TestPromptObject:
             intent_type=IntentType.GENERATE,
             template="Test",
             is_active=False,
-            created_at=datetime.now(datetime.UTC).isoformat(),
-            updated_at=datetime.now(datetime.UTC).isoformat()
+            created_at=datetime.now(UTC).isoformat(),
+            updated_at=datetime.now(UTC).isoformat()
         )
         assert prompt_active.is_active is True
         assert prompt_inactive.is_active is False
 
     def test_all_intent_types(self):
         """Test all IntentType enum values."""
-        now = datetime.now(datetime.UTC).isoformat()
+        now = datetime.now(UTC).isoformat()
         for intent in [IntentType.GENERATE, IntentType.DEBUG, IntentType.REFACTOR, IntentType.EXPLAIN]:
             prompt = PromptObject(
                 id=str(uuid4()),
@@ -333,8 +333,8 @@ class TestPromptObject:
                 version="1.0.0",
                 intent_type=IntentType.GENERATE,
                 template="   ",
-                created_at=datetime.now(datetime.UTC).isoformat(),
-                updated_at=datetime.now(datetime.UTC).isoformat()
+                created_at=datetime.now(UTC).isoformat(),
+                updated_at=datetime.now(UTC).isoformat()
             )
 
     def test_metadata_defaults_to_empty_dict(self):
@@ -346,8 +346,8 @@ class TestPromptObject:
             template="Test",
             strategy_meta=None,  # Explicitly None
             constraints=None,
-            created_at=datetime.now(datetime.UTC).isoformat(),
-            updated_at=datetime.now(datetime.UTC).isoformat()
+            created_at=datetime.now(UTC).isoformat(),
+            updated_at=datetime.now(UTC).isoformat()
         )
         assert prompt.strategy_meta == {}
         assert prompt.constraints == {}
@@ -550,7 +550,7 @@ class TestNLaCResponse:
 
     def test_nlac_response_with_prompt_object(self):
         """Test NLaCResponse with PromptObject."""
-        now = datetime.now(datetime.UTC).isoformat()
+        now = datetime.now(UTC).isoformat()
         prompt_obj = PromptObject(
             id=str(uuid4()),
             version="1.0.0",
