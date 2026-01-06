@@ -336,17 +336,15 @@ export default function Command() {
             />
           </ActionPanel.Section>
 
-          {inputText.trim() && (
-            <ActionPanel.Section title="Edit">
-              <Action
-                title="Clear input"
-                onAction={() => setInputText("")}
-                shortcut={{ modifiers: ["cmd"], key: "backspace" }}
-                style={Action.Style.Destructive}
-                disabled={isLoading}
-              />
-            </ActionPanel.Section>
-          )}
+          <ActionPanel.Section title="Edit">
+            <Action
+              title="Clear input"
+              onAction={() => setInputText("")}
+              shortcut={{ modifiers: ["cmd"], key: "backspace" }}
+              style={Action.Style.Destructive}
+              disabled={!inputText.trim() || isLoading}
+            />
+          </ActionPanel.Section>
 
           <ActionPanel.Section title="Settings">
             <Action.OpenInBrowser
