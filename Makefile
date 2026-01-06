@@ -1,6 +1,7 @@
 .PHONY: help setup env backend dev stop restart health logs status
 .PHONY: dataset normalize merge regen-all
 .PHONY: test test-fewshot test-backend eval eval-full
+.PHONY: ray-dev ray-status ray-check ray-logs
 .PHONY: clean
 
 SHELL := /bin/bash
@@ -10,6 +11,8 @@ PYTHON := .venv/bin/python
 BACKEND_PID := .backend.pid
 BACKEND_LOG := .backend.log
 BACKEND_PORT := 8000
+RAYCAST_DIR := dashboard
+RAYCAST_PID := .raycast-dev.pid
 
 # Environment
 export PYTHONPATH := $(PWD)
@@ -30,6 +33,12 @@ help: ## Show this help message
 	@echo "  make logs           - Show backend logs (tail -f)"
 	@echo "  make status         - Show backend status"
 	@echo ""
+	@echo "Raycast Frontend:"
+	@echo "  make ray-check      - Check localhost permission in package.json"
+	@echo "  make ray-dev        - Start Raycast dev server (with pre-check)"
+	@echo "  make ray-status     - Show Raycast dev server status"
+	@echo "  make ray-logs       - Show Raycast dev server logs"
+	@echo ""
 	@echo "Dataset Generation:"
 	@echo "  make dataset        - Generate fewshot training dataset"
 	@echo "  make normalize      - Normalize ComponentCatalog"
@@ -47,7 +56,8 @@ help: ## Show this help message
 	@echo "  make clean          - Clean generated files"
 	@echo ""
 	@echo "Examples:"
-	@echo "  make dev           # Start backend in background"
+	@echo "  make dev            # Start backend in background"
+	@echo "  make ray-dev        # Start Raycast dev server"
 	@echo "  make health         # Check if backend is running"
 	@echo "  make stop           # Stop backend when done"
 
@@ -174,6 +184,58 @@ eval: ## Run quality gates comparison (5 cases)
 eval-full: ## Run full quality gates evaluation (30 cases)
 	@printf "\033[34m→ Running full quality gates evaluation (30 cases)...\033[0m\n"
 	@$(PYTHON) scripts/eval/compare_quality_gates.py --subset 30
+
+# =============================================================================
+# Raycast Frontend
+# =============================================================================
+
+ray-check: ## Check localhost permission in package.json
+	@printf "\033[34m→ Checking localhost permission...\033[0m\n"
+	@if grep -q '"localhost": true' $(RAYCAST_DIR)/package.json; then \
+		printf "\033[32m✓ Localhost permission is present\033[0m\n"; \
+		printf "   Extension can connect to http://localhost:8000\n"; \
+	else \
+		printf "\033[31m✗ CRITICAL: Localhost permission MISSING from package.json\033[0m\n"; \
+		printf "\n"; \
+		printf "   Without this permission, the extension CANNOT connect to the DSPy backend.\n"; \
+		printf "   You will see: 'DSPy backend not available' errors.\n"; \
+		printf "\n"; \
+		printf "   \033[33m🔧 FIX: Add this line to $(RAYCAST_DIR)/package.json after 'license':\033[0m\n"; \
+		printf "\n"; \
+		printf "   {\n"; \
+		printf "     \"name\": \"prompt-improver-local\",\n"; \
+		printf "     \"license\": \"MIT\",\n"; \
+		printf "     \"localhost\": true,  // ← ADD THIS LINE\n"; \
+		printf "     \"commands\": [...]\n"; \
+		printf "   }\n"; \
+		printf "\n"; \
+		printf "   Then restart Raycast dev server.\n"; \
+		exit 1; \
+	fi
+
+ray-dev: ## Start Raycast dev server (with permission pre-check)
+	@$(MAKE) --silent ray-check
+	@printf "\033[34m→ Starting Raycast dev server...\033[0m\n"
+	@cd $(RAYCAST_DIR) && npm run dev
+
+ray-status: ## Show Raycast dev server status
+	@printf "\033[1mRaycast Dev Server Status:\033[0m\n"
+	@if pgrep -f "ray develop" > /dev/null 2>&1; then \
+		pid=$$(pgrep -f "ray develop"); \
+		printf "\033[32m● Running\033[0m (PID: $$pid)\n"; \
+	else \
+		printf "\033[33m○ Stopped\033[0m\n"; \
+		printf "\n   Start with: make ray-dev\n"; \
+	fi
+
+ray-logs: ## Show Raycast dev server logs
+	@printf "\033[34m→ Tailing Raycast dev server logs...\033[0m\n"
+	@if [ -f "$(RAYCAST_DIR)/.raycast/dev-server.log" ]; then \
+		tail -f $(RAYCAST_DIR)/.raycast/dev-server.log; \
+	else \
+		printf "\033[33m⚠️  No Raycast dev server log found\033[0m\n"; \
+		printf "   Start the dev server first: make ray-dev\n"; \
+	fi
 
 # =============================================================================
 # Utils

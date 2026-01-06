@@ -11,37 +11,80 @@ Without this permission:
 
 **Root cause**: Auto-formatters (Prettier/ESLint) sometimes remove this permission.
 
-## Solution: Automated Monitoring
+## Solution: Makefile Integration
 
-### 1. Pre-flight Check (runs automatically)
-
-```bash
-npm run dev
-```
-
-The `predev` script automatically checks for localhost permission **before** starting Raycast dev server.
-
-**If permission is missing:**
-```
-❌ CRITICAL: Localhost permission MISSING from package.json
-
-🔧 FIX: Add this line to package.json after 'license':
-   "localhost": true,
-
-Then restart Raycast dev server.
-```
-
-### 2. Manual Check Script
+### Quick Start (using Makefile)
 
 ```bash
-./scripts/check-localhost-permission.sh
+# Start Raycast dev server with automatic permission check
+make ray-dev
+
+# Check permission status anytime
+make ray-check
+
+# Check Raycast dev server status
+make ray-status
+
+# View Raycast dev server logs
+make ray-logs
 ```
 
-Use this anytime to verify permission status.
+### How It Works
 
-### 3. Runtime Detection (in code)
+When you run `make ray-dev`:
 
-Import the monitoring helper in your code:
+1. **Pre-flight check** runs automatically (`make ray-check`)
+2. ✅ If permission exists → Starts Raycast dev server
+3. ❌ If permission missing → Shows error and **exits without starting**
+
+**Example error output:**
+```
+→ Checking localhost permission...
+✗ CRITICAL: Localhost permission MISSING from package.json
+
+   Without this permission, the extension CANNOT connect to the DSPy backend.
+   You will see: 'DSPy backend not available' errors.
+
+   🔧 FIX: Add this line to dashboard/package.json after 'license':
+
+   {
+     "name": "prompt-improver-local",
+     "license": "MIT",
+     "localhost": true,  // ← ADD THIS LINE
+     "commands": [...]
+   }
+
+   Then restart Raycast dev server.
+```
+
+## Available Make Commands
+
+| Command | Purpose |
+|---------|---------|
+| `make ray-check` | Check if localhost permission exists |
+| `make ray-dev` | Start Raycast dev server (with pre-check) |
+| `make ray-status` | Show Raycast dev server status |
+| `make ray-logs` | Tail Raycast dev server logs |
+
+### Integration with Backend
+
+Typical workflow:
+
+```bash
+# Start DSPy backend
+make dev
+
+# Start Raycast frontend (with permission check)
+make ray-dev
+
+# Check both services status
+make status          # Backend status
+make ray-status     # Raycast status
+```
+
+## Runtime Detection (in code)
+
+For runtime error detection when fetch fails:
 
 ```typescript
 import { fetchWithPermissionCheck, logLocalhostError } from "./core/monitoring/localhostPermission";
@@ -71,55 +114,16 @@ FIX: Add this line to dashboard/package.json:
 
 Then restart Raycast dev server:
   1. Stop current dev server (Cmd+C)
-  2. Run: cd dashboard && npm run dev
+  2. Run: make ray-dev
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
-
-## How It Works
-
-### Pre-flight Check (`check-localhost-permission.sh`)
-
-1. Scans `package.json` for `"localhost": true`
-2. If found → ✅ Proceeds with dev server startup
-3. If missing → ❌ Exits with error message and fix instructions
-
-### Runtime Detection (`localhostPermission.ts`)
-
-1. Wraps fetch calls with `fetchWithPermissionCheck()`
-2. Catches fetch errors
-3. Analyzes error type to distinguish:
-   - **Missing permission** → TypeError with no server response
-   - **Backend not running** → Connection refused but permission exists
-4. Logs specific, actionable error messages
-
-## Prevention: Git Hook (Optional)
-
-To prevent commits without localhost permission:
-
-```bash
-# Create pre-commit hook
-cat > .git/hooks/pre-commit << 'EOF'
-#!/bin/bash
-# Check localhost permission before committing
-
-if grep -q '"localhost": true' dashboard/package.json; then
-  exit 0
-else
-  echo "❌ Cannot commit: Missing localhost permission in dashboard/package.json"
-  echo "   Add: \"localhost\": true,"
-  exit 1
-fi
-EOF
-
-chmod +x .git/hooks/pre-commit
 ```
 
 ## Testing the Monitor
 
 ### Test 1: Verify permission exists (should pass)
 ```bash
-./scripts/check-localhost-permission.sh
-# Expected: ✅ Localhost permission is present
+make ray-check
+# Expected: ✓ Localhost permission is present
 ```
 
 ### Test 2: Simulate missing permission (should fail)
@@ -128,12 +132,26 @@ chmod +x .git/hooks/pre-commit
 sed -i.bak '/"localhost": true/d' dashboard/package.json
 
 # Run check
-./scripts/check-localhost-permission.sh
-# Expected: ❌ CRITICAL: Localhost permission MISSING
+make ray-check
+# Expected: ✗ CRITICAL: Localhost permission MISSING
 
 # Restore permission
 mv dashboard/package.json.bak dashboard/package.json
 ```
+
+## Git Pre-commit Hook
+
+The project includes a git pre-commit hook (in `.git/hooks/pre-commit`) that prevents commits without localhost permission.
+
+When you commit changes:
+```bash
+git commit -m "some changes"
+```
+
+The hook automatically:
+1. Checks if `"localhost": true` exists in `dashboard/package.json`
+2. ✅ Permission exists → Allows commit
+3. ❌ Permission missing → Blocks commit with fix instructions
 
 ## Troubleshooting
 
@@ -152,13 +170,16 @@ Check your package.json:
 }
 ```
 
-### "npm run dev doesn't run predev script"
+### "make ray-dev doesn't work"
 
-**Cause**: npm version doesn't support pre hooks
+**Cause**: Missing npm dependencies
 
-**Fix**: Run check manually:
+**Fix**:
 ```bash
-./scripts/check-localhost-permission.sh && npm run dev
+cd dashboard
+npm install
+cd ..
+make ray-dev
 ```
 
 ### "Runtime detection doesn't work"
@@ -177,9 +198,10 @@ const response = await fetchWithPermissionCheck(url, options);
 
 ## Files Added
 
-1. `dashboard/scripts/check-localhost-permission.sh` - Pre-flight check script
-2. `dashboard/src/core/monitoring/localhostPermission.ts` - Runtime detection
+1. `Makefile` - Updated with Raycast commands (ray-check, ray-dev, ray-status, ray-logs)
+2. `dashboard/src/core/monitoring/localhostPermission.ts` - Runtime detection helper
 3. `dashboard/scripts/README.md` - This documentation
+4. `.git/hooks/pre-commit` - Git hook to prevent commits without permission
 
 ## Integration with Existing Code
 
