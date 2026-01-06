@@ -248,17 +248,19 @@ export default function Command() {
       const dspyEnabled = preferences.dspyEnabled ?? config.dspy.enabled;
 
       // Stage 3: Processing
-      await progress.update("Analyzing your prompt...");
+      progress.update("Analyzing your prompt...");
+      await new Promise(r => setTimeout(r, 300)); // Give Raycast time to render
 
       if (!dspyEnabled) {
         const health = await ollamaHealthCheck({ baseUrl, timeoutMs: Math.min(2_000, timeoutMs) });
         if (!health.ok) {
-          await progress.error("Ollama is not reachable", health.error, `Check ${baseUrl}`);
+          progress.error("Ollama is not reachable", health.error, `Check ${baseUrl}`);
           return;
         }
       }
 
-      await progress.update("Generating improvements...");
+      progress.update("Generating improvements...");
+      await new Promise(r => setTimeout(r, 300)); // Give Raycast time to render
 
       const result = dspyEnabled
         ? await improvePromptWithHybrid({
@@ -287,12 +289,12 @@ export default function Command() {
           });
 
       // Stage 4: Finalizing
-      await progress.update("Finalizing result...");
+      progress.update("Finalizing result...");
 
       const finalPrompt = result.improved_prompt.trim();
       await Clipboard.copy(finalPrompt);
 
-      await progress.success("Copied to clipboard", `${finalPrompt.length} characters`);
+      progress.success("Copied to clipboard", `${finalPrompt.length} characters`);
 
       setPreview({
         prompt: finalPrompt,
@@ -321,7 +323,7 @@ export default function Command() {
       });
 
       if (dspyEnabled) {
-        await progress.error(
+        progress.error(
           "DSPy backend not available",
           e instanceof Error ? e.message : String(e),
           `${dspyBaseUrl}${hint ? ` — ${hint}` : ""}`,
@@ -329,7 +331,7 @@ export default function Command() {
         return;
       }
 
-      await progress.error(
+      progress.error(
         "Prompt improvement failed",
         e instanceof Error ? e.message : String(e),
         `(${model} @ ${baseUrl})${hint ? ` — ${hint}` : ""}`,
