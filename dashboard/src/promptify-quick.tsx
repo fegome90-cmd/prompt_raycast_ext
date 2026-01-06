@@ -48,7 +48,7 @@ function PromptPreview(props: {
     });
   }
 
-  // Stats footer
+  // Stats for "Copy with stats" action
   const stats = [
     props.meta?.confidence !== undefined ? `Confidence: ${Typography.confidence(props.meta.confidence)}` : null,
     `Length: ${props.prompt.length} chars`,
@@ -56,13 +56,12 @@ function PromptPreview(props: {
     `Source: ${props.source === "dspy" ? "DSPy + Haiku" : "Ollama"}`,
   ].filter(Boolean);
 
-  sections.push("", "---", stats.join(" • "));
-
   return (
     <Detail
       markdown={sections.join("\n")}
       metadata={
         <Detail.Metadata>
+          {/* Group 1: Quality Metrics (measures prompt quality) */}
           {props.meta?.confidence !== undefined && (
             <Detail.Metadata.Label
               title="Confidence"
@@ -70,6 +69,9 @@ function PromptPreview(props: {
               icon={Typography.confidenceIcon(props.meta.confidence)}
             />
           )}
+
+          {/* Group 2: Prompt Metadata (content about the prompt) */}
+          <Detail.Metadata.Separator />
 
           {props.meta?.clarifyingQuestions && props.meta.clarifyingQuestions.length > 0 && (
             <Detail.Metadata.Label
@@ -85,13 +87,20 @@ function PromptPreview(props: {
             />
           )}
 
+          {/* Group 3: Technical Stats (implementation details) */}
           <Detail.Metadata.Separator />
 
-          <Detail.Metadata.Label title="Length" text={`${props.prompt.length} chars`} icon={Typography.countSymbol("Characters")} />
+          <Detail.Metadata.Label
+            title="Length"
+            text={`${props.prompt.length} chars`}
+            icon={Typography.countSymbol("Characters")}
+          />
 
-          <Detail.Metadata.Label title="Words" text={`${props.prompt.split(/\s+/).length}`} icon={Typography.countSymbol("Words")} />
-
-          <Detail.Metadata.Separator />
+          <Detail.Metadata.Label
+            title="Words"
+            text={`${props.prompt.split(/\s+/).length}`}
+            icon={Typography.countSymbol("Words")}
+          />
 
           <Detail.Metadata.Label
             title="Engine"
