@@ -21,7 +21,19 @@ const GRAY = {
   faint: "#2A2A2A", // Backgrounds, borders
 } as const;
 
-// Semantic colors (only for meaning)
+/**
+ * Semantic color and icon tokens
+ *
+ * BREAKING CHANGE (2025-01-06): Restructured from simple strings to objects
+ *
+ * Before: tokens.semantic.success returned "#4ADE80"
+ * After:  tokens.semantic.success returns { color: "#4ADE80", icon: "✅" }
+ *
+ * To access just the color: tokens.semantic.success.color
+ * To access just the icon:  tokens.semantic.success.icon
+ *
+ * Rationale: Supports both colors and icons in a single token for consistency
+ */
 const SEMANTIC = {
   success: {
     color: "#4ADE80", // Green
