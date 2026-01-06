@@ -12,30 +12,35 @@ export class ProgressiveToast {
    * Start the progressive toast with initial message
    */
   async start(initial: string) {
+    console.log("[ProgressiveToast] START called with:", initial);
     this.toast = await showToast({
       style: Toast.Style.Animated,
       title: initial,
     });
+    console.log("[ProgressiveToast] Toast object:", this.toast);
   }
 
   /**
    * Update the toast title to show progress
    */
-  async update(message: string) {
+  update(message: string) {
+    console.log("[ProgressiveToast] UPDATE called with:", message, "toast exists:", !!this.toast);
     if (this.toast) {
-      await this.toast.setTitle(message);
+      this.toast.title = message;
+      console.log("[ProgressiveToast] Title set to:", this.toast.title);
     }
   }
 
   /**
    * Transition to success state
    */
-  async success(title: string, message?: string) {
+  success(title: string, message?: string) {
+    console.log("[ProgressiveToast] SUCCESS called");
     if (this.toast) {
-      await this.toast.setStyle(Toast.Style.Success);
-      await this.toast.setTitle(title);
+      this.toast.style = Toast.Style.Success;
+      this.toast.title = title;
       if (message) {
-        await this.toast.setMessage(message);
+        this.toast.message = message;
       }
     }
   }
@@ -43,12 +48,13 @@ export class ProgressiveToast {
   /**
    * Transition to error state with hint
    */
-  async error(title: string, error: Error | string, hint?: string) {
+  error(title: string, error: Error | string, hint?: string) {
+    console.log("[ProgressiveToast] ERROR called");
     if (this.toast) {
-      await this.toast.setStyle(Toast.Style.Failure);
-      await this.toast.setTitle(title);
+      this.toast.style = Toast.Style.Failure;
+      this.toast.title = title;
       const errMsg = error instanceof Error ? error.message : error;
-      await this.toast.setMessage(hint ? `${errMsg} — ${hint}` : errMsg);
+      this.toast.message = hint ? `${errMsg} — ${hint}` : errMsg;
     }
   }
 }

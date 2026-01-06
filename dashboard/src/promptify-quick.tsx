@@ -248,17 +248,17 @@ export default function Command() {
       const dspyEnabled = preferences.dspyEnabled ?? config.dspy.enabled;
 
       // Stage 3: Processing
-      await progress.update("Analyzing your prompt...");
+      progress.update("Analyzing your prompt...");
 
       if (!dspyEnabled) {
         const health = await ollamaHealthCheck({ baseUrl, timeoutMs: Math.min(2_000, timeoutMs) });
         if (!health.ok) {
-          await progress.error("Ollama is not reachable", health.error, `Check ${baseUrl}`);
+          progress.error("Ollama is not reachable", health.error, `Check ${baseUrl}`);
           return;
         }
       }
 
-      await progress.update("Generating improvements...");
+      progress.update("Generating improvements...");
 
       const result = dspyEnabled
         ? await improvePromptWithHybrid({
@@ -271,7 +271,7 @@ export default function Command() {
               temperature,
               systemPattern: getCustomPatternSync(),
               dspyBaseUrl,
-              dspyTimeoutMs: config.dspy.timeoutMs,
+              dspyTimeoutMs: timeoutMs, // Use same timeout from preferences, not config.dspy.timeoutMs
             },
             enableDSPyFallback: false,
           })
@@ -287,12 +287,12 @@ export default function Command() {
           });
 
       // Stage 4: Finalizing
-      await progress.update("Finalizing result...");
+      progress.update("Finalizing result...");
 
       const finalPrompt = result.improved_prompt.trim();
       await Clipboard.copy(finalPrompt);
 
-      await progress.success("Copied to clipboard", `${finalPrompt.length} characters`);
+      progress.success("Copied to clipboard", `${finalPrompt.length} characters`);
 
       setPreview({
         prompt: finalPrompt,
@@ -321,7 +321,7 @@ export default function Command() {
       });
 
       if (dspyEnabled) {
-        await progress.error(
+        progress.error(
           "DSPy backend not available",
           e instanceof Error ? e.message : String(e),
           `${dspyBaseUrl}${hint ? ` — ${hint}` : ""}`,
@@ -329,7 +329,7 @@ export default function Command() {
         return;
       }
 
-      await progress.error(
+      progress.error(
         "Prompt improvement failed",
         e instanceof Error ? e.message : String(e),
         `(${model} @ ${baseUrl})${hint ? ` — ${hint}` : ""}`,
@@ -358,31 +358,30 @@ export default function Command() {
           <ActionPanel.Section title="Improve">
             <Action.SubmitForm
               title={isLoading ? "Improving…" : "Improve Prompt"}
-              subtitle={`${dspyEnabled ? "⤒ DSPy " : ""}${Typography.truncate(preferences.model || "Ollama", 20)}`}
               onSubmit={handleGenerateFinal}
               shortcut={{ modifiers: ["cmd", "shift"], key: "enter" }}
-              disabled={isLoading}
             />
             <Action
               title="Quick Improve"
-              subtitle="Use default settings"
               shortcut={{ modifiers: ["cmd"], key: "i" }}
               onAction={() => {
-                if (inputText.trim()) {
+                if (inputText.trim() && !isLoading) {
                   handleGenerateFinal({ inputText });
                 }
               }}
-              disabled={isLoading || !inputText.trim()}
             />
           </ActionPanel.Section>
 
           <ActionPanel.Section title="Edit">
             <Action
               title="Clear Input"
-              onAction={() => setInputText("")}
+              onAction={() => {
+                if (!isLoading) {
+                  setInputText("");
+                }
+              }}
               shortcut={{ modifiers: ["cmd"], key: "backspace" }}
               style={Action.Style.Destructive}
-              disabled={!inputText.trim() || isLoading}
             />
           </ActionPanel.Section>
 
@@ -402,7 +401,6 @@ export default function Command() {
         placeholder={getPlaceholder(preferences.preset)}
         value={inputText}
         onChange={setInputText}
-        disabled={isLoading}
         enableMarkdown={true}
       />
     </Form>
