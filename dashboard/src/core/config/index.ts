@@ -201,7 +201,7 @@ export function mergeWithDefaults(rawPrefs: RawPreferences): Record<string, unkn
 
       // Type coercion for known preferences
       let coercedValue = value;
-      if (prefName === "timeoutMs" || prefName === "dspyTimeoutMs") {
+      if (prefName === "timeoutMs" || prefName === "dspyTimeoutMs" || prefName === "maxWizardTurns") {
         coercedValue = typeof value === "string" ? Number.parseInt(value, 10) : value;
         if (typeof coercedValue === "number" && Number.isNaN(coercedValue)) {
           console.warn(`[Config] ⚠️ Invalid timeout value for ${prefName}: ${value}, using default`);

@@ -10,6 +10,7 @@ export type ImprovePromptOptions = {
   systemPattern?: string;
   dspyBaseUrl?: string;
   dspyTimeoutMs?: number;
+  mode?: "legacy" | "nlac"; // Backend execution mode
 };
 
 export type ImprovePromptPreset = "default" | "specific" | "structured" | "coding";
@@ -129,6 +130,7 @@ export async function improvePromptWithHybrid(args: {
       const dspyResult = await dspyClient.improvePrompt({
         idea: args.rawInput,
         context: "", // Could be added as parameter in future
+        mode: args.options.mode || "legacy",
       });
 
       const latencyMs = Date.now() - startTime;

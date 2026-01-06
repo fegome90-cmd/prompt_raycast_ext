@@ -73,6 +73,15 @@ async def get_repository(settings: Settings) -> Optional[PromptRepository]:
 class ImprovePromptRequest(BaseModel):
     idea: str
     context: str = ""
+    mode: str = Field(default="legacy", description="Execution mode: 'legacy' (DSPy) or 'nlac' (NLaC pipeline)")
+
+    @field_validator("mode")
+    @classmethod
+    def validate_mode(cls, v):
+        """Validate mode is either 'legacy' or 'nlac'."""
+        if v not in ("legacy", "nlac"):
+            raise ValueError("mode must be 'legacy' or 'nlac'")
+        return v
 
 
 class ImprovePromptResponse(BaseModel):
@@ -134,21 +143,35 @@ def get_fewshot_improver(settings: Settings):
 _strategy_selector: StrategySelector | None = None
 
 
-def get_strategy_selector(settings: Settings) -> StrategySelector:
-    """Get or initialize StrategySelector with all three strategies."""
+def get_strategy_selector(settings: Settings, use_nlac: bool = False) -> StrategySelector:
+    """
+    Get or initialize StrategySelector with all three strategies.
+
+    Args:
+        settings: Application settings
+        use_nlac: Whether to use NLaC strategy (default: False)
+    """
     global _strategy_selector
 
+    # Create separate selectors for legacy and NLaC modes
+    selector_key = "nlac" if use_nlac else "legacy"
+
     if _strategy_selector is None:
-        # Create selector with few-shot configuration from settings
+        _strategy_selector = {}
+
+    if selector_key not in _strategy_selector:
+        # Create selector with appropriate mode
         selector = StrategySelector(
             trainset_path=settings.DSPY_FEWSHOT_TRAINSET_PATH,
             compiled_path=settings.DSPY_FEWSHOT_COMPILED_PATH,
-            fewshot_k=settings.DSPY_FEWSHOT_K
+            fewshot_k=settings.DSPY_FEWSHOT_K,
+            use_nlac=use_nlac
         )
-        _strategy_selector = selector
-        logger.info("StrategySelector initialized with SimpleStrategy, ModerateStrategy, ComplexStrategy")
+        _strategy_selector[selector_key] = selector
+        mode_name = "NLaC" if use_nlac else "legacy DSPy"
+        logger.info(f"StrategySelector initialized with {mode_name} mode")
 
-    return _strategy_selector
+    return _strategy_selector[selector_key]
 
 
 @router.post("/improve-prompt", response_model=ImprovePromptResponse)
@@ -186,13 +209,16 @@ async def improve_prompt(request: ImprovePromptRequest):
     settings = container.get(Settings)
 
     # Use StrategySelector for intelligent strategy routing
-    selector = get_strategy_selector(settings)
+    # NLaC mode is enabled when request.mode == "nlac"
+    use_nlac = request.mode == "nlac"
+    selector = get_strategy_selector(settings, use_nlac=use_nlac)
     strategy = selector.select(request.idea, request.context)
     complexity = selector.get_complexity(request.idea, request.context)
 
     # Log strategy selection for observability
     logger.info(
-        f"Strategy selected: {strategy.name} | "
+        f"Mode: {request.mode} | "
+        f"Strategy: {strategy.name} | "
         f"Complexity: {complexity.value} | "
         f"Idea length: {len(request.idea)} | "
         f"Context length: {len(request.context)}"

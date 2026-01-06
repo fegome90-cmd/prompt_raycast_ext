@@ -1,7 +1,7 @@
 # hemdov/domain/entities/prompt_history.py
 import logging
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -75,7 +75,7 @@ class PromptHistory:
 
         # Set created_at if not provided
         if self.created_at is None:
-            object.__setattr__(self, 'created_at', datetime.utcnow().isoformat())
+            object.__setattr__(self, 'created_at', datetime.now(UTC).isoformat())
 
     @property
     def quality_score(self) -> float:

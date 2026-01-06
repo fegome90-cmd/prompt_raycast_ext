@@ -33,7 +33,7 @@ type Preferences = {
   preset?: "default" | "specific" | "structured" | "coding";
   timeoutMs?: string;
   dspyBaseUrl?: string;
-  dspyEnabled?: boolean;
+  executionMode?: "legacy" | "nlac" | "ollama";
 };
 
 function PromptPreview(props: {
@@ -208,9 +208,6 @@ export default function Command() {
   const configState = loadConfig();
   const isInSafeMode = configState.safeMode;
 
-  // Compute DSPy enabled state for use in JSX
-  // const dspyEnabled = preferences.dspyEnabled ?? configState.config.dspy.enabled;
-
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   // const [loadingStage, setLoadingStage] = useState<LoadingStage | null>(null);
@@ -262,10 +259,11 @@ export default function Command() {
       const timeoutMs = parseTimeoutMs(preferences.timeoutMs, config.ollama.timeoutMs);
       const temperature = config.ollama.temperature ?? 0.1;
       const dspyBaseUrl = preferences.dspyBaseUrl?.trim() || config.dspy.baseUrl;
-      const dspyEnabled = preferences.dspyEnabled ?? config.dspy.enabled;
+      const executionMode = preferences.executionMode ?? "legacy";
+      const useBackend = executionMode !== "ollama"; // legacy or nlac requires backend
 
       // Progress happens automatically - Form.isLoading shows native progress bar
-      if (!dspyEnabled) {
+      if (!useBackend) {
         const health = await ollamaHealthCheck({ baseUrl, timeoutMs: Math.min(2_000, timeoutMs) });
         console.log(`${LOG_PREFIX} 🏥 Ollama health check result: ${health.ok ? "OK" : `FAILED - ${health.error}`}`);
         if (!health.ok) {
@@ -290,9 +288,9 @@ export default function Command() {
       // ⚡ DO NOT use config.dspy.timeoutMs here - it's a fallback default only
       // ⚡ DO NOT use different values for timeoutMs and dspyTimeoutMs
 
-      console.log(`${LOG_PREFIX} 🌐 Using ${dspyEnabled ? "DSPy hybrid" : "Ollama"} path ${dspyEnabled ? `(dspyBaseUrl: ${dspyBaseUrl})` : `(model: ${model})`}`);
+      console.log(`${LOG_PREFIX} 🌐 Using ${useBackend ? `${executionMode} backend` : "Ollama"} path ${useBackend ? `(dspyBaseUrl: ${dspyBaseUrl})` : `(model: ${model})`}`);
 
-      const result = dspyEnabled
+      const result = useBackend
         ? await improvePromptWithHybrid({
             rawInput: text,
             preset,
@@ -304,6 +302,7 @@ export default function Command() {
               systemPattern: getCustomPatternSync(),
               dspyBaseUrl,
               dspyTimeoutMs: timeoutMs, // Use same timeout from preferences, not config.dspy.timeoutMs
+              mode: (useBackend ? executionMode : undefined) as "legacy" | "nlac" | undefined, // legacy or nlac when using backend
             },
             enableDSPyFallback: false,
           })
@@ -329,7 +328,7 @@ export default function Command() {
           clarifyingQuestions: result.clarifying_questions,
           assumptions: result.assumptions,
         },
-        source: dspyEnabled ? "dspy" : "ollama",
+        source: useBackend ? "dspy" : "ollama",
         inputLength: text.length,
         preset,
       }).catch((error) => {
@@ -338,7 +337,7 @@ export default function Command() {
 
       await ToastHelper.success("Copied to clipboard", `${finalPrompt.length} characters • Saved to history`);
 
-      console.log(`${LOG_PREFIX} ✅ Prompt improved successfully (${finalPrompt.length} chars, source: ${dspyEnabled ? "DSPy" : "Ollama"})`);
+      console.log(`${LOG_PREFIX} ✅ Prompt improved successfully (${finalPrompt.length} chars, source: ${useBackend ? executionMode : "Ollama"})`);
 
       setPreview({
         prompt: finalPrompt,
@@ -347,15 +346,16 @@ export default function Command() {
           clarifyingQuestions: result.clarifying_questions,
           assumptions: result.assumptions,
         },
-        source: dspyEnabled ? "dspy" : "ollama",
+        source: useBackend ? "dspy" : "ollama",
       });
     } catch (e) {
       const config = configState.config;
       const baseUrl = preferences.ollamaBaseUrl?.trim() || config.ollama.baseUrl;
       const model = preferences.model?.trim() || config.ollama.model;
       const dspyBaseUrl = preferences.dspyBaseUrl?.trim() || config.dspy.baseUrl;
-      const dspyEnabled = preferences.dspyEnabled ?? config.dspy.enabled;
-      const hint = dspyEnabled ? buildDSPyHint(e) : buildErrorHint(e);
+      const executionMode = preferences.executionMode ?? "legacy";
+      const useBackend = executionMode !== "ollama";
+      const hint = useBackend ? buildDSPyHint(e) : buildErrorHint(e);
 
       // Debug logging
       console.error(`${LOG_PREFIX} ❌ Error details:`, {
@@ -363,12 +363,12 @@ export default function Command() {
         preferencesModel: preferences.model,
         configModel: config.ollama.model,
         finalModel: model,
-        dspyEnabled,
+        executionMode,
       });
 
-      if (dspyEnabled) {
+      if (useBackend) {
         await ToastHelper.error(
-          "DSPy backend not available",
+          `${executionMode === "nlac" ? "NLaC" : "DSPy"} backend not available`,
           e instanceof Error ? e.message : String(e),
           `${dspyBaseUrl}${hint ? ` — ${hint}` : ""}`,
         );

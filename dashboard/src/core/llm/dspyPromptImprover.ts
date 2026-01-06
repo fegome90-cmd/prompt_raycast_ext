@@ -10,6 +10,7 @@ import { fetchWithTimeout } from "./fetchWrapper";
 export interface DSPyPromptImproverRequest {
   idea: string;
   context?: string;
+  mode?: "legacy" | "nlac"; // Backend execution mode
 }
 
 export interface DSPyPromptImproverResponse {
@@ -65,6 +66,7 @@ export class DSPyPromptImproverClient {
       idea_length: request.idea.length,
       idea_preview: request.idea.substring(0, 100),
       context_length: request.context?.length || 0,
+      mode: request.mode || "legacy",
       timeoutMs: this.config.timeoutMs,
     });
 
@@ -77,6 +79,7 @@ export class DSPyPromptImproverClient {
       body: JSON.stringify({
         idea: request.idea,
         context: request.context || "",
+        mode: request.mode || "legacy",
       }),
       timeout: this.config.timeoutMs,
       operation: "DSPy improvePrompt (/api/v1/improve-prompt)",

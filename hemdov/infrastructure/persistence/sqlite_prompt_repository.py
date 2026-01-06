@@ -5,6 +5,7 @@ import asyncio
 import logging
 from pathlib import Path
 from typing import List, Optional
+from datetime import datetime, UTC
 
 from hemdov.domain.repositories.prompt_repository import PromptRepository
 from hemdov.domain.entities.prompt_history import PromptHistory
@@ -240,3 +241,161 @@ class SQLitePromptRepository(PromptRepository):
             latency_ms=row["latency_ms"],
             created_at=row["created_at"],
         )
+
+    # ============================================================================
+    # Cache Operations
+    # ============================================================================
+
+    async def get_cached_prompt(self, cache_key: str) -> Optional[dict]:
+        """
+        Retrieve cached prompt by cache key.
+
+        Args:
+            cache_key: SHA256 hash of (idea + context + mode)
+
+        Returns:
+            Dict with cached prompt data or None if not found
+        """
+        async with self._lock:
+            conn = await self._get_connection()
+            cursor = await conn.execute(
+                "SELECT prompt_id, improved_prompt, hit_count, created_at, last_accessed "
+                "FROM prompt_cache WHERE cache_key = ?",
+                (cache_key,)
+            )
+            row = await cursor.fetchone()
+
+            if row:
+                return {
+                    "cache_key": cache_key,
+                    "prompt_id": row["prompt_id"],
+                    "improved_prompt": row["improved_prompt"],
+                    "hit_count": row["hit_count"],
+                    "created_at": row["created_at"],
+                    "last_accessed": row["last_accessed"],
+                }
+            return None
+
+    async def cache_prompt(
+        self,
+        cache_key: str,
+        prompt_id: str,
+        improved_prompt: str
+    ) -> bool:
+        """
+        Store prompt in cache.
+
+        Args:
+            cache_key: SHA256 hash of (idea + context + mode)
+            prompt_id: ID of the PromptObject
+            improved_prompt: The prompt template to cache
+
+        Returns:
+            True if cached successfully
+        """
+        async with self._lock:
+            conn = await self._get_connection()
+            now = datetime.now(UTC).isoformat()
+
+            try:
+                await conn.execute(
+                    "INSERT INTO prompt_cache "
+                    "(cache_key, prompt_id, improved_prompt, created_at, last_accessed) "
+                    "VALUES (?, ?, ?, ?, ?) "
+                    "ON CONFLICT(cache_key) DO UPDATE SET "
+                    "improved_prompt = excluded.improved_prompt, "
+                    "last_accessed = excluded.last_accessed",
+                    (cache_key, prompt_id, improved_prompt, now, now)
+                )
+                await conn.commit()
+                return True
+            except Exception as e:
+                logger.error(f"Failed to cache prompt: {e}")
+                return False
+
+    async def update_cache_access(self, cache_key: str) -> bool:
+        """
+        Update hit_count and last_accessed for cache entry.
+
+        Args:
+            cache_key: SHA256 hash of (idea + context + mode)
+
+        Returns:
+            True if updated successfully
+        """
+        async with self._lock:
+            conn = await self._get_connection()
+            now = datetime.now(UTC).isoformat()
+
+            try:
+                await conn.execute(
+                    "UPDATE prompt_cache "
+                    "SET hit_count = hit_count + 1, last_accessed = ? "
+                    "WHERE cache_key = ?",
+                    (now, cache_key)
+                )
+                await conn.commit()
+                return True
+            except Exception as e:
+                logger.error(f"Failed to update cache access: {e}")
+                return False
+
+    async def delete_cached_prompt(self, cache_key: str) -> bool:
+        """
+        Delete prompt from cache.
+
+        Args:
+            cache_key: SHA256 hash of (idea + context + mode)
+
+        Returns:
+            True if deleted, False if not found
+        """
+        async with self._lock:
+            conn = await self._get_connection()
+
+            cursor = await conn.execute(
+                "DELETE FROM prompt_cache WHERE cache_key = ?",
+                (cache_key,)
+            )
+            await conn.commit()
+            return cursor.rowcount > 0
+
+    async def get_cache_stats(self) -> dict:
+        """
+        Get cache statistics.
+
+        Returns:
+            Dict with cache metrics
+        """
+        async with self._lock:
+            conn = await self._get_connection()
+            cursor = await conn.execute(
+                "SELECT "
+                "COUNT(*) as total_entries, "
+                "SUM(hit_count) as total_hits, "
+                "AVG(hit_count) as avg_hit_count, "
+                "MAX(last_accessed) as last_accessed "
+                "FROM prompt_cache"
+            )
+            row = await cursor.fetchone()
+
+            return {
+                "total_entries": row["total_entries"] or 0,
+                "total_hits": row["total_hits"] or 0,
+                "avg_hit_count": round(row["avg_hit_count"] or 0, 2),
+                "last_accessed": row["last_accessed"],
+            }
+
+    async def clear_cache(self) -> int:
+        """
+        Clear all cache entries.
+
+        Returns:
+            Number of entries cleared
+        """
+        async with self._lock:
+            conn = await self._get_connection()
+
+            cursor = await conn.execute("DELETE FROM prompt_cache")
+            await conn.commit()
+            return cursor.rowcount

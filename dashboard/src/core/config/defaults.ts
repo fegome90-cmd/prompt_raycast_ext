@@ -109,6 +109,32 @@ export const DEFAULTS = {
   },
 
   /**
+   * Wizard mode settings
+   * Interactive clarification before generating prompt
+   */
+  wizard: {
+    /**
+     * Wizard mode: auto-detect, always on, or always off
+     * auto = LLM decides based on complexity (NLAC analysis)
+     * always = Always ask clarifying questions
+     * off = Never ask clarifying questions
+     */
+    mode: "auto",
+
+    /**
+     * Maximum clarifying questions per session
+     * 2 = Balance between thoroughness and UX friction
+     */
+    maxTurns: 2,
+
+    /**
+     * Adaptive turn adjustment
+     * true = Adjust max turns based on NLAC complexity score
+     */
+    adaptiveTurns: true,
+  },
+
+  /**
    * Quality validation settings
    */
   quality: {
