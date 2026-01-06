@@ -163,6 +163,12 @@
       "title": "Prompt History",
       "description": "View and copy previously generated prompts",
       "mode": "view"
+    },
+    {
+      "name": "conversation",
+      "title": "Prompt Conversation",
+      "description": "Interactive wizard mode for clarifying ambiguous requests",
+      "mode": "view"
     }
   ],
   "dependencies": {
