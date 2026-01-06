@@ -1,4 +1,4 @@
-import { Action, ActionPanel, Clipboard, Detail, Form, getPreferenceValues } from "@raycast/api";
+import { Action, ActionPanel, Clipboard, Detail, Form, getPreferenceValues, Toast, showToast } from "@raycast/api";
 import { useState, useEffect } from "react";
 import { improvePromptWithHybrid, improvePromptWithOllama } from "./core/llm/improvePrompt";
 import { ollamaHealthCheck } from "./core/llm/ollamaClient";
@@ -6,7 +6,6 @@ import { loadConfig } from "./core/config";
 import { getCustomPatternSync } from "./core/templates/pattern";
 import { Typography } from "./core/design/typography";
 import { ToastHelper } from "./core/design/toast";
-import { ProgressiveToast } from "./core/design/progressiveToast";
 
 type Preferences = {
   ollamaBaseUrl?: string;
@@ -231,10 +230,13 @@ export default function Command() {
     }
 
     setIsLoading(true);
-    const progress = new ProgressiveToast();
-
-    // Stage 2: Connecting
-    await progress.start("Connecting to DSPy...");
+    // Show a single loading toast that stays up throughout the operation
+    // Raycast doesn't support progressive toast updates well
+    const toast = await showToast({
+      style: Toast.Style.Animated,
+      title: "Improving your prompt...",
+      message: "This may take a few seconds",
+    });
 
     try {
       const config = configState.config;
@@ -247,20 +249,16 @@ export default function Command() {
       const dspyBaseUrl = preferences.dspyBaseUrl?.trim() || config.dspy.baseUrl;
       const dspyEnabled = preferences.dspyEnabled ?? config.dspy.enabled;
 
-      // Stage 3: Processing
-      progress.update("Analyzing your prompt...");
-      await new Promise(r => setTimeout(r, 300)); // Give Raycast time to render
-
+      // Progress happens automatically - the toast stays animated during work
       if (!dspyEnabled) {
         const health = await ollamaHealthCheck({ baseUrl, timeoutMs: Math.min(2_000, timeoutMs) });
         if (!health.ok) {
-          progress.error("Ollama is not reachable", health.error, `Check ${baseUrl}`);
+          toast.style = Toast.Style.Failure;
+          toast.title = "Ollama is not reachable";
+          toast.message = health.error;
           return;
         }
       }
-
-      progress.update("Generating improvements...");
-      await new Promise(r => setTimeout(r, 300)); // Give Raycast time to render
 
       const result = dspyEnabled
         ? await improvePromptWithHybrid({
@@ -288,13 +286,12 @@ export default function Command() {
             systemPattern: getCustomPatternSync(),
           });
 
-      // Stage 4: Finalizing
-      progress.update("Finalizing result...");
-
       const finalPrompt = result.improved_prompt.trim();
       await Clipboard.copy(finalPrompt);
 
-      progress.success("Copied to clipboard", `${finalPrompt.length} characters`);
+      toast.style = Toast.Style.Success;
+      toast.title = "Copied to clipboard";
+      toast.message = `${finalPrompt.length} characters`;
 
       setPreview({
         prompt: finalPrompt,
@@ -322,20 +319,15 @@ export default function Command() {
         dspyEnabled,
       });
 
+      toast.style = Toast.Style.Failure;
       if (dspyEnabled) {
-        progress.error(
-          "DSPy backend not available",
-          e instanceof Error ? e.message : String(e),
-          `${dspyBaseUrl}${hint ? ` — ${hint}` : ""}`,
-        );
+        toast.title = "DSPy backend not available";
+        toast.message = `${e instanceof Error ? e.message : String(e)}${hint ? ` — ${hint}` : ""}`;
         return;
       }
 
-      progress.error(
-        "Prompt improvement failed",
-        e instanceof Error ? e.message : String(e),
-        `(${model} @ ${baseUrl})${hint ? ` — ${hint}` : ""}`,
-      );
+      toast.title = "Prompt improvement failed";
+      toast.message = `${e instanceof Error ? e.message : String(e)} (${model} @ ${baseUrl})${hint ? ` — ${hint}` : ""}`;
     } finally {
       setIsLoading(false);
     }
