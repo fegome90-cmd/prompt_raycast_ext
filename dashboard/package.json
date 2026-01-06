@@ -89,7 +89,7 @@
           "description": "Request timeout (milliseconds)",
           "type": "text",
           "required": false,
-          "default": "60000",
+          "default": "120000",
           "title": "Timeout"
         }
       ]
