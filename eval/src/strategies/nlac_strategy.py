@@ -156,6 +156,25 @@ class NLaCStrategy(PromptImproverStrategy):
 
         return "Error"  # Fallback
 
+    def _validate_inputs(self, original_idea: str, context: str) -> None:
+        """
+        Validate input parameters for NLaC strategy.
+
+        Args:
+            original_idea: User's original prompt idea
+            context: Additional context (optional)
+
+        Raises:
+            ValueError: If inputs are None or empty
+            TypeError: If inputs are not strings
+        """
+        if original_idea is None or context is None:
+            raise ValueError("original_idea and context must be non-None strings")
+        if not isinstance(original_idea, str) or not isinstance(context, str):
+            raise TypeError("original_idea and context must be strings")
+        if not original_idea.strip():
+            raise ValueError("original_idea cannot be empty or whitespace only")
+
     def _to_prediction(self, prompt_obj: PromptObject) -> dspy.Prediction:
         """
         Convert PromptObject to dspy.Prediction for compatibility.
