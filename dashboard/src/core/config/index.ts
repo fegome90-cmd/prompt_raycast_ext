@@ -121,6 +121,26 @@ export function getConfigSource(): "preferences" | "defaults" {
 }
 
 /**
+ * Preference name to config path mapping
+ * Maps Raycast preference names (flat) to nested config paths
+ */
+const PREFERENCE_PATH_MAP: Record<string, string> = {
+  // Ollama settings
+  ollamaBaseUrl: "ollama.baseUrl",
+  model: "ollama.model",
+  fallbackModel: "ollama.fallbackModel",
+  timeoutMs: "ollama.timeoutMs",
+
+  // DSPy settings
+  dspyBaseUrl: "dspy.baseUrl",
+  dspyEnabled: "dspy.enabled",
+  dspyTimeoutMs: "dspy.timeoutMs",
+
+  // Presets
+  preset: "presets.default",
+};
+
+/**
  * Merge raw preferences with defaults
  * Fills in missing values with defaults, validates structure
  */
@@ -145,41 +165,25 @@ export function mergeWithDefaults(rawPrefs: RawPreferences): Record<string, unkn
     current[lastKey] = value;
   };
 
-  // Helper to convert snake_case to camelCase for nested paths
-  const toCamelCase = (str: string): string => {
-    return str.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
-  };
-
-  // Flatten prefs for easier processing
-  const flattenPrefs = (obj: Record<string, unknown>, prefix = ""): Record<string, unknown> => {
-    const result: Record<string, unknown> = {};
-
-    for (const [key, value] of Object.entries(obj)) {
-      const newKey = prefix ? `${prefix}.${key}` : key;
-
-      if (value !== null && typeof value === "object" && !Array.isArray(value) && !(value instanceof Date)) {
-        Object.assign(result, flattenPrefs(value as Record<string, unknown>, newKey));
-      } else {
-        result[newKey] = value;
-      }
-    }
-
-    return result;
-  };
-
-  // Process preferences and override defaults
-  const flatPrefs = flattenPrefs(rawPrefs);
-
-  for (const [key, value] of Object.entries(flatPrefs)) {
+  // Process each preference
+  for (const [prefName, value] of Object.entries(rawPrefs)) {
     // Skip undefined values
     if (value === undefined) continue;
 
-    // Convert key to path (handle both dot notation and nested objects)
-    const path = key.split(".").map(toCamelCase);
+    // Look up the config path for this preference
+    const configPath = PREFERENCE_PATH_MAP[prefName];
 
-    // Only set if path exists in defaults (prevents adding unknown config)
+    if (!configPath) {
+      // Not a known preference - skip with warning
+      console.warn(`[Config] ⚠️ Skipping unknown preference: ${prefName} (value: ${JSON.stringify(value).substring(0, 50)})`);
+      continue;
+    }
+
+    // Convert path string to array
+    const path = configPath.split(".");
+
+    // Validate the path exists in defaults and set the value
     try {
-      // Validate the partial path exists
       let current = DEFAULTS as Record<string, unknown>;
       for (let i = 0; i < path.length; i++) {
         const key = path[i];
@@ -191,11 +195,21 @@ export function mergeWithDefaults(rawPrefs: RawPreferences): Record<string, unkn
         }
       }
 
+      // Type coercion for known preferences
+      let coercedValue = value;
+      if (prefName === "timeoutMs" || prefName === "dspyTimeoutMs") {
+        coercedValue = typeof value === "string" ? Number.parseInt(value, 10) : value;
+        if (typeof coercedValue === "number" && Number.isNaN(coercedValue)) {
+          console.warn(`[Config] ⚠️ Invalid timeout value for ${prefName}: ${value}, using default`);
+          continue;
+        }
+      }
+
       // Set the value
-      setNested(merged, path, value);
+      setNested(merged, path, coercedValue);
     } catch {
-      // Log warning for unknown config paths (helps detect typos)
-      console.warn(`[Config] ⚠️ Skipping unknown config path: ${path.join(".")} (value: ${JSON.stringify(value).substring(0, 50)})`);
+      // Log warning for errors
+      console.warn(`[Config] ⚠️ Failed to set ${configPath} from preference ${prefName}`);
       continue;
     }
   }
