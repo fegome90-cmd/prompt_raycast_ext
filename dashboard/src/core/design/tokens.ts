@@ -31,14 +31,14 @@ const SEMANTIC = {
 
 // Typography scale (for generated text/markdown)
 const TYPE = {
-  // Sizes (in points, follows 4px grid-ish)
-  xs: "11px",
-  sm: "12px",
-  base: "14px",
-  lg: "16px",
-  xl: "18px",
-  "2xl": "24px",
-  "3xl": "32px",
+  // Sizes (in points, follows 4px grid)
+  xs: "12px",   // 3 units of 4px
+  sm: "16px",   // 4 units of 4px
+  base: "16px", // 4 units of 4px
+  lg: "24px",   // 6 units of 4px
+  xl: "32px",   // 8 units of 4px
+  "2xl": "48px", // 12 units of 4px
+  "3xl": "64px", // 16 units of 4px
 
   // Weights
   normal: "400",
