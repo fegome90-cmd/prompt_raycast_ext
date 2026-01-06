@@ -6,7 +6,7 @@ Demonstrates how to query metrics from the database and analyze trends.
 """
 
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, UTC, timedelta
 from hemdov.infrastructure.persistence.metrics_repository import (
     SQLiteMetricsRepository,
 )
@@ -29,7 +29,7 @@ async def main() -> None:
 
     try:
         # Get recent metrics (last 30 days)
-        end = datetime.utcnow()
+        end = datetime.now(UTC)
         start = end - timedelta(days=30)
 
         print(f"\nQuerying metrics from {start.date()} to {end.date()}...")

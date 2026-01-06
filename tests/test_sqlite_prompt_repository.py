@@ -8,7 +8,7 @@ and repository lifecycle management.
 
 import pytest
 import pytest_asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, UTC, timedelta
 from hemdov.infrastructure.persistence.sqlite_prompt_repository import SQLitePromptRepository
 from hemdov.infrastructure.config import Settings
 from hemdov.domain.entities.prompt_history import PromptHistory
@@ -48,7 +48,7 @@ def sample_prompt() -> PromptHistory:
         model="gpt-4",
         provider="openai",
         latency_ms=1500,
-        created_at=datetime.utcnow().isoformat(),
+        created_at=datetime.now(UTC).isoformat(),
     )
 
 
@@ -121,7 +121,7 @@ async def test_find_recent(repository: SQLitePromptRepository):
             model="gpt-4",
             provider="openai",
             latency_ms=1000 + (i * 100),
-            created_at=(datetime.utcnow() - timedelta(hours=i)).isoformat(),
+            created_at=(datetime.now(UTC) - timedelta(hours=i)).isoformat(),
         )
         prompts.append(prompt)
         await repository.save(prompt)
@@ -177,7 +177,7 @@ async def test_delete_old_records(repository: SQLitePromptRepository):
         provider="openai",
         latency_ms=1000,
         # Create a record that's 35 days old
-        created_at=(datetime.utcnow() - timedelta(days=35)).isoformat(),
+        created_at=(datetime.now(UTC) - timedelta(days=35)).isoformat(),
     )
     await repository.save(old_prompt)
 
@@ -195,7 +195,7 @@ async def test_delete_old_records(repository: SQLitePromptRepository):
         provider="openai",
         latency_ms=1000,
         # Create a record that's 10 days old
-        created_at=(datetime.utcnow() - timedelta(days=10)).isoformat(),
+        created_at=(datetime.now(UTC) - timedelta(days=10)).isoformat(),
     )
     new_id = await repository.save(new_prompt)
 

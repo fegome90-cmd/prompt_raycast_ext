@@ -10,7 +10,7 @@ Provides endpoints for:
 
 import logging
 from typing import Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, UTC, timedelta
 from fastapi import APIRouter, HTTPException, Query, Depends
 
 from hemdov.domain.metrics.analyzers import (
@@ -122,7 +122,7 @@ async def get_trends(
     """
     try:
         # Calculate date range
-        end_date = datetime.utcnow()
+        end_date = datetime.now(UTC)
         start_date = end_date - timedelta(days=days)
 
         # Get metrics in date range

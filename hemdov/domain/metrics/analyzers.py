@@ -10,7 +10,7 @@ Provides tools for:
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, UTC, timedelta
 from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass, field
 from collections import defaultdict
@@ -449,7 +449,7 @@ class ComparisonAnalyzer:
         return ComparisonReport(
             baseline_name=baseline_name,
             treatment_name=treatment_name,
-            comparison_date=datetime.utcnow(),
+            comparison_date=datetime.now(UTC),
             baseline_size=len(baseline_metrics),
             treatment_size=len(treatment_metrics),
             quality_comparison=quality_comparison,
