@@ -84,11 +84,25 @@ class ReflexionService:
             logger.info(f"Reflexion iteration {iteration}/{max_iterations}")
 
             # Generate code
-            if self.llm_client:
-                code = self.llm_client.generate(current_prompt)
-            else:
-                # Fallback for testing
-                code = f"# Generated code for iteration {iteration}"
+            try:
+                if self.llm_client:
+                    code = self.llm_client.generate(current_prompt)
+                else:
+                    # Fallback for testing
+                    code = f"# Generated code for iteration {iteration}"
+            except Exception as e:
+                # LLM generation failed - abort with error
+                logger.exception(
+                    f"LLM generation failed at iteration {iteration}/{max_iterations}. "
+                    f"Error: {type(e).__name__}"
+                )
+                return ReflexionResult(
+                    code="",
+                    iteration_count=iteration,
+                    success=False,
+                    error_history=error_history + [str(e)],
+                    final_error=f"LLM generation failed: {e}"
+                )
 
             # Try to execute if executor provided
             if self.executor:
@@ -106,7 +120,10 @@ class ReflexionService:
                     # Execution failed - add error to context
                     error_msg = str(e)
                     error_history.append(error_msg)
-                    logger.warning(f"Iteration {iteration} failed: {error_msg}")
+                    logger.exception(
+                        f"Executor failed at iteration {iteration}/{max_iterations}. "
+                        f"Error: {type(e).__name__}"
+                    )
 
                     # Build prompt with error feedback for next iteration
                     if iteration < max_iterations:
