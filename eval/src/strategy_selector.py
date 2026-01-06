@@ -53,7 +53,10 @@ class StrategySelector:
         except Exception as e:
             import logging
             logger = logging.getLogger(__name__)
-            logger.warning(f"ComplexStrategy unavailable, will use ModerateStrategy fallback: {e}")
+            logger.exception(
+                f"ComplexStrategy initialization failed - using ModerateStrategy fallback. "
+                f"Trainset path: {trainset_path}, Error: {type(e).__name__}"
+            )
             self.complex_strategy = None
             self._complex_available = False
 
