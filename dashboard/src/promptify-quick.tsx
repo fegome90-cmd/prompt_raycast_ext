@@ -111,9 +111,9 @@ function PromptPreview(props: {
       }
       actions={
         <ActionPanel>
-          <ActionPanel.Section title="Copy">
+          <ActionPanel.Section title="Primary Actions">
             <Action
-              title="Copy prompt only"
+              title="Copy prompt"
               onAction={async () => {
                 await Clipboard.copy(props.prompt);
                 await ToastHelper.success("Copied", `${props.prompt.length} characters`);
@@ -121,6 +121,17 @@ function PromptPreview(props: {
               shortcut={{ modifiers: ["cmd"], key: "c" }}
             />
 
+            <Action
+              title="Try again"
+              shortcut={{ modifiers: ["cmd", "shift"], key: "r" }}
+              onAction={() => {
+                props.onReset?.();
+                ToastHelper.loading("Ready to improve again");
+              }}
+            />
+          </ActionPanel.Section>
+
+          <ActionPanel.Section title="Advanced">
             <Action
               title="Copy with stats"
               onAction={async () => {
@@ -131,14 +142,11 @@ function PromptPreview(props: {
             />
           </ActionPanel.Section>
 
-          <ActionPanel.Section title="Regenerate">
-            <Action
-              title="Try again"
-              shortcut={{ modifiers: ["cmd", "shift"], key: "r" }}
-              onAction={() => {
-                props.onReset?.();
-                ToastHelper.loading("Ready to improve again");
-              }}
+          <ActionPanel.Section title="Settings">
+            <Action.OpenInBrowser
+              title="Open preferences"
+              url="raycast://extensions/preferences/thomas.prompt-renderer-local"
+              shortcut={{ modifiers: ["ctrl"], key: "," }}
             />
           </ActionPanel.Section>
         </ActionPanel>
