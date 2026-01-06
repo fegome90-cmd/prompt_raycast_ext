@@ -8,7 +8,7 @@ Tests cover:
 """
 import pytest
 from pathlib import Path
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock, MagicMock, patch
 import tempfile
 
 from hemdov.domain.services.knn_provider import KNNProvider
@@ -194,3 +194,86 @@ class TestNLaCStrategyValidation:
 
         # Should not raise
         strategy._validate_inputs("valid idea", "valid context")
+
+
+# ============================================================================
+# NLaCStrategy Integration Tests
+# ============================================================================
+
+class TestNLaCStrategyIntegration:
+    """Integration tests for full NLaCStrategy pipeline."""
+
+    def test_nlac_strategy_routes_debug_to_reflexion(self):
+        """DEBUG intent should route to ReflexionService."""
+        from unittest.mock import Mock, patch
+
+        class MockLLM:
+            def generate(self, prompt: str, **kwargs):
+                return "def fixed():\\n    return 42"
+
+        mock_llm = MockLLM()
+        strategy = NLaCStrategy(
+            llm_client=mock_llm,
+            enable_optimization=False,
+            knn_provider=None
+        )
+
+        # Mock ReflexionService
+        with patch.object(strategy, 'reflexion') as mock_reflexion:
+            mock_reflexion.refine.return_value = Mock(
+                code="refined code",
+                iteration_count=1,
+                success=True,
+                error_history=[]
+            )
+
+            result = strategy.improve("Debug this error", "ZeroDivisionError in foo")
+
+            # Verify Reflexion was called
+            mock_reflexion.refine.assert_called_once()
+            # Verify intent extraction worked
+            call_args = mock_reflexion.refine.call_args
+            assert call_args[1]['error_type'] == 'ZeroDivisionError'
+
+    def test_nlac_strategy_routes_generate_to_opro(self):
+        """GENERATE intent should route to OPROOptimizer when optimization enabled."""
+        from unittest.mock import Mock
+
+        class MockLLM:
+            def generate(self, prompt: str, **kwargs):
+                return "improved prompt"
+
+        mock_llm = MockLLM()
+        strategy = NLaCStrategy(
+            llm_client=mock_llm,
+            enable_optimization=True,
+            knn_provider=None
+        )
+
+        # Mock OPROOptimizer
+        with patch.object(strategy, 'optimizer') as mock_optimizer:
+            mock_optimizer.run_loop.return_value = Mock(
+                final_instruction="optimized instruction",
+                iteration_count=1
+            )
+
+            result = strategy.improve("Create API endpoint", "Need REST API")
+
+            # Verify OPRO was called
+            mock_optimizer.run_loop.assert_called_once()
+
+    def test_extract_error_type_fallback(self):
+        """Should return 'Error' when no known error type found."""
+        strategy = NLaCStrategy(llm_client=None)
+
+        error_type = strategy._extract_error_type("Some random issue")
+
+        assert error_type == "Error"
+
+    def test_extract_error_type_known_error(self):
+        """Should extract known error types from context."""
+        strategy = NLaCStrategy(llm_client=None)
+
+        assert strategy._extract_error_type("Fix ZeroDivisionError") == "ZeroDivisionError"
+        assert strategy._extract_error_type("Handle TypeError") == "TypeError"
+        assert strategy._extract_error_type("ValueError occurred") == "ValueError"

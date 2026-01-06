@@ -190,7 +190,7 @@ class NLaCStrategy(PromptImproverStrategy):
             role=prompt_obj.strategy_meta.get("role", "Assistant"),
             directive=prompt_obj.strategy_meta.get("directive", "Help with the request"),
             framework=prompt_obj.strategy_meta.get("framework", "General"),
-            guardrails=prompt_obj.guardrails if prompt_obj.guardrails else [],
+            guardrails=prompt_obj.strategy_meta.get("guardrails", []),
         )
 
     @property
