@@ -35,12 +35,26 @@
           "title": "DSPy URL"
         },
         {
-          "name": "dspyEnabled",
-          "description": "Use DSPy for intelligent prompt improvement",
-          "type": "checkbox",
+          "name": "executionMode",
+          "description": "Prompt improvement pipeline",
+          "type": "dropdown",
           "required": false,
-          "default": true,
-          "title": "Enable DSPy"
+          "default": "legacy",
+          "data": [
+            {
+              "title": "DSPy Legacy (Few-shot)",
+              "value": "legacy"
+            },
+            {
+              "title": "NLaC Pipeline (OPRO + IFEval)",
+              "value": "nlac"
+            },
+            {
+              "title": "Ollama Local (No backend)",
+              "value": "ollama"
+            }
+          ],
+          "title": "Execution Mode"
         },
         {
           "name": "model",
@@ -91,6 +105,50 @@
           "required": false,
           "default": "120000",
           "title": "Timeout"
+        },
+        {
+          "name": "wizardMode",
+          "description": "Interactive clarification before generating prompt",
+          "type": "dropdown",
+          "required": false,
+          "default": "auto",
+          "data": [
+            {
+              "title": "Auto (LLM decides)",
+              "value": "auto"
+            },
+            {
+              "title": "Always On",
+              "value": "always"
+            },
+            {
+              "title": "Always Off",
+              "value": "off"
+            }
+          ],
+          "title": "Wizard Mode"
+        },
+        {
+          "name": "maxWizardTurns",
+          "description": "Maximum clarification rounds in wizard mode",
+          "type": "dropdown",
+          "required": false,
+          "default": "2",
+          "data": [
+            {
+              "title": "1 turn",
+              "value": "1"
+            },
+            {
+              "title": "2 turns",
+              "value": "2"
+            },
+            {
+              "title": "3 turns",
+              "value": "3"
+            }
+          ],
+          "title": "Max Wizard Turns"
         }
       ]
     },
