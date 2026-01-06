@@ -28,6 +28,7 @@ describe("dspy config", () => {
           autoUpdateKnowledge: false,
         },
         presets: { default: "default", available: ["default"] },
+        wizard: { mode: "auto", maxTurns: 2, adaptiveTurns: true },
         patterns: { maxScanChars: 1000, severityPolicy: "warn" },
         eval: {
           gates: {

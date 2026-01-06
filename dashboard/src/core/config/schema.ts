@@ -154,6 +154,22 @@ export const PresetsConfigSchema = z
   });
 
 /**
+ * Wizard configuration for interactive mode
+ */
+export const WizardConfigSchema = z
+  .object({
+    mode: z.enum(["auto", "always", "off"]).describe("Wizard mode: auto-detect, always on, or always off"),
+    maxTurns: z
+      .number()
+      .int()
+      .positive("maxTurns must be positive")
+      .min(1, "maxTurns must be at least 1")
+      .max(3, "maxTurns must not exceed 3"),
+    adaptiveTurns: z.boolean().describe("Adjust max turns based on complexity"),
+  })
+  .strict();
+
+/**
  * Pattern detection configuration
  * Used by anti-debt system
  */
@@ -238,6 +254,7 @@ export const AppConfigSchema = z
     quality: QualityConfigSchema,
     features: FeaturesConfigSchema,
     presets: PresetsConfigSchema,
+    wizard: WizardConfigSchema,
     patterns: PatternsConfigSchema,
     eval: EvalConfigSchema,
   })
@@ -251,6 +268,7 @@ export type OllamaConfig = z.infer<typeof OllamaConfigSchema>;
 export type DspyConfig = z.infer<typeof DspyConfigSchema>;
 export type PipelineConfig = z.infer<typeof PipelineConfigSchema>;
 export type FeaturesConfig = z.infer<typeof FeaturesConfigSchema>;
+export type WizardConfig = z.infer<typeof WizardConfigSchema>;
 
 /**
  * Validation helper that returns human-readable errors
@@ -313,6 +331,10 @@ export function validatePartialConfig(partial: unknown): Partial<AppConfig> {
 
     if (configObj.presets) {
       partialConfig.presets = PresetsConfigSchema.parse(configObj.presets);
+    }
+
+    if (configObj.wizard) {
+      partialConfig.wizard = WizardConfigSchema.parse(configObj.wizard);
     }
 
     if (configObj.patterns) {

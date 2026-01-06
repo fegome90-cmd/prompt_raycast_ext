@@ -138,6 +138,10 @@ const PREFERENCE_PATH_MAP: Record<string, string> = {
 
   // Presets
   preset: "presets.default",
+
+  // Wizard settings
+  wizardMode: "wizard.mode",
+  maxWizardTurns: "wizard.maxTurns",
 };
 
 /**
