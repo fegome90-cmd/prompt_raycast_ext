@@ -166,6 +166,8 @@ function getPlaceholder(preset?: "default" | "specific" | "structured" | "coding
   return placeholders[preset || "structured"];
 }
 
+type LoadingStage = 'validating' | 'connecting' | 'processing' | 'finalizing';
+
 export default function Command() {
   const preferences = getPreferenceValues<Preferences>();
 
@@ -178,6 +180,7 @@ export default function Command() {
 
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingStage, setLoadingStage] = useState<LoadingStage | null>(null);
   const [preview, setPreview] = useState<{
     prompt: string;
     meta?: { confidence?: number; clarifyingQuestions?: string[]; assumptions?: string[] };
