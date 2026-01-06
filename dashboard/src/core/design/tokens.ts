@@ -23,10 +23,22 @@ const GRAY = {
 
 // Semantic colors (only for meaning)
 const SEMANTIC = {
-  success: "#4ADE80", // Green
-  warning: "#FBBF24", // Yellow
-  error: "#F87168", // Red
-  info: "#60A5FA", // Blue
+  success: {
+    color: "#4ADE80", // Green
+    icon: "✅",
+  },
+  warning: {
+    color: "#FBBF24", // Yellow
+    icon: "⚠️",
+  },
+  error: {
+    color: "#F87168", // Red
+    icon: "❌",
+  },
+  info: {
+    color: "#60A5FA", // Blue
+    icon: "ℹ️",
+  },
 } as const;
 
 // Typography scale (for generated text/markdown)
