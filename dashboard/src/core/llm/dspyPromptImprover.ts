@@ -154,7 +154,10 @@ export class DSPyPromptImproverClient {
 export function createDSPyClient(overrideConfig?: Partial<DSPyBackendConfig>): DSPyPromptImproverClient {
   const defaultConfig: DSPyBackendConfig = {
     baseUrl: "http://localhost:8000",
-    timeoutMs: 30000,
+    // ⚡ INVARIANT: Default timeout MUST match frontend preference (120s)
+    // See: dashboard/src/core/config/defaults.ts:58-80 for three-layer sync invariant
+    // If caller doesn't specify timeoutMs, use 120s to prevent AbortError
+    timeoutMs: 120000,
   };
 
   const config = { ...defaultConfig, ...overrideConfig };

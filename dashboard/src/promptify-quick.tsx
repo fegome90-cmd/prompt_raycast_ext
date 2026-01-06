@@ -226,6 +226,7 @@ export default function Command() {
   }, [isInSafeMode, safeModeToastShown, configState.source]);
 
   async function handleGenerateFinal(values: { inputText: string }) {
+    console.log(`[PromptifyQuick] 🚀 Starting prompt improvement (manual input)...`);
     const text = values.inputText.trim();
 
     // Stage 1: Validating (instant, no toast)
@@ -482,9 +483,11 @@ async function runWithModelFallback(args: {
     if (!args.fallbackModel || args.fallbackModel === args.model) throw e;
     if (!shouldTryFallback(e)) throw e;
 
+    console.log(`[Fallback] ⚠️ Primary model (${args.model}) failed, attempting fallback...`);
+    console.log(`[Fallback] 🔄 Retrying with model: ${args.fallbackModel}`);
     await ToastHelper.loading("Retrying with fallback model…", args.fallbackModel);
 
-    return await improvePromptWithOllama({
+    const result = await improvePromptWithOllama({
       rawInput: args.rawInput,
       preset: args.preset,
       options: {
@@ -495,6 +498,9 @@ async function runWithModelFallback(args: {
         systemPattern: args.systemPattern,
       },
     });
+
+    console.log(`[Fallback] ✅ Fallback successful with ${args.fallbackModel}`);
+    return result;
   }
 }
 

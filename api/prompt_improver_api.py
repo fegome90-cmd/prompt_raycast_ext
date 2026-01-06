@@ -202,7 +202,9 @@ async def improve_prompt(request: ImprovePromptRequest):
     start_time = time.time()
 
     # Improve prompt using selected strategy with timeout
-    STRATEGY_TIMEOUT_SECONDS = 60
+    # 🔴 CRITICAL: Must match frontend timeout (120s) to prevent AbortError
+    # See: dashboard/src/core/config/defaults.ts:58-80 for three-layer sync invariant
+    STRATEGY_TIMEOUT_SECONDS = 120
 
     try:
         # Run synchronous strategy.improve in thread with timeout
