@@ -41,6 +41,7 @@ class SQLitePromptRepository(PromptRepository):
             try:
                 await self._configure_connection(self._connection)
             except Exception:
+                logger.exception("Failed to configure SQLite connection, cleaning up")
                 # Clean up connection if configure fails
                 await self._connection.close()
                 self._connection = None
