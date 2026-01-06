@@ -35,14 +35,14 @@ function PromptPreview(props: {
 
   // Metadata sections
   if (props.meta?.clarifyingQuestions?.length) {
-    sections.push("", "### Clarifying Questions", "");
+    sections.push("", "", "### Clarifying Questions", "");
     props.meta.clarifyingQuestions.forEach((q, i) => {
       sections.push(`${i + 1}. ${q}`);
     });
   }
 
   if (props.meta?.assumptions?.length) {
-    sections.push("", "### Assumptions", "");
+    sections.push("", "", "### Assumptions", "");
     props.meta.assumptions.forEach((a, i) => {
       sections.push(`${i + 1}. ${a}`);
     });
