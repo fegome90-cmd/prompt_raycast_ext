@@ -19,3 +19,10 @@ def test_analyzer_complex_by_length():
     long_input = "diseña " * 100  # > 150 chars
     result = analyzer.analyze(long_input, "")
     assert result == ComplexityLevel.COMPLEX
+
+
+def test_analyzer_detects_technical_terms():
+    analyzer = ComplexityAnalyzer()
+    # Short input but with technical terms should be MODERATE
+    result = analyzer.analyze("crea un framework de diseño", "")
+    assert result == ComplexityLevel.MODERATE
