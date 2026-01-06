@@ -6,6 +6,7 @@ import { loadConfig } from "./core/config";
 import { getCustomPatternSync } from "./core/templates/pattern";
 import { Typography } from "./core/design/typography";
 import { ToastHelper } from "./core/design/toast";
+import { ProgressiveToast } from "./core/design/progressiveToast";
 
 type Preferences = {
   ollamaBaseUrl?: string;
@@ -113,7 +114,7 @@ function PromptPreview(props: {
         <ActionPanel>
           <ActionPanel.Section title="Primary Actions">
             <Action
-              title="Copy prompt"
+              title="Copy Prompt"
               onAction={async () => {
                 await Clipboard.copy(props.prompt);
                 await ToastHelper.success("Copied", `${props.prompt.length} characters`);
@@ -122,7 +123,7 @@ function PromptPreview(props: {
             />
 
             <Action
-              title="Try again"
+              title="Try Again"
               shortcut={{ modifiers: ["cmd", "shift"], key: "r" }}
               onAction={() => {
                 props.onReset?.();
@@ -133,7 +134,7 @@ function PromptPreview(props: {
 
           <ActionPanel.Section title="Advanced">
             <Action
-              title="Copy with stats"
+              title="Copy with Stats"
               onAction={async () => {
                 const withStats = [`# Improved Prompt`, "", props.prompt, "", "---", ...stats].join("\n");
                 await Clipboard.copy(withStats);
@@ -144,7 +145,7 @@ function PromptPreview(props: {
 
           <ActionPanel.Section title="Settings">
             <Action.OpenInBrowser
-              title="Open preferences"
+              title="Open Preferences"
               url="raycast://extensions/preferences/thomas.prompt-renderer-local"
               shortcut={{ modifiers: ["ctrl"], key: "," }}
             />
@@ -166,7 +167,7 @@ function getPlaceholder(preset?: "default" | "specific" | "structured" | "coding
   return placeholders[preset || "structured"];
 }
 
-type LoadingStage = 'validating' | 'connecting' | 'processing' | 'finalizing';
+type LoadingStage = "validating" | "connecting" | "processing" | "finalizing";
 
 export default function Command() {
   const preferences = getPreferenceValues<Preferences>();
@@ -199,6 +200,8 @@ export default function Command() {
 
   async function handleGenerateFinal(values: { inputText: string }) {
     const text = values.inputText.trim();
+
+    // Stage 1: Validating (instant, no toast)
     if (!text.length) {
       await ToastHelper.error("Empty Input", "Paste or type some text first");
       return;
@@ -209,12 +212,13 @@ export default function Command() {
     }
 
     setIsLoading(true);
-    await ToastHelper.loading("Generating prompt…");
-    try {
-      // Use configuration (preferences override config defaults)
-      const config = configState.config;
+    const progress = new ProgressiveToast();
 
-      // Use preferences or fall back to config defaults
+    // Stage 2: Connecting
+    await progress.start("Connecting to DSPy...");
+
+    try {
+      const config = configState.config;
       const baseUrl = preferences.ollamaBaseUrl?.trim() || config.ollama.baseUrl;
       const model = preferences.model?.trim() || config.ollama.model;
       const fallbackModel = preferences.fallbackModel?.trim() || config.ollama.fallbackModel || config.ollama.model;
@@ -224,13 +228,18 @@ export default function Command() {
       const dspyBaseUrl = preferences.dspyBaseUrl?.trim() || config.dspy.baseUrl;
       const dspyEnabled = preferences.dspyEnabled ?? config.dspy.enabled;
 
+      // Stage 3: Processing
+      await progress.update("Analyzing your prompt...");
+
       if (!dspyEnabled) {
         const health = await ollamaHealthCheck({ baseUrl, timeoutMs: Math.min(2_000, timeoutMs) });
         if (!health.ok) {
-          await ToastHelper.error("Ollama is not reachable", health.error, `Check ${baseUrl}`);
+          await progress.error("Ollama is not reachable", health.error, `Check ${baseUrl}`);
           return;
         }
       }
+
+      await progress.update("Generating improvements...");
 
       const result = dspyEnabled
         ? await improvePromptWithHybrid({
@@ -258,9 +267,14 @@ export default function Command() {
             systemPattern: getCustomPatternSync(),
           });
 
+      // Stage 4: Finalizing
+      await progress.update("Finalizing result...");
+
       const finalPrompt = result.improved_prompt.trim();
       await Clipboard.copy(finalPrompt);
-      await ToastHelper.success("Copied final prompt");
+
+      await progress.success("Copied to clipboard", `${finalPrompt.length} characters`);
+
       setPreview({
         prompt: finalPrompt,
         meta: {
@@ -288,18 +302,18 @@ export default function Command() {
       });
 
       if (dspyEnabled) {
-        await ToastHelper.error(
+        await progress.error(
           "DSPy backend not available",
           e instanceof Error ? e.message : String(e),
-          `${dspyBaseUrl}${hint ? ` — ${hint}` : ""}`
+          `${dspyBaseUrl}${hint ? ` — ${hint}` : ""}`,
         );
         return;
       }
 
-      await ToastHelper.error(
+      await progress.error(
         "Prompt improvement failed",
         e instanceof Error ? e.message : String(e),
-        `(${model} @ ${baseUrl})${hint ? ` — ${hint}` : ""}`
+        `(${model} @ ${baseUrl})${hint ? ` — ${hint}` : ""}`,
       );
     } finally {
       setIsLoading(false);
@@ -331,7 +345,7 @@ export default function Command() {
               disabled={isLoading}
             />
             <Action
-              title="Quick improve"
+              title="Quick Improve"
               subtitle="Use default settings"
               shortcut={{ modifiers: ["cmd"], key: "i" }}
               onAction={() => {
@@ -345,7 +359,7 @@ export default function Command() {
 
           <ActionPanel.Section title="Edit">
             <Action
-              title="Clear input"
+              title="Clear Input"
               onAction={() => setInputText("")}
               shortcut={{ modifiers: ["cmd"], key: "backspace" }}
               style={Action.Style.Destructive}
@@ -355,7 +369,7 @@ export default function Command() {
 
           <ActionPanel.Section title="Settings">
             <Action.OpenInBrowser
-              title="Open preferences"
+              title="Open Preferences"
               url="raycast://extensions/preferences/thomas.prompt-renderer-local"
               shortcut={{ modifiers: ["ctrl"], key: "," }}
             />
