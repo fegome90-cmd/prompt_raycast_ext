@@ -128,8 +128,27 @@ class KNNProvider:
             logger.warning(f"ComponentCatalog not found at {self.catalog_path}")
             return
 
-        with open(self.catalog_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
+        try:
+            with open(self.catalog_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        except (FileNotFoundError, PermissionError) as e:
+            logger.exception(
+                f"Failed to open ComponentCatalog at {self.catalog_path}. "
+                f"Error: {type(e).__name__}"
+            )
+            return
+        except json.JSONDecodeError as e:
+            logger.exception(
+                f"Failed to parse JSON from ComponentCatalog at {self.catalog_path}. "
+                f"Error at line {e.lineno}, column {e.colno}: {e.msg}"
+            )
+            return
+        except UnicodeDecodeError as e:
+            logger.exception(
+                f"Failed to decode ComponentCatalog at {self.catalog_path}. "
+                f"Encoding error at position {e.start}: {e.reason}"
+            )
+            return
 
         # Handle wrapper format: {"examples": [...]}
         if isinstance(data, dict) and 'examples' in data:
@@ -137,44 +156,61 @@ class KNNProvider:
         elif isinstance(data, list):
             examples_data = data
         else:
-            raise ValueError(f"Invalid catalog format at {self.catalog_path}")
+            logger.error(
+                f"Invalid catalog format at {self.catalog_path}. "
+                f"Expected dict with 'examples' key or list, got {type(data).__name__}"
+            )
+            return
 
         # Convert to FewShotExample
-        for ex in examples_data:
-            inputs = ex['inputs']
-            outputs = ex['outputs']
-            metadata = ex.get('metadata', {})
+        for idx, ex in enumerate(examples_data):
+            try:
+                inputs = ex['inputs']
+                outputs = ex['outputs']
+                metadata = ex.get('metadata', {})
 
-            # Check if example has expected_output (CRITICAL for REFACTOR)
-            # Metadata may contain 'has_expected_output' flag
-            has_expected = metadata.get('has_expected_output', False)
+                # Check if example has expected_output (CRITICAL for REFACTOR)
+                # Metadata may contain 'has_expected_output' flag
+                has_expected = metadata.get('has_expected_output', False)
 
-            example = FewShotExample(
-                input_idea=inputs['original_idea'],
-                input_context=inputs.get('context', ''),
-                improved_prompt=outputs['improved_prompt'],
-                role=outputs.get('role', ''),
-                directive=outputs.get('directive', ''),
-                framework=outputs.get('framework', ''),
-                guardrails=outputs.get('guardrails', []),
-                expected_output=outputs.get('expected_output') if has_expected else None,
-                metadata=metadata
-            )
+                example = FewShotExample(
+                    input_idea=inputs['original_idea'],
+                    input_context=inputs.get('context', ''),
+                    improved_prompt=outputs['improved_prompt'],
+                    role=outputs.get('role', ''),
+                    directive=outputs.get('directive', ''),
+                    framework=outputs.get('framework', ''),
+                    guardrails=outputs.get('guardrails', []),
+                    expected_output=outputs.get('expected_output') if has_expected else None,
+                    metadata=metadata
+                )
 
-            self.catalog.append(example)
+                self.catalog.append(example)
 
-            # Also create DSPy Example for KNNFewShot
-            dspy_ex = dspy.Example(
-                original_idea=inputs['original_idea'],
-                context=inputs.get('context', ''),
-                improved_prompt=outputs['improved_prompt'],
-                role=outputs.get('role', ''),
-                directive=outputs.get('directive', ''),
-                framework=outputs.get('framework', ''),
-                guardrails=outputs.get('guardrails', ''),
-            ).with_inputs('original_idea', 'context')
+                # Also create DSPy Example for KNNFewShot
+                dspy_ex = dspy.Example(
+                    original_idea=inputs['original_idea'],
+                    context=inputs.get('context', ''),
+                    improved_prompt=outputs['improved_prompt'],
+                    role=outputs.get('role', ''),
+                    directive=outputs.get('directive', ''),
+                    framework=outputs.get('framework', ''),
+                    guardrails=outputs.get('guardrails', ''),
+                ).with_inputs('original_idea', 'context')
 
-            self._dspy_examples.append(dspy_ex)
+                self._dspy_examples.append(dspy_ex)
+            except KeyError as e:
+                logger.exception(
+                    f"Skipping example {idx} due to missing key: {e}. "
+                    f"Example data: {repr(str(ex)[:200])}"
+                )
+                continue
+            except (TypeError, ValueError) as e:
+                logger.exception(
+                    f"Skipping example {idx} due to invalid data: {e}. "
+                    f"Example data: {repr(str(ex)[:200])}"
+                )
+                continue
 
         logger.info(f"Loaded {len(self.catalog)} examples from ComponentCatalog")
 
