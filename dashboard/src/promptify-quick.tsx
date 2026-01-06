@@ -318,7 +318,7 @@ export default function Command() {
           <ActionPanel.Section title="Improve">
             <Action.SubmitForm
               title={isLoading ? "Improving…" : "Improve Prompt"}
-              subtitle={`${dspyEnabled ? "DSPy + " : ""}${preferences.model?.slice(0, 20) || "Ollama"}`}
+              subtitle={`${dspyEnabled ? "`DSPy` + " : ""}${preferences.model ? "`" + Typography.truncate(preferences.model, 20) + "`" : "`Ollama`"}`}
               onSubmit={handleGenerateFinal}
               shortcut={{ modifiers: ["cmd", "shift"], key: "enter" }}
               disabled={isLoading}
