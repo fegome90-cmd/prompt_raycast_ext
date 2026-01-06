@@ -200,6 +200,10 @@ export default function Command() {
       await ToastHelper.error("Empty Input", "Paste or type some text first");
       return;
     }
+    if (text.length < 5) {
+      await ToastHelper.error("Input Too Short", "Please enter at least 5 characters");
+      return;
+    }
 
     setIsLoading(true);
     await ToastHelper.loading("Generating prompt…");
