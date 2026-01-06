@@ -156,14 +156,15 @@ class PromptValidator:
         Returns:
             True if correction succeeded, False otherwise
         """
-        if not self.llm_client:
+        llm_client = getattr(self, 'llm_client', None)
+        if not llm_client:
             # No LLM client, perform simple autocorrections
             return self._simple_autocorrect(prompt_obj, warnings)
 
         # Production: Use LLM for autocorrection
         correction_prompt = self._build_correction_prompt(prompt_obj, warnings)
         try:
-            corrected = self.llm_client.correct(prompt_obj.template, correction_prompt)
+            corrected = llm_client.correct(prompt_obj.template, correction_prompt)
             if corrected and corrected != prompt_obj.template:
                 # Update prompt object with corrected template
                 object.__setattr__(prompt_obj, 'template', corrected)
@@ -171,7 +172,9 @@ class PromptValidator:
                 logger.info("Autocorrection successful")
                 return True
         except Exception as e:
-            logger.error(f"Autocorrection failed: {e}")
+            logger.exception(
+                f"LLM autocorrection failed. Error: {type(e).__name__}"
+            )
 
         return False
 
