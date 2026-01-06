@@ -29,6 +29,10 @@ export const OllamaConfigSchema = z
       .int()
       .positive("timeoutMs must be positive")
       .min(1_000, "timeoutMs must be at least 1s (1000ms)")
+      // 🔴 CRITICAL: Max value synchronized with frontend and backend
+      // See: ../defaults.ts:58-80 for three-layer timeout synchronization
+      // Frontend (package.json) → Frontend config (defaults.ts) → Backend (.env)
+      // If changed, MUST update ALL three layers to prevent AbortError
       .max(120_000, "timeoutMs must not exceed 2 minutes (120000ms)"),
 
     temperature: z.number().min(0, "temperature must be between 0 and 2").max(2, "temperature must be between 0 and 2"),
@@ -41,6 +45,10 @@ export const OllamaConfigSchema = z
       .max(10_000, "healthCheckTimeoutMs must not exceed 10s (10000ms)"),
   })
   .strict()
+  // ⚡ INVARIANT: Fallback model must differ from primary model
+  // If fallbackModel === model, the "fallback" is meaningless - it would retry
+  // the same model that just failed, guaranteed to fail again with the same error.
+  // This refinement prevents false confidence in fallback functionality.
   .refine((data) => !data.fallbackModel || data.fallbackModel !== data.model, {
     message: "fallbackModel must be different from primary model",
     path: ["fallbackModel"],
@@ -58,6 +66,9 @@ export const DspyConfigSchema = z
       .int()
       .positive("dspy.timeoutMs must be positive")
       .min(1_000, "dspy.timeoutMs must be at least 1s (1000ms)")
+      // 🔴 CRITICAL: Max value synchronized with frontend and backend
+      // See: ../defaults.ts:58-80 for three-layer timeout synchronization
+      // This is the DSPy-specific timeout that must respect the global invariant
       .max(120_000, "dspy.timeoutMs must not exceed 2 minutes (120000ms)"),
     enabled: z.boolean(),
   })
