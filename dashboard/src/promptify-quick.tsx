@@ -7,6 +7,20 @@ import { getCustomPatternSync } from "./core/templates/pattern";
 import { Typography } from "./core/design/typography";
 import { ToastHelper } from "./core/design/toast";
 
+// Engine display names (used in metadata)
+const ENGINE_NAMES = {
+  dspy: "DSPy + Haiku",
+  ollama: "Ollama",
+} as const;
+
+// Preset placeholders for input textarea
+const PLACEHOLDERS = {
+  default: "Paste your rough prompt here… (⌘I to improve)",
+  specific: "What specific task should this prompt accomplish?",
+  structured: "Paste your prompt - we'll add structure and clarity…",
+  coding: "Describe what you want the code to do…",
+} as const;
+
 type Preferences = {
   ollamaBaseUrl?: string;
   model?: string;
@@ -36,7 +50,7 @@ function PromptPreview(props: {
   // Metadata line: source + confidence (Apple-style minimal)
   if (props.meta?.confidence || props.source) {
     const metaLine = [
-      props.source === "dspy" ? "⤒ DSPy + Haiku" : "○ Ollama",
+      props.source === "dspy" ? `⤒ ${ENGINE_NAMES.dspy}` : `○ ${ENGINE_NAMES.ollama}`,
       props.meta?.confidence ? `${Math.round(props.meta.confidence)}% confidence` : null,
     ]
       .filter(Boolean)
@@ -74,7 +88,7 @@ function PromptPreview(props: {
     props.meta?.confidence !== undefined ? `Confidence: ${Typography.confidence(props.meta.confidence)}` : null,
     `Length: ${props.prompt.length} chars`,
     `Words: ${props.prompt.split(/\s+/).length} words`,
-    `Source: ${props.source === "dspy" ? "DSPy + Haiku" : "Ollama"}`,
+    `Source: ${ENGINE_NAMES[props.source ?? "ollama"]}`,
   ].filter(Boolean);
 
   return (
@@ -125,7 +139,7 @@ function PromptPreview(props: {
 
           <Detail.Metadata.Label
             title="Engine"
-            text={props.source === "dspy" ? "DSPy + Haiku" : "Ollama"}
+            text={ENGINE_NAMES[props.source ?? "ollama"]}
             icon={Typography.engine(props.source ?? "ollama")}
           />
         </Detail.Metadata>
@@ -177,14 +191,7 @@ function PromptPreview(props: {
 }
 
 function getPlaceholder(preset?: "default" | "specific" | "structured" | "coding"): string {
-  const placeholders = {
-    default: "Paste your rough prompt here… (⌘I to improve)",
-    specific: "What specific task should this prompt accomplish?",
-    structured: "Paste your prompt - we'll add structure and clarity…",
-    coding: "Describe what you want the code to do…",
-  };
-
-  return placeholders[preset || "structured"];
+  return PLACEHOLDERS[preset || "structured"];
 }
 
 // type LoadingStage = "validating" | "connecting" | "processing" | "finalizing";
