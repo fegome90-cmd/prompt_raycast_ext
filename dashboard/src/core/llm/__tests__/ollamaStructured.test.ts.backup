@@ -1,0 +1,369 @@
+/**
+ * Tests unitarios para ollamaGenerateStructured
+ * 9 tests quirúrgicos con transport injection
+ */
+
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { ollamaGenerateStructured, TEST_HELPERS, setTransport, resetTransport } from "../ollamaStructured";
+import type { OllamaTransport } from "../ollamaRaw";
+import { z } from "zod";
+
+describe("T1.2-B2 - ollamaGenerateStructured Tests", () => {
+  const testSchema = z.object({
+    improved_prompt: z.string(),
+    confidence: z.number().min(0).max(1),
+  });
+
+  const validResponseRaw = JSON.stringify({
+    improved_prompt: "Create a function",
+    confidence: 0.85,
+  });
+
+  let mockTransport: OllamaTransport;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetTransport();
+
+    mockTransport = vi.fn(async (req) => ({
+      raw: validResponseRaw,
+      latencyMs: 100,
+      model: req.model,
+    }));
+  });
+
+  describe("1. pass1 strict ok (JSON limpio)", () => {
+    it("debe retornar éxito en primer intento sin extracción ni repair", async () => {
+      setTransport(mockTransport);
+
+      const result = await ollamaGenerateStructured({
+        schema: testSchema,
+        prompt: "Create a function",
+        mode: "strict",
+        baseUrl: "http://localhost:11434",
+        model: "test-model",
+        timeoutMs: 30000,
+      });
+
+      expect(result.ok).toBe(true);
+      expect(result.data).toEqual(JSON.parse(validResponseRaw));
+      expect(result.attempt).toBe(1);
+      expect(result.usedExtraction).toBe(false);
+      expect(result.usedRepair).toBe(false);
+      expect(result.failureReason).toBeUndefined();
+      expect(result.latencyMs).toBeGreaterThan(0);
+      expect(result.raw).toBe(validResponseRaw);
+    });
+  });
+
+  describe("2. strict parse fails → invalid_json (no extraction)", () => {
+    it("debe fallar sin intentar extracción en modo strict", async () => {
+      ollamaGenerateJson.mockResolvedValueOnce("Invalid text response");
+
+      const result = await ollamaGenerateStructured({
+        schema: testSchema,
+        prompt: "Create a function",
+        mode: "strict",
+        baseUrl: "http://localhost:11434",
+        model: "test-model",
+        timeoutMs: 30000,
+      });
+
+      expect(result.ok).toBe(false);
+      expect(result.failureReason).toBe("invalid_json");
+      expect(result.attempt).toBe(1);
+      expect(result.usedExtraction).toBe(false);
+      expect(result.usedRepair).toBe(false);
+      expect(result.validationError).toBeDefined();
+      expect(result.raw).toBe(JSON.stringify("Invalid text response"));
+    });
+  });
+
+  describe("3. extract mode: chatty+fence → ok + usedExtraction=true + usedRepair=false", () => {
+    it("debe extraer JSON de code fence y retornar éxito", async () => {
+      const chattyResponse = {
+        raw: `Claro, aquí está:
+\`\`\`json
+${JSON.stringify(validResponse)}
+\`\`\``,
+      };
+
+      ollamaGenerateJson.mockResolvedValueOnce(chattyResponse);
+
+      const result = await ollamaGenerateStructured({
+        schema: testSchema,
+        prompt: "Create a function",
+        mode: "extract",
+        baseUrl: "http://localhost:11434",
+        model: "test-model",
+        timeoutMs: 30000,
+      });
+
+      expect(result.ok).toBe(true);
+      expect(result.data).toEqual(validResponse);
+      expect(result.attempt).toBe(1);
+      expect(result.usedExtraction).toBe(true);
+      expect(result.usedRepair).toBe(false);
+      expect(result.extractionMethod).toBe("fence");
+      expect(result.parseStage).toBe("extracted");
+    });
+  });
+
+  describe("4. extract mode: parse fail + no extract → invalid_json", () => {
+    it("debe fallar si no se puede extraer JSON válido", async () => {
+      const nonJsonResponse = {
+        raw: "This is just text without any JSON",
+      };
+
+      ollamaGenerateJson.mockResolvedValueOnce(nonJsonResponse);
+
+      const result = await ollamaGenerateStructured({
+        schema: testSchema,
+        prompt: "Create a function",
+        mode: "extract",
+        baseUrl: "http://localhost:11434",
+        model: "test-model",
+        timeoutMs: 30000,
+      });
+
+      expect(result.ok).toBe(false);
+      expect(result.failureReason).toBe("invalid_json");
+      expect(result.attempt).toBe(1);
+      expect(result.usedExtraction).toBe(false);
+      expect(result.usedRepair).toBe(false);
+    });
+  });
+
+  describe("5. schema mismatch en pass1, extract mode → schema_mismatch (sin repair)", () => {
+    it("debe fallar por schema mismatch sin intentar repair", async () => {
+      const invalidSchemaResponse = {
+        improved_prompt: 123, // Should be string
+        confidence: "high", // Should be number
+      };
+
+      ollamaGenerateJson.mockResolvedValueOnce(invalidSchemaResponse);
+
+      const result = await ollamaGenerateStructured({
+        schema: testSchema,
+        prompt: "Create a function",
+        mode: "extract", // No repair
+        baseUrl: "http://localhost:11434",
+        model: "test-model",
+        timeoutMs: 30000,
+      });
+
+      expect(result.ok).toBe(false);
+      expect(result.failureReason).toBe("schema_mismatch");
+      expect(result.attempt).toBe(1);
+      expect(result.usedExtraction).toBe(false);
+      expect(result.usedRepair).toBe(false);
+      expect(result.validationError).toBeDefined();
+    });
+  });
+
+  describe("6. schema mismatch en extract+repair → repair llamado y éxito", () => {
+    it("debe intentar repair y tener éxito", async () => {
+      // First attempt: schema mismatch
+      const invalidResponse = {
+        improved_prompt: "Create a function",
+        confidence: "0.85", // String instead of number
+      };
+
+      ollamaGenerateJson
+        .mockResolvedValueOnce(invalidResponse)
+        .mockResolvedValueOnce(validResponse); // Repair succeeds
+
+      const result = await ollamaGenerateStructured({
+        schema: testSchema,
+        prompt: "Create a function",
+        mode: "extract+repair",
+        baseUrl: "http://localhost:11434",
+        model: "test-model",
+        timeoutMs: 30000,
+      });
+
+      expect(result.ok).toBe(true);
+      expect(result.data).toEqual(validResponse);
+      expect(result.attempt).toBe(2);
+      expect(result.usedExtraction).toBe(false); // Repair attempt doesn't use extraction
+      expect(result.usedRepair).toBe(true);
+      expect(result.parseStage).toBe("repair");
+    });
+  });
+
+  describe("7. invalid_json en extract+repair → repair llamado y éxito", () => {
+    it("debe intentar repair de JSON roto", async () => {
+      // First attempt: invalid JSON
+      const brokenJson = {
+        raw: '{ "improved_prompt": "Create", "confidence": 0.85', // Missing closing }
+      };
+
+      ollamaGenerateJson
+        .mockResolvedValueOnce(brokenJson)
+        .mockResolvedValueOnce(validResponse); // Repair succeeds
+
+      const result = await ollamaGenerateStructured({
+        schema: testSchema,
+        prompt: "Create a function",
+        mode: "extract+repair",
+        baseUrl: "http://localhost:11434",
+        model: "test-model",
+        timeoutMs: 30000,
+      });
+
+      expect(result.ok).toBe(true);
+      expect(result.data).toEqual(validResponse);
+      expect(result.attempt).toBe(2);
+      expect(result.usedRepair).toBe(true);
+    });
+  });
+
+  describe("8. repair fails (invalid_json) → ok=false reason=invalid_json", () => {
+    it("debe fallar si repair no puede arreglar el JSON", async () => {
+      const invalidResponse = {
+        confidence: "invalid",
+      };
+
+      ollamaGenerateJson
+        .mockResolvedValueOnce(invalidResponse) // Schema mismatch
+        .mockResolvedValueOnce("Still invalid"); // Repair fails
+
+      const result = await ollamaGenerateStructured({
+        schema: testSchema,
+        prompt: "Create a function",
+        mode: "extract+repair",
+        baseUrl: "http://localhost:11434",
+        model: "test-model",
+        timeoutMs: 30000,
+      });
+
+      expect(result.ok).toBe(false);
+      expect(result.failureReason).toBe("invalid_json");
+      expect(result.attempt).toBe(2);
+      expect(result.usedRepair).toBe(true);
+    });
+  });
+
+  describe("9. timeout abort → ok=false reason=timeout", () => {
+    it("debe manejar timeout correctamente", async () => {
+      const timeoutError = new Error("Request timed out after 30000ms");
+      Object.assign(timeoutError, { failureReason: "timeout" as const });
+
+      ollamaGenerateJson.mockRejectedValueOnce(timeoutError);
+
+      const result = await ollamaGenerateStructured({
+        schema: testSchema,
+        prompt: "Create a function",
+        mode: "strict",
+        baseUrl: "http://localhost:11434",
+        model: "test-model",
+        timeoutMs: 30000,
+      });
+
+      expect(result.ok).toBe(false);
+      expect(result.failureReason).toBe("timeout");
+      expect(result.attempt).toBe(1);
+      expect(result.usedExtraction).toBe(false);
+      expect(result.usedRepair).toBe(false);
+    });
+  });
+
+  describe("Helpers", () => {
+    describe("summarizeZodError", () => {
+      it("resume errores de schema correctamente", () => {
+        const schema = z.object({
+          name: z.string(),
+          age: z.number(),
+        });
+
+        const invalidData = { name: 123, age: "twenty" };
+        const result = schema.safeParse(invalidData);
+
+        if (!result.success) {
+          const summary = TEST_HELPERS.summarizeZodError(result.error);
+          expect(summary).toContain("name");
+          expect(summary).toContain("age");
+          expect(summary.length).toBeLessThan(300);
+        }
+      });
+
+      it("limita a 3 issues máximo", () => {
+        const schema = z.object({
+          a: z.string(),
+          b: z.number(),
+          c: z.boolean(),
+          d: z.array(z.string()),
+        });
+
+        const invalidData = {};
+        const result = schema.safeParse(invalidData);
+
+        if (!result.success) {
+          const summary = TEST_HELPERS.summarizeZodError(result.error);
+          const issues = summary.split(";");
+          expect(issues.length).toBeLessThanOrEqual(3);
+        }
+      });
+    });
+
+    describe("buildRepairPrompt", () => {
+      it("crea prompt de repair minimal y específico", () => {
+        const rawOutput = '{"name": 123}'; // Invalid: name should be string
+        const validationError = "name: expected string, got number";
+        const schemaDescription = "name (string), age (number)";
+        const originalPrompt = "Create user data";
+
+        const repairPrompt = buildRepairPrompt({
+          rawOutput,
+          validationError,
+          schemaDescription,
+          originalPrompt,
+        });
+
+        expect(repairPrompt).toContain("JSON repair tool");
+        expect(repairPrompt).toContain(rawOutput);
+        expect(repairPrompt).toContain(validationError);
+        expect(repairPrompt).toContain(schemaDescription);
+        expect(repairPrompt).toContain("Return ONLY valid JSON");
+        expect(repairPrompt).not.toContain("{{"); // No placeholders
+        expect(repairPrompt.length).toBeLessThan(1000);
+      });
+    });
+  });
+});
+
+// Helper to build repair prompt for tests
+function buildRepairPrompt(args: {
+  rawOutput: string;
+  validationError: string;
+  schemaDescription: string;
+  originalPrompt: string;
+}): string {
+  return [
+    "You are a JSON repair tool.",
+    "Your task: fix the invalid JSON below and return ONLY valid JSON.",
+    "",
+    "Rules:",
+    "- Return ONLY valid JSON, no commentary, no explanations, no markdown",
+    "- Preserve the original intent and content",
+    "- Fix the validation errors listed below",
+    "",
+    "Original user request (context):",
+    '"""',
+    args.originalPrompt,
+    '"""',
+    "",
+    "Invalid output:",
+    '"""',
+    args.rawOutput,
+    '"""',
+    "",
+    "Validation error to fix:",
+    args.validationError,
+    "",
+    "Expected fields:",
+    args.schemaDescription,
+    "",
+    "Return ONLY valid JSON.",
+  ].join("\n");
+}

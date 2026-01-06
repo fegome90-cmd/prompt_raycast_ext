@@ -1,0 +1,103 @@
+{
+  "metadata": {
+    "validated_at": "2026-01-05T14:45:00.000000",
+    "threshold_promptmetodizer": 0.6,
+    "threshold_examplevalidator": 0.5,
+    "total_validated": 1,
+    "total_passed": 1,
+    "handles": ["rlm/rag-prompt"],
+    "validation_chain": ["PromptMetodizer v2", "ExampleValidator"],
+    "avg_score": 0.744,
+    "min_score": 0.744,
+    "max_score": 0.744
+  },
+  "candidates": [
+    {
+      "handle": "rlm/rag-prompt",
+      "name": "rlm/rag-prompt",
+      "template": "You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.\nQuestion: {question} \nContext: {context} \nAnswer:",
+      "converted": {
+        "inputs": {
+          "original_idea": "Create a RAG assistant that answers questions using retrieved context",
+          "context": ""
+        },
+        "outputs": {
+          "improved_prompt": "You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.\nQuestion: {question} \nContext: {context} \nAnswer:",
+          "role": "AI Assistant",
+          "directive": "following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.",
+          "framework": "RAG",
+          "guardrails": "Constraint: three sentences maximum | Format: concise | Negative: say don't know if answer not in context"
+        },
+        "metadata": {
+          "source": "langchain-hub",
+          "source_handle": "rlm/rag-prompt",
+          "source_name": "rlm/rag-prompt",
+          "tags": ["rag", "retrieval"],
+          "quality_scores_promptmetodizer": {
+            "role_clarity": 0.0,
+            "directive_specificity": 1.0,
+            "framework_confidence": 1.0,
+            "guardrails_measurability": 0.5,
+            "overall_quality": 0.625
+          },
+          "framework_detections": [
+            {
+              "name": "RAG",
+              "confidence": 1.0,
+              "evidence": [
+                "keyword: 'context'",
+                "keyword: 'retrieved'",
+                "keyword: 'question'",
+                "variable: {context}"
+              ]
+            }
+          ]
+        }
+      },
+      "validation_results": {
+        "promptmetodizer_v2": {
+          "score": 0.625,
+          "threshold": 0.6,
+          "passed": true
+        },
+        "examplevalidator": {
+          "score": 0.863,
+          "threshold": 0.5,
+          "passed": true,
+          "is_valid": true,
+          "errors": [],
+          "warnings": []
+        }
+      },
+      "validation_score": 0.744,
+      "validation_passed": true,
+      "final_decision": {
+        "approved_for_merge": true,
+        "reason": "Passed both validators: PromptMetodizer (0.625 >= 0.6) and ExampleValidator (0.863 >= 0.5). Framework RAG adds new category to pool.",
+        "expected_impact": {
+          "framework_added": "RAG",
+          "pool_size_before": 107,
+          "pool_size_after": 108,
+          "frameworks_before": 6,
+          "frameworks_after": 7
+        }
+      }
+    }
+  ],
+  "summary": {
+    "total_fetched": 4,
+    "total_reviewed": 4,
+    "total_approved_manual": 2,
+    "total_validated": 1,
+    "total_passed": 1,
+    "success_rate": "25% (1/4 from original fetch)",
+    "frameworks_added": ["RAG"],
+    "frameworks_rejected": ["ReAct (reference only)", "Self-Ask (below threshold)", "OpenAI-Tools (too generic)"]
+  },
+  "next_steps": [
+    "Merge with unified-fewshot-pool.json using scripts/data/merge_unified_pool.py",
+    "Verify SHA256 deduplication prevents duplicates",
+    "Test DSPy KNNFewShot loads updated pool successfully",
+    "Commit: feat(langchain): add RAG framework prompt from LangChain Hub"
+  ]
+}

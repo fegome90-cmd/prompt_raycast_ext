@@ -1,0 +1,17 @@
+{
+  "model_type": "KNNFewShot",
+  "k": 3,
+  "trainset_size": 108,
+  "trainset_path": "/Users/felipe_gonzalez/Developer/raycast_ext/datasets/exports/unified-fewshot-pool-v2.json",
+  "created_at": "2026-01-05 16:18:37.556446",
+  "version": "v2",
+  "previous_version": "fewshot-compiled.json",
+  "validation_scores": {
+    "source": "validation_detailed_detailed.json",
+    "avg_score": 0.960,
+    "min_score": 0.905,
+    "max_score": 1.000,
+    "individual_scores": true
+  },
+  "notes": "Updated with 42 prompts from prompt_dataset_v1 with individual validation scores (Security, DevOps, Architecture, Database, Backend, Performance)"
+}

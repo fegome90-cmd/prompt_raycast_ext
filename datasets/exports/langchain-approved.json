@@ -1,0 +1,93 @@
+{
+  "metadata": {
+    "approved_at": "2026-01-05T14:30:00.000000",
+    "threshold": 0.6,
+    "total_approved": 1,
+    "total_rejected": 1,
+    "handles": [
+      "rlm/rag-prompt"
+    ],
+    "rejected_handles": [
+      "hwchase17/self-ask-with-search"
+    ],
+    "evaluation_method": "PromptMetodizer v2",
+    "validation_criteria": "overall_quality ≥ 0.6 with 4-dimensional scoring"
+  },
+  "approved": [
+    {
+      "handle": "rlm/rag-prompt",
+      "name": "rlm/rag-prompt",
+      "template": "You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.\nQuestion: {question} \nContext: {context} \nAnswer:",
+      "converted": {
+        "inputs": {
+          "original_idea": "Create a RAG assistant that answers questions using retrieved context",
+          "context": ""
+        },
+        "outputs": {
+          "improved_prompt": "You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.\nQuestion: {question} \nContext: {context} \nAnswer:",
+          "role": "AI Assistant",
+          "directive": "following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.",
+          "framework": "RAG",
+          "guardrails": "Constraint: three sentences maximum | Format: concise | Negative: say don't know if answer not in context"
+        },
+        "metadata": {
+          "source": "langchain-hub",
+          "source_handle": "rlm/rag-prompt",
+          "source_name": "rlm/rag-prompt",
+          "tags": ["rag", "retrieval"],
+          "quality_scores": {
+            "role_clarity": 0.0,
+            "directive_specificity": 1.0,
+            "framework_confidence": 1.0,
+            "guardrails_measurability": 0.5,
+            "overall_quality": 0.625
+          },
+          "detected_patterns": [
+            "Variables: question, context",
+            "Negative constraint",
+            "Quantitative constraint",
+            "Structured output format"
+          ],
+          "framework_detections": [
+            {
+              "name": "RAG",
+              "confidence": 1.0,
+              "evidence": [
+                "keyword: 'context'",
+                "keyword: 'retrieved'",
+                "keyword: 'question'",
+                "variable: {context}"
+              ]
+            }
+          ]
+        }
+      },
+      "validation": {
+        "passed": true,
+        "threshold": 0.6,
+        "score": 0.625,
+        "reason": "Framework detection perfect (1.0) + directive specificity excellent (1.0). Role clarity low (0.0) due to generic 'AI Assistant', but framework uniqueness justifies inclusion."
+      }
+    }
+  ],
+  "rejected": [
+    {
+      "handle": "hwchase17/self-ask-with-search",
+      "reason": "Quality score 0.500 < threshold 0.6. Guardrails measurability = 0.0 (clean template has no explicit guardrails). Framework confidence = 0.7 (good but not excellent).",
+      "quality_scores": {
+        "role_clarity": 0.8,
+        "directive_specificity": 0.5,
+        "framework_confidence": 0.7,
+        "guardrails_measurability": 0.0,
+        "overall_quality": 0.5
+      },
+      "saved_as_reference": false,
+      "notes": "Self-Ask framework valuable but template quality below threshold with current scoring algorithm. Consider re-evaluation if guardrails extraction improves."
+    }
+  ],
+  "next_steps": [
+    "Run ExampleValidator on approved prompt (rlm/rag-prompt)",
+    "Merge with unified-fewshot-pool.json using merge_unified_pool.py",
+    "Expected pool impact: 107 → 108 examples (+1 RAG framework example)"
+  ]
+}

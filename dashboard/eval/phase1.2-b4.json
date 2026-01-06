@@ -1,0 +1,202 @@
+{
+  "timestamp": "2025-12-15T20:13:49.551Z",
+  "totalCases": 30,
+  "buckets": {
+    "good": {
+      "total": 10,
+      "jsonValidPass1": 0,
+      "copyableRate": 0,
+      "reviewRate": 0
+    },
+    "bad": {
+      "total": 10,
+      "jsonValidPass1": 0,
+      "copyableRate": 0,
+      "reviewRate": 0
+    },
+    "ambiguous": {
+      "total": 10,
+      "jsonValidPass1": 0,
+      "copyableRate": 0,
+      "reviewRate": 0
+    }
+  },
+  "jsonValidPass1": 0,
+  "jsonValidPass2": 0,
+  "copyableRate": 0,
+  "reviewRate": 0,
+  "latencyP50": 0,
+  "latencyP95": 0,
+  "patternsDetected": 0,
+  "extractionUsedRate": 0,
+  "extractionMethodBreakdown": {
+    "fence": 0,
+    "tag": 0,
+    "scan": 0
+  },
+  "repairTriggerRate": 0,
+  "repairSuccessRate": 0,
+  "attempt2Rate": 0,
+  "failureReasons": {
+    "emptyFinalPrompt": 0,
+    "unfilledPlaceholders": 0,
+    "chattyOutput": 0,
+    "bannedContent": 0,
+    "tooManyQuestions": 0,
+    "lowConfidence": 0,
+    "other": 30
+  },
+  "failures": [
+    {
+      "caseId": "good-001",
+      "reason": "Failed to generate valid response: schema_mismatch",
+      "category": "exception"
+    },
+    {
+      "caseId": "good-002",
+      "reason": "Failed to generate valid response: schema_mismatch",
+      "category": "exception"
+    },
+    {
+      "caseId": "good-003",
+      "reason": "Failed to generate valid response: schema_mismatch",
+      "category": "exception"
+    },
+    {
+      "caseId": "good-004",
+      "reason": "Failed to generate valid response: schema_mismatch",
+      "category": "exception"
+    },
+    {
+      "caseId": "good-005",
+      "reason": "Failed to generate valid response: schema_mismatch",
+      "category": "exception"
+    },
+    {
+      "caseId": "good-006",
+      "reason": "Failed to generate valid response: schema_mismatch",
+      "category": "exception"
+    },
+    {
+      "caseId": "good-007",
+      "reason": "Failed to generate valid response: schema_mismatch",
+      "category": "exception"
+    },
+    {
+      "caseId": "good-008",
+      "reason": "Failed to generate valid response: schema_mismatch",
+      "category": "exception"
+    },
+    {
+      "caseId": "good-009",
+      "reason": "Failed to generate valid response: schema_mismatch",
+      "category": "exception"
+    },
+    {
+      "caseId": "good-010",
+      "reason": "Failed to generate valid response: schema_mismatch",
+      "category": "exception"
+    },
+    {
+      "caseId": "bad-001",
+      "reason": "Failed to generate valid response: schema_mismatch",
+      "category": "exception"
+    },
+    {
+      "caseId": "bad-002",
+      "reason": "Failed to generate valid response: schema_mismatch",
+      "category": "exception"
+    },
+    {
+      "caseId": "bad-003",
+      "reason": "Failed to generate valid response: schema_mismatch",
+      "category": "exception"
+    },
+    {
+      "caseId": "bad-004",
+      "reason": "Failed to generate valid response: schema_mismatch",
+      "category": "exception"
+    },
+    {
+      "caseId": "bad-005",
+      "reason": "Failed to generate valid response: schema_mismatch",
+      "category": "exception"
+    },
+    {
+      "caseId": "bad-006",
+      "reason": "Failed to generate valid response: schema_mismatch",
+      "category": "exception"
+    },
+    {
+      "caseId": "bad-007",
+      "reason": "Failed to generate valid response: schema_mismatch",
+      "category": "exception"
+    },
+    {
+      "caseId": "bad-008",
+      "reason": "Failed to generate valid response: schema_mismatch",
+      "category": "exception"
+    },
+    {
+      "caseId": "bad-009",
+      "reason": "Failed to generate valid response: schema_mismatch",
+      "category": "exception"
+    },
+    {
+      "caseId": "bad-010",
+      "reason": "Failed to generate valid response: schema_mismatch",
+      "category": "exception"
+    },
+    {
+      "caseId": "ambig-001",
+      "reason": "Failed to generate valid response: schema_mismatch",
+      "category": "exception"
+    },
+    {
+      "caseId": "ambig-002",
+      "reason": "Failed to generate valid response: schema_mismatch",
+      "category": "exception"
+    },
+    {
+      "caseId": "ambig-003",
+      "reason": "Failed to generate valid response: schema_mismatch",
+      "category": "exception"
+    },
+    {
+      "caseId": "ambig-004",
+      "reason": "Failed to generate valid response: schema_mismatch",
+      "category": "exception"
+    },
+    {
+      "caseId": "ambig-005",
+      "reason": "Failed to generate valid response: schema_mismatch",
+      "category": "exception"
+    },
+    {
+      "caseId": "ambig-006",
+      "reason": "Failed to generate valid response: schema_mismatch",
+      "category": "exception"
+    },
+    {
+      "caseId": "ambig-007",
+      "reason": "Failed to generate valid response: schema_mismatch",
+      "category": "exception"
+    },
+    {
+      "caseId": "ambig-008",
+      "reason": "Failed to generate valid response: schema_mismatch",
+      "category": "exception"
+    },
+    {
+      "caseId": "ambig-009",
+      "reason": "Failed to generate valid response: schema_mismatch",
+      "category": "exception"
+    },
+    {
+      "caseId": "ambig-010",
+      "reason": "Failed to generate valid response: schema_mismatch",
+      "category": "exception"
+    }
+  ],
+  "skillUsed": "core"
+}

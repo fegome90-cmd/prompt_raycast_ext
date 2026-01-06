@@ -1,0 +1,119 @@
+{
+  "telemetry": {
+    "metrics": false,
+  },
+  "auto_update": false,
+  "remove_trailing_whitespace_on_save": true,
+  "ensure_final_newline_on_save": true,
+  "format_on_save": "on",
+  "preferred_line_length": 80,
+  "tab_size": 2,
+  "hard_tabs": false,
+
+  "language_overrides": {
+    "TypeScript": {
+      "format_on_save": "on",
+      "preferred_line_length": 100,
+    },
+    "TypeScript React": {
+      "format_on_save": "on",
+      "preferred_line_length": 100,
+    },
+  },
+
+  "lsp": {
+    "typescript": {
+      "settings": {
+        "typescript": {
+          "preferences": {
+            "includeInlayParameterNameHints": "all",
+            "includeInlayParameterNameHintsWhenArgumentMatchesName": false,
+            "includeInlayFunctionParameterTypeHints": true,
+            "includeInlayVariableTypeHints": true,
+            "includeInlayPropertyDeclarationTypeHints": true,
+            "includeInlayFunctionLikeReturnTypeHints": true,
+            "includeInlayEnumMemberValueHints": true,
+            "importModuleSpecifier": "relative",
+          },
+          "suggest": {
+            "autoImports": true,
+            "completeFunctionCalls": true,
+          },
+        },
+      },
+    },
+    "eslint": {
+      "settings": {
+        "rules": {
+          "@typescript-eslint/no-unused-vars": "error",
+          "@typescript-eslint/no-explicit-any": "warn",
+          "@typescript-eslint/prefer-const": "error",
+          "@typescript-eslint/explicit-function-return-type": "warn",
+          "@raycast/prefer-arguments": "error",
+          "@typescript-eslint/no-non-null-assertion": "warn",
+        },
+        "validate": "on",
+      },
+    },
+  },
+
+  "diagnostics": {
+    "enabled_providers": ["eslint", "typescript", "linter"],
+    "max_diagnostics": 1000,
+    "include_warnings": true,
+    "inline": {
+      "enabled": true,
+      "enabled_panels": ["problems"],
+    },
+  },
+
+  "code_actions_on_format": {
+    "source.fixAll.eslint": true,
+    "source.organizeImports": true,
+  },
+
+  "inlay_hints": {
+    "enabled": true,
+    "show_type_hints": true,
+    "show_parameter_hints": true,
+    "show_other_hints": true,
+  },
+
+  "file_scan_exclusions": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/.git/**",
+    "**/tmp/**",
+    "**/.tmp/**",
+  ],
+
+  "project_panel": {
+    "folder_icons": false,
+    "file_icons": true,
+    "show_file_syntax": true,
+    "indent_size": 2,
+  },
+
+  "scrollbar": {
+    "show": "auto",
+  },
+
+  "git": {
+    "git_gutter": "tracked_files",
+    "inline_blame": {
+      "enabled": false,
+    },
+  },
+
+  "assistant": {
+    "default_model": "claude-3-5-sonnet",
+    "version": "20241022",
+    "enabled": true,
+  },
+
+  "theme": {
+    "mode": "system",
+    "light": "One Light",
+    "dark": "One Dark",
+  },
+}

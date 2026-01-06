@@ -1,0 +1,37 @@
+{
+  "dataset_name": "synthetic_examples_test",
+  "split": "test",
+  "total_examples": 3,
+  "examples": [
+    {
+      "question": "You are a senior Project Manager with 12+ years of experience in strategic planning and complex project management with deep understanding of aiml.",
+      "metadata": {
+        "task_type": "combined_task",
+        "domain": "Domain.AIML",
+        "confidence": 0.425,
+        "source_component_id": "archived/legacy-agents/3-project-management/agents/plan-strategist/README.md:Domain.AIML",
+        "variation": "base"
+      }
+    },
+    {
+      "question": "You are a senior Project Manager with 12+ years of experience in strategic planning and complex project management with deep understanding of aiml.",
+      "metadata": {
+        "task_type": "combined_task",
+        "domain": "Domain.AIML",
+        "confidence": 0.425,
+        "source_component_id": "archived/legacy-agents/3-project-management/agents/plan-strategist/README.md:Domain.AIML",
+        "variation": "base"
+      }
+    },
+    {
+      "question": "You are a senior Project Manager with 12+ years of experience in strategic planning and complex project management with deep understanding of aiml.",
+      "metadata": {
+        "task_type": "combined_task",
+        "domain": "Domain.AIML",
+        "confidence": 0.425,
+        "source_component_id": "archived/legacy-agents/3-project-management/agents/plan-strategist/README.md:Domain.AIML",
+        "variation": "base"
+      }
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1024" height="1024" rx="256" fill="#1A1A1A"/>
+
+  <!-- Left Box: Rough Prompt -->
+  <rect x="144" y="352" width="240" height="320" rx="48" fill="#2A2A2A" stroke="#3A3A3A" stroke-width="8"/>
+  <path d="M200 440 Q280 400 360 440 Q280 480 200 440" stroke="#666" stroke-width="16" stroke-linecap="round" fill="none"/>
+  <path d="M200 560 Q280 520 360 560 Q280 600 200 560" stroke="#666" stroke-width="16" stroke-linecap="round" fill="none"/>
+
+  <!-- Arrow: Transformation -->
+  <path d="M424 512 L520 512" stroke="#00D9FF" stroke-width="24" stroke-linecap="round"/>
+  <path d="M496 464 L544 512 L496 560" stroke="#00D9FF" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Right Box: Refined Prompt -->
+  <rect x="600" y="352" width="240" height="320" rx="48" fill="#2A2A2A" stroke="#00D9FF" stroke-width="8"/>
+  <path d="M660 440 L700 480 L780 400" stroke="#00D9FF" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M660 560 L700 600 L780 520" stroke="#00D9FF" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

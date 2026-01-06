@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+
+# OS
+.DS_Store
+*.log
+
+# Build
+dist/
+build/
+
+# Temp
+tmp/
+.tmp/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+
+# Python
+__pycache__/
+*.pyc
+
+# Raycast
+tryray.json
+
+# MCP server (unused for now)
+mcp-server/
+
+# Git worktrees
+.worktrees/
+raycast_ext-worktrees/
+.env.backup*
+
+# Data analysis
+data-eval/
+
+# SQLite databases
+data/
+
+# Local Claude plugin
+.claude/

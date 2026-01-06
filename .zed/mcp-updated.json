@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "raycast-evaluator": {
+      "command": "tsx",
+      "args": ["/Users/felipe_gonzalez/Developer/raycast_ext/mcp-server/src/index.ts"],
+      "cwd": "/Users/felipe_gonzalez/Developer/raycast_ext",
+      "env": {
+        "NODE_ENV": "development"
+      }
+    },
+    "prompt-analysis-converter": {
+      "command": "tsx",
+      "args": ["/Users/felipe_gonzalez/Developer/raycast_ext/mcp-server/src/prompt-converter-server.ts"],
+      "cwd": "/Users/felipe_gonzalez/Developer/raycast_ext/mcp-server",
+      "env": {
+        "NODE_ENV": "development"
+      }
+    }
+  }
+}
