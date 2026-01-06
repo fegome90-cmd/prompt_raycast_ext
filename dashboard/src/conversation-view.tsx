@@ -15,6 +15,8 @@ import { improvePromptWithWizard, continueWizard } from "./core/llm/improvePromp
 import { type ImprovePromptPreset } from "./core/llm/improvePrompt";
 import type { ChatSession } from "./core/conversation/types";
 
+const DEFAULT_MODEL = "hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M";
+
 type Preferences = {
   wizardMode?: "auto" | "always" | "off";
   maxWizardTurns?: string;
@@ -24,6 +26,14 @@ type Preferences = {
   dspyTimeoutMs?: string;
   preset?: string;
 };
+
+const getConfig = (prefs: Preferences) => ({
+  baseUrl: prefs.ollamaBaseUrl ?? "http://localhost:11434",
+  model: prefs.model ?? DEFAULT_MODEL,
+  dspyBaseUrl: prefs.dspyBaseUrl ?? "http://localhost:8000",
+  dspyTimeoutMs: Number.parseInt(prefs.dspyTimeoutMs ?? "120000", 10),
+  preset: prefs.preset ?? "structured",
+});
 
 export default function ConversationView() {
   const preferences = getPreferenceValues<Preferences>();
@@ -44,15 +54,16 @@ export default function ConversationView() {
     setIsLoading(true);
 
     try {
+      const config = getConfig(preferences);
       const result = await improvePromptWithWizard({
         rawInput: values.input,
-        preset: (preferences.preset ?? "structured") as ImprovePromptPreset,
+        preset: config.preset as ImprovePromptPreset,
         wizardMode: preferences.wizardMode ?? "auto",
         maxWizardTurns: Number.parseInt(preferences.maxWizardTurns ?? "2", 10),
-        baseUrl: preferences.ollamaBaseUrl ?? "http://localhost:11434",
-        model: preferences.model ?? "hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M",
-        dspyBaseUrl: preferences.dspyBaseUrl ?? "http://localhost:8000",
-        dspyTimeoutMs: Number.parseInt(preferences.dspyTimeoutMs ?? "120000", 10),
+        baseUrl: config.baseUrl,
+        model: config.model,
+        dspyBaseUrl: config.dspyBaseUrl,
+        dspyTimeoutMs: config.dspyTimeoutMs,
       });
 
       setSession(result.session);
@@ -80,12 +91,13 @@ export default function ConversationView() {
     setShowFollowUpForm(false);
 
     try {
+      const config = getConfig(preferences);
       const result = await continueWizard(session.id, values.response, {
-        baseUrl: preferences.ollamaBaseUrl ?? "http://localhost:11434",
-        model: preferences.model ?? "hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M",
-        dspyBaseUrl: preferences.dspyBaseUrl ?? "http://localhost:8000",
-        dspyTimeoutMs: Number.parseInt(preferences.dspyTimeoutMs ?? "120000", 10),
-        preset: (preferences.preset ?? "structured") as ImprovePromptPreset,
+        baseUrl: config.baseUrl,
+        model: config.model,
+        dspyBaseUrl: config.dspyBaseUrl,
+        dspyTimeoutMs: config.dspyTimeoutMs,
+        preset: config.preset as ImprovePromptPreset,
       });
 
       setSession(result.session);
@@ -112,12 +124,13 @@ export default function ConversationView() {
     setIsLoading(true);
 
     try {
+      const config = getConfig(preferences);
       const result = await continueWizard(session.id, "", {
-        baseUrl: preferences.ollamaBaseUrl ?? "http://localhost:11434",
-        model: preferences.model ?? "hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M",
-        dspyBaseUrl: preferences.dspyBaseUrl ?? "http://localhost:8000",
-        dspyTimeoutMs: Number.parseInt(preferences.dspyTimeoutMs ?? "120000", 10),
-        preset: (preferences.preset ?? "structured") as ImprovePromptPreset,
+        baseUrl: config.baseUrl,
+        model: config.model,
+        dspyBaseUrl: config.dspyBaseUrl,
+        dspyTimeoutMs: config.dspyTimeoutMs,
+        preset: config.preset as ImprovePromptPreset,
       });
 
       setSession(result.session);
@@ -206,9 +219,9 @@ export default function ConversationView() {
         </ActionPanel>
       }
     >
-      {session.messages.map((msg, idx) => (
+      {session.messages.map((msg) => (
         <List.Item
-          key={idx}
+          key={msg.timestamp}
           icon={msg.role === "user" ? "👤" : "🤖"}
           title={msg.content.slice(0, 80) + (msg.content.length > 80 ? "..." : "")}
           subtitle={formatTimestamp(msg.timestamp)}
