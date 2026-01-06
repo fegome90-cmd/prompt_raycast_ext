@@ -9,6 +9,7 @@ Key features:
 - Early stopping at quality threshold (1.0)
 - Trajectory tracking for each iteration
 - Returns best candidate from history
+- KNN few-shot examples in meta-prompts for better guidance
 """
 
 import logging
@@ -20,6 +21,7 @@ from hemdov.domain.dto.nlac_models import (
     OPROIteration,
     OptimizeResponse,
 )
+from hemdov.domain.services.knn_provider import KNNProvider, FewShotExample
 
 logger = logging.getLogger(__name__)
 
@@ -30,20 +32,25 @@ class OPOROptimizer:
 
     Iteratively improves prompts using meta-prompting with trajectory history.
     Based on OPRO research papers.
+
+    Enhanced with KNN few-shot examples from ComponentCatalog for
+    better meta-prompt quality.
     """
 
     MAX_ITERATIONS = 3  # Fixed iterations (latency control per user decision: 5-10 LLM calls)
     QUALITY_THRESHOLD = 1.0  # Early stopping if 100% pass
 
-    def __init__(self, llm_client=None):
+    def __init__(self, llm_client=None, knn_provider: Optional[KNNProvider] = None):
         """
         Initialize optimizer.
 
         Args:
             llm_client: Optional LLM client for generating variations.
                       If None, uses mock evaluation for testing.
+            knn_provider: Optional KNNProvider for few-shot examples in meta-prompts.
         """
         self.llm_client = llm_client
+        self.knn_provider = knn_provider
 
     def run_loop(self, prompt_obj: PromptObject) -> OptimizeResponse:
         """
@@ -190,16 +197,46 @@ class OPOROptimizer:
         return self._simple_refinement(prompt_obj, trajectory)
 
     def _build_meta_prompt(self, candidate: PromptObject, trajectory: List[OPROIteration]) -> str:
-        """Build meta-prompt for next iteration."""
+        """
+        Build meta-prompt for next iteration.
+
+        Enhanced with KNN few-shot examples to guide the LLM toward
+        better prompt variations.
+        """
+        # Build base meta-prompt
         if not trajectory:
-            return f"Improve this prompt: {candidate.template[:100]}..."
+            base_prompt = f"Improve this prompt: {candidate.template[:100]}..."
+        else:
+            history = "\n".join([
+                f"Iteration {t.iteration_number}: score={t.score:.2f}, feedback={t.feedback}"
+                for t in trajectory[-2:]  # Last 2 iterations
+            ])
+            base_prompt = f"Previous attempts:\n{history}\n\nGenerate improved version."
 
-        history = "\n".join([
-            f"Iteration {t.iteration_number}: score={t.score:.2f}, feedback={t.feedback}"
-            for t in trajectory[-2:]  # Last 2 iterations
-        ])
+        # Add few-shot examples if KNNProvider available
+        if self.knn_provider:
+            # Fetch examples based on intent
+            intent_str = candidate.strategy_meta.get("intent", "generate")
+            complexity_str = candidate.strategy_meta.get("complexity", "moderate")
 
-        return f"Previous attempts:\n{history}\n\nGenerate improved version."
+            fewshot_examples = self.knn_provider.find_examples(
+                intent=intent_str,
+                complexity=complexity_str,
+                k=2  # Use 2 examples for meta-prompt (keep it concise)
+            )
+
+            if fewshot_examples:
+                examples_section = "\n\n## Reference Examples\nThese examples show good prompt patterns:\n\n"
+                for i, ex in enumerate(fewshot_examples, 1):
+                    examples_section += f"### Example {i}\n"
+                    examples_section += f"**Input:** {ex.input_idea}\n"
+                    if ex.input_context:
+                        examples_section += f"**Context:** {ex.input_context}\n"
+                    examples_section += f"**Improved:** {ex.improved_prompt}\n\n"
+
+                return base_prompt + examples_section
+
+        return base_prompt
 
     def _evaluate(self, prompt_obj: PromptObject) -> tuple[float, str]:
         """
