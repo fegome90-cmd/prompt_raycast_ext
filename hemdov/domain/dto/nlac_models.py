@@ -6,7 +6,7 @@ executable objects rather than plain strings.
 """
 
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional, Literal, Dict, Any
+from typing import Optional, Literal, Dict, Any, NotRequired, TypedDict
 from enum import Enum
 
 
@@ -27,6 +27,52 @@ class TestType(str, Enum):
     UNIT = "unit"
     INTEGRATION = "integration"
     E2E = "e2e"
+
+
+# ============================================================================
+# TypedDict Definitions (Type-safe dictionaries)
+# ============================================================================
+
+class StrategyMetadata(TypedDict):
+    """
+    Type-safe dictionary for strategy metadata.
+
+    Expected keys:
+        intent: str - Intent classification (debug, refactor, generate, explain)
+        complexity: str - Complexity level (simple, moderate, complex)
+        knn_enabled: bool - Whether KNN few-shot was used
+        fewshot_count: int - Number of few-shot examples injected
+        rar_used: Whether RaR (Rephrase and Respond) was used
+        role: str - Role assigned to the AI
+        directive: str - Primary directive/instruction
+        framework: str - Framework or methodology used
+    """
+    intent: str
+    complexity: str
+    knn_enabled: bool
+    fewshot_count: int
+    role: str
+    directive: str
+    framework: str
+    rar_used: NotRequired[bool]
+
+
+class PromptConstraints(TypedDict):
+    """
+    Type-safe dictionary for prompt constraints.
+
+    Expected keys:
+        max_tokens: Maximum tokens in response
+        min_tokens: Minimum tokens in response
+        format: Required output format (json, markdown, etc.)
+        temperature: LLM temperature (0.0-1.0)
+        timeout_seconds: Maximum execution time
+    """
+    max_tokens: NotRequired[int]
+    min_tokens: NotRequired[int]
+    format: NotRequired[str]
+    temperature: NotRequired[float]
+    timeout_seconds: NotRequired[int]
 
 
 # ============================================================================
@@ -147,16 +193,16 @@ class PromptObject(BaseModel):
     # Core template (the actual prompt template)
     template: str = Field(..., description="Prompt template with placeholders")
 
-    # Strategy metadata
+    # Strategy metadata (should conform to StrategyMetadata TypedDict)
     strategy_meta: Dict[str, Any] = Field(
         default_factory=dict,
-        description="Strategy used, complexity, routing decisions"
+        description="Strategy used, complexity, routing decisions. Expected to conform to StrategyMetadata TypedDict."
     )
 
-    # Constraints
+    # Constraints (should conform to PromptConstraints TypedDict)
     constraints: Dict[str, Any] = Field(
         default_factory=dict,
-        description="Constraints like max_tokens, format requirements, etc."
+        description="Constraints like max_tokens, format requirements, etc. Expected to conform to PromptConstraints TypedDict."
     )
 
     # Metadata
