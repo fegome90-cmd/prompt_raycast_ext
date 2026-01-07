@@ -6,11 +6,13 @@ The "Compiler" for NLaC - builds structured prompts using:
 - RaR (Rephrase and Respond) for complex inputs
 - Context Injection for SQL schemas
 - Strategy selection based on complexity + intent
+- KNN few-shot examples from ComponentCatalog
 """
 
 import logging
 import uuid
 from datetime import datetime, UTC
+from typing import Optional, List
 
 from hemdov.domain.dto.nlac_models import (
     NLaCRequest,
@@ -18,6 +20,7 @@ from hemdov.domain.dto.nlac_models import (
     IntentType,
 )
 from hemdov.domain.services.intent_classifier import IntentClassifier
+from hemdov.domain.services.knn_provider import KNNProvider, FewShotExample
 
 # Import existing complexity analyzer
 import sys
@@ -34,12 +37,19 @@ class NLaCBuilder:
     Based on:
     - DSPy compiler pattern (prompt optimization)
     - MultiAIGCD techniques (role injection, RaR)
+    - KNN few-shot learning (ComponentCatalog)
     """
 
-    def __init__(self):
-        """Initialize builder with dependencies."""
+    def __init__(self, knn_provider: Optional[KNNProvider] = None):
+        """
+        Initialize builder with dependencies.
+
+        Args:
+            knn_provider: Optional KNNProvider for few-shot examples
+        """
         self.complexity_analyzer = ComplexityAnalyzer()
         self.intent_classifier = IntentClassifier()
+        self.knn_provider = knn_provider
 
     def build(self, request: NLaCRequest) -> PromptObject:
         """
@@ -50,8 +60,9 @@ class NLaCBuilder:
         2. Analyze complexity
         3. Select strategy
         4. Inject role
-        5. Build template (with RaR if complex)
-        6. Compile metadata
+        5. Fetch KNN examples (if KNNProvider available)
+        6. Build template (with RaR if complex, with few-shot examples)
+        7. Compile metadata
 
         Args:
             request: NLaCRequest with idea, context, inputs
@@ -80,22 +91,42 @@ class NLaCBuilder:
         # Step 4: Inject role
         role = self._inject_role(intent_str, complexity)
 
-        # Step 5: Build template
-        if complexity == ComplexityLevel.COMPLEX:
-            template = self._build_rar_template(request, role)
-        else:
-            template = self._build_simple_template(request, role)
+        # Step 5: Fetch KNN examples
+        fewshot_examples: List[FewShotExample] = []
+        if self.knn_provider:
+            # Determine k based on complexity (k=3 for simple/moderate, k=5 for complex)
+            k = 5 if complexity == ComplexityLevel.COMPLEX else 3
 
-        # Step 6: Build strategy metadata
+            # For REFACTOR, filter by expected_output (CRITICAL for MultiAIGCD Scenario III)
+            has_expected_output = intent_str.startswith("refactor")
+
+            fewshot_examples = self.knn_provider.find_examples(
+                intent=intent_str,
+                complexity=complexity.value,
+                k=k,
+                has_expected_output=has_expected_output
+            )
+
+            logger.info(f"Fetched {len(fewshot_examples)} KNN examples for {intent_str}/{complexity.value}")
+
+        # Step 6: Build template
+        if complexity == ComplexityLevel.COMPLEX:
+            template = self._build_rar_template(request, role, fewshot_examples)
+        else:
+            template = self._build_simple_template(request, role, fewshot_examples)
+
+        # Step 7: Build strategy metadata
         strategy_meta = {
             "strategy": strategy,
             "complexity": complexity.value,
             "intent": intent_str,
             "role": role,
             "rar_used": complexity == ComplexityLevel.COMPLEX,
+            "fewshot_count": len(fewshot_examples),  # Track KNN examples
+            "knn_enabled": self.knn_provider is not None,
         }
 
-        # Step 7: Build constraints
+        # Step 8: Build constraints
         constraints = self._build_constraints(request, complexity)
 
         return PromptObject(
@@ -170,8 +201,8 @@ class NLaCBuilder:
             else:
                 return "Software Engineer"
 
-    def _build_simple_template(self, request: NLaCRequest, role: str) -> str:
-        """Build simple template without RaR."""
+    def _build_simple_template(self, request: NLaCRequest, role: str, fewshot_examples: List[FewShotExample] = None) -> str:
+        """Build simple template without RaR, optionally with few-shot examples."""
         template_parts = [
             f"# Role\nYou are a {role}.",
             "",
@@ -213,16 +244,38 @@ class NLaCBuilder:
                     f"# Target Language: {request.inputs.target_language}",
                 ])
 
+        # Add few-shot examples if available
+        if fewshot_examples:
+            template_parts.extend([
+                "",
+                "# Examples",
+                "Here are some similar examples to guide you:",
+                "",
+            ])
+            for i, ex in enumerate(fewshot_examples, 1):
+                template_parts.extend([
+                    f"## Example {i}",
+                    f"**Input:** {ex.input_idea}",
+                ])
+                if ex.input_context:
+                    template_parts.append(f"**Context:** {ex.input_context}")
+                template_parts.extend([
+                    f"**Output:** {ex.improved_prompt}",
+                    "",
+                ])
+
         return "\n".join(template_parts)
 
-    def _build_rar_template(self, request: NLaCRequest, role: str) -> str:
+    def _build_rar_template(self, request: NLaCRequest, role: str, fewshot_examples: List[FewShotExample] = None) -> str:
         """
-        Build template with RaR (Rephrase and Respond).
+        Build template with RaR (Rephrase and Respond) and few-shot examples.
 
         For complex inputs, we first rephrase the request to:
         1. Clarify ambiguity
         2. Expand implicit requirements
         3. Structure the problem space
+
+        Few-shot examples are added after RaR for guidance.
         """
         template_parts = [
             f"# Role",
@@ -273,6 +326,26 @@ class NLaCBuilder:
 
             if request.inputs.target_framework:
                 template_parts.append(f"\n**Framework:** {request.inputs.target_framework}")
+
+        # Add few-shot examples if available
+        if fewshot_examples:
+            template_parts.extend([
+                "",
+                "## Reference Examples",
+                "These examples may help guide your approach:",
+                "",
+            ])
+            for i, ex in enumerate(fewshot_examples[:3], 1):  # Limit to 3 for RAR
+                template_parts.extend([
+                    f"### Example {i}",
+                    f"**Request:** {ex.input_idea}",
+                ])
+                if ex.input_context:
+                    template_parts.append(f"**Context:** {ex.input_context}")
+                template_parts.extend([
+                    f"**Response:** {ex.improved_prompt}",
+                    "",
+                ])
 
         # Add requirements
         template_parts.extend([

@@ -5,7 +5,7 @@ Tests frozen dataclasses, validation, and composite score calculations.
 """
 
 import pytest
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from hemdov.domain.metrics.dimensions import (
     QualityMetrics,
     PerformanceMetrics,
@@ -264,7 +264,7 @@ def test_impact_metrics_grade():
 
 def test_improvement_metrics_creation():
     """Test creating ImprovementMetrics."""
-    baseline_time = datetime.now(timezone.utc)
+    baseline_time = datetime.now(UTC)
     improvement = ImprovementMetrics(
         version="v2.0",
         baseline_quality=0.70,
@@ -296,7 +296,7 @@ def test_improvement_metrics_negative_delta():
         current_quality=0.70,
         current_performance=0.60,
         current_impact=0.50,
-        measured_at=datetime.now(timezone.utc),
+        measured_at=datetime.now(UTC),
     )
 
     assert decline.quality_delta < 0
@@ -315,7 +315,7 @@ def test_improvement_metrics_trend():
         current_quality=0.85,
         current_performance=0.85,
         current_impact=0.85,
-        measured_at=datetime.now(timezone.utc),
+        measured_at=datetime.now(UTC),
     )
     assert "Improving" in strongly_improving.trend
 
@@ -327,7 +327,7 @@ def test_improvement_metrics_trend():
         current_quality=0.76,
         current_performance=0.74,
         current_impact=0.75,
-        measured_at=datetime.now(timezone.utc),
+        measured_at=datetime.now(UTC),
     )
     assert "Stable" in stable.trend
 
@@ -339,7 +339,7 @@ def test_improvement_metrics_trend():
         current_quality=0.60,
         current_performance=0.60,
         current_impact=0.60,
-        measured_at=datetime.now(timezone.utc),
+        measured_at=datetime.now(UTC),
     )
     assert "Declining" in declining.trend
 
@@ -372,7 +372,7 @@ def test_prompt_metrics_creation():
             feedback_score=4,
             reuse_count=2,
         ),
-        measured_at=datetime.now(timezone.utc),
+        measured_at=datetime.now(UTC),
         framework=FrameworkType.CHAIN_OF_THOUGHT,
         provider="anthropic",
         model="claude-haiku-4-5-20251001",
@@ -398,7 +398,7 @@ def test_prompt_metrics_overall_score():
         quality=QualityMetrics(0.9, 0.9, 0.9, 0.9, 3, True),  # High quality
         performance=PerformanceMetrics(15000, 3000, 0.05, "anthropic", "claude-haiku-4-5-20251001", "zero-shot"),  # Medium
         impact=ImpactMetrics(1, 3, 3, 0),  # Low impact
-        measured_at=datetime.now(timezone.utc),
+        measured_at=datetime.now(UTC),
         framework=FrameworkType.CHAIN_OF_THOUGHT,
         provider="anthropic",
         model="claude-haiku-4-5-20251001",
@@ -420,7 +420,7 @@ def test_prompt_metrics_is_acceptable():
         quality=QualityMetrics(0.7, 0.7, 0.7, 0.7, 0, True),  # composite_score >= 0.60
         performance=PerformanceMetrics(15000, 2500, 0.04, "anthropic", "claude-haiku-4-5-20251001", "zero-shot"),  # score >= 0.40
         impact=ImpactMetrics(copy_count=5, regeneration_count=0, feedback_score=5, reuse_count=1),  # success_rate = 1.0
-        measured_at=datetime.now(timezone.utc),
+        measured_at=datetime.now(UTC),
         framework=FrameworkType.CHAIN_OF_THOUGHT,
         provider="anthropic",
         model="claude-haiku-4-5-20251001",
@@ -436,7 +436,7 @@ def test_prompt_metrics_is_acceptable():
         quality=QualityMetrics(0.5, 0.5, 0.5, 0.5, 0, False),  # composite_score < 0.60
         performance=PerformanceMetrics(15000, 2500, 0.04, "anthropic", "claude-haiku-4-5-20251001", "zero-shot"),
         impact=ImpactMetrics(copy_count=5, regeneration_count=0, feedback_score=5, reuse_count=2),
-        measured_at=datetime.now(timezone.utc),
+        measured_at=datetime.now(UTC),
         framework=FrameworkType.CHAIN_OF_THOUGHT,
         provider="anthropic",
         model="claude-haiku-4-5-20251001",
@@ -454,7 +454,7 @@ def test_prompt_metrics_immutability():
         quality=QualityMetrics(0.8, 0.8, 0.8, 0.8, 0, True),
         performance=PerformanceMetrics(5000, 1000, 0.01, "anthropic", "claude-haiku-4-5-20251001", "zero-shot"),
         impact=ImpactMetrics(),
-        measured_at=datetime.now(timezone.utc),
+        measured_at=datetime.now(UTC),
         framework=FrameworkType.CHAIN_OF_THOUGHT,
         provider="anthropic",
         model="claude-haiku-4-5-20251001",
@@ -483,7 +483,7 @@ def test_prompt_metrics_to_dict():
         quality=QualityMetrics(0.8, 0.8, 0.8, 0.8, 3, True),
         performance=PerformanceMetrics(5000, 1000, 0.01, "anthropic", "claude-haiku-4-5-20251001", "zero-shot"),
         impact=ImpactMetrics(copy_count=5, regeneration_count=1, feedback_score=4, reuse_count=2),
-        measured_at=datetime.now(timezone.utc),
+        measured_at=datetime.now(UTC),
         framework=FrameworkType.CHAIN_OF_THOUGHT,
         provider="anthropic",
         model="claude-haiku-4-5-20251001",
@@ -525,7 +525,7 @@ def test_prompt_metrics_grade_boundaries():
         quality=QualityMetrics(0.95, 0.95, 0.95, 0.95, 5, True),
         performance=PerformanceMetrics(3000, 800, 0.005, "anthropic", "claude-haiku-4-5-20251001", "zero-shot"),
         impact=ImpactMetrics(copy_count=10, regeneration_count=0, feedback_score=5, reuse_count=5),
-        measured_at=datetime.now(timezone.utc),
+        measured_at=datetime.now(UTC),
         framework=FrameworkType.CHAIN_OF_THOUGHT,
         provider="anthropic",
         model="claude-haiku-4-5-20251001",
@@ -543,7 +543,7 @@ def test_prompt_metrics_grade_boundaries():
         quality=QualityMetrics(0.80, 0.80, 0.80, 0.80, 2, True),  # Base ~0.80 + 0.10 + 0.10 = 1.0 capped
         performance=PerformanceMetrics(4500, 1000, 0.01, "anthropic", "claude-haiku-4-5-20251001", "zero-shot"),
         impact=ImpactMetrics(copy_count=7, regeneration_count=1, feedback_score=5, reuse_count=3),
-        measured_at=datetime.now(timezone.utc),
+        measured_at=datetime.now(UTC),
         framework=FrameworkType.CHAIN_OF_THOUGHT,
         provider="anthropic",
         model="claude-haiku-4-5-20251001",
@@ -561,7 +561,7 @@ def test_prompt_metrics_grade_boundaries():
         quality=QualityMetrics(0.75, 0.75, 0.75, 0.75, 1, True),  # Base ~0.75 + 0.10 + 0.05 = 0.90
         performance=PerformanceMetrics(7000, 1400, 0.02, "anthropic", "claude-haiku-4-5-20251001", "zero-shot"),
         impact=ImpactMetrics(copy_count=5, regeneration_count=1, feedback_score=4, reuse_count=2),
-        measured_at=datetime.now(timezone.utc),
+        measured_at=datetime.now(UTC),
         framework=FrameworkType.CHAIN_OF_THOUGHT,
         provider="anthropic",
         model="claude-haiku-4-5-20251001",
@@ -579,7 +579,7 @@ def test_prompt_metrics_grade_boundaries():
         quality=QualityMetrics(0.78, 0.78, 0.78, 0.78, 2, True),
         performance=PerformanceMetrics(9000, 1600, 0.022, "anthropic", "claude-haiku-4-5-20251001", "zero-shot"),
         impact=ImpactMetrics(copy_count=4, regeneration_count=1, feedback_score=4, reuse_count=2),
-        measured_at=datetime.now(timezone.utc),
+        measured_at=datetime.now(UTC),
         framework=FrameworkType.CHAIN_OF_THOUGHT,
         provider="anthropic",
         model="claude-haiku-4-5-20251001",
@@ -597,7 +597,7 @@ def test_prompt_metrics_grade_boundaries():
         quality=QualityMetrics(0.74, 0.74, 0.74, 0.74, 1, True),
         performance=PerformanceMetrics(12000, 2000, 0.03, "anthropic", "claude-haiku-4-5-20251001", "zero-shot"),
         impact=ImpactMetrics(copy_count=3, regeneration_count=2, feedback_score=3, reuse_count=1),
-        measured_at=datetime.now(timezone.utc),
+        measured_at=datetime.now(UTC),
         framework=FrameworkType.CHAIN_OF_THOUGHT,
         provider="anthropic",
         model="claude-haiku-4-5-20251001",
@@ -615,7 +615,7 @@ def test_prompt_metrics_grade_boundaries():
         quality=QualityMetrics(0.70, 0.70, 0.70, 0.70, 1, True),
         performance=PerformanceMetrics(15000, 2400, 0.04, "anthropic", "claude-haiku-4-5-20251001", "zero-shot"),
         impact=ImpactMetrics(copy_count=2, regeneration_count=2, feedback_score=3, reuse_count=1),
-        measured_at=datetime.now(timezone.utc),
+        measured_at=datetime.now(UTC),
         framework=FrameworkType.CHAIN_OF_THOUGHT,
         provider="anthropic",
         model="claude-haiku-4-5-20251001",
@@ -632,7 +632,7 @@ def test_prompt_metrics_grade_boundaries():
         quality=QualityMetrics(0.66, 0.66, 0.66, 0.66, 0, True),
         performance=PerformanceMetrics(18000, 3000, 0.06, "anthropic", "claude-haiku-4-5-20251001", "zero-shot"),
         impact=ImpactMetrics(copy_count=2, regeneration_count=3, feedback_score=3, reuse_count=0),
-        measured_at=datetime.now(timezone.utc),
+        measured_at=datetime.now(UTC),
         framework=FrameworkType.CHAIN_OF_THOUGHT,
         provider="anthropic",
         model="claude-haiku-4-5-20251001",
@@ -650,7 +650,7 @@ def test_prompt_metrics_grade_boundaries():
         quality=QualityMetrics(0.65, 0.65, 0.65, 0.65, 0, True),  # Higher quality for C range
         performance=PerformanceMetrics(22000, 3800, 0.075, "anthropic", "claude-haiku-4-5-20251001", "zero-shot"),
         impact=ImpactMetrics(copy_count=1, regeneration_count=4, feedback_score=2, reuse_count=0),
-        measured_at=datetime.now(timezone.utc),
+        measured_at=datetime.now(UTC),
         framework=FrameworkType.CHAIN_OF_THOUGHT,
         provider="anthropic",
         model="claude-haiku-4-5-20251001",
@@ -668,7 +668,7 @@ def test_prompt_metrics_grade_boundaries():
         quality=QualityMetrics(0.52, 0.52, 0.52, 0.52, 0, False),
         performance=PerformanceMetrics(28000, 4800, 0.095, "anthropic", "claude-haiku-4-5-20251001", "zero-shot"),
         impact=ImpactMetrics(copy_count=0, regeneration_count=5, feedback_score=1, reuse_count=0),
-        measured_at=datetime.now(timezone.utc),
+        measured_at=datetime.now(UTC),
         framework=FrameworkType.CHAIN_OF_THOUGHT,
         provider="anthropic",
         model="claude-haiku-4-5-20251001",

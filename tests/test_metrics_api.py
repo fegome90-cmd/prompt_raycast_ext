@@ -10,7 +10,7 @@ Test coverage for:
 
 import pytest
 from fastapi.testclient import TestClient
-from datetime import datetime, timedelta
+from datetime import datetime, UTC, timedelta
 import asyncio
 
 from main import app
@@ -90,7 +90,7 @@ def test_get_metrics_summary(test_client):
             feedback_score=4,
             reuse_count=2,
         ),
-        measured_at=datetime.utcnow(),
+        measured_at=datetime.now(UTC),
         framework=FrameworkType.CHAIN_OF_THOUGHT,
         provider="anthropic",
         model="claude-haiku-4-5-20251001",
@@ -137,7 +137,7 @@ def test_get_trends(test_client):
     repo = container.get(SQLiteMetricsRepository)
 
     # Create sample metrics over time
-    base_time = datetime.utcnow() - timedelta(days=2)
+    base_time = datetime.now(UTC) - timedelta(days=2)
 
     async def create_metrics():
         for i in range(5):
@@ -232,7 +232,7 @@ def test_compare_metrics(test_client):
                     feedback_score=4,
                     reuse_count=2,
                 ),
-                measured_at=datetime.utcnow(),
+                measured_at=datetime.now(UTC),
                 framework=FrameworkType.CHAIN_OF_THOUGHT,
                 provider="anthropic",
                 model="claude-haiku-4-5-20251001",
@@ -268,7 +268,7 @@ def test_compare_metrics(test_client):
                     feedback_score=5,
                     reuse_count=3,
                 ),
-                measured_at=datetime.utcnow(),
+                measured_at=datetime.now(UTC),
                 framework=FrameworkType.CHAIN_OF_THOUGHT,
                 provider="anthropic",
                 model="claude-sonnet-4-5-20251001",

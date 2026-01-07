@@ -42,6 +42,7 @@ class SQLitePromptRepository(PromptRepository):
             try:
                 await self._configure_connection(self._connection)
             except Exception:
+                logger.exception("Failed to configure SQLite connection, cleaning up")
                 # Clean up connection if configure fails
                 await self._connection.close()
                 self._connection = None
@@ -220,8 +221,11 @@ class SQLitePromptRepository(PromptRepository):
         # Safely parse JSON, fallback to safe default on corruption
         try:
             guardrails = json.loads(row["guardrails"])
-        except (json.JSONDecodeError, TypeError):
-            logger.warning(f"Invalid JSON in guardrails for record {row['id']}, using fallback value")
+        except (json.JSONDecodeError, TypeError) as e:
+            logger.exception(
+                f"Invalid JSON in guardrails for record {row['id']}. "
+                f"Raw value: {repr(str(row['guardrails'])[:200])}. Using fallback value."
+            )
             # Use fallback that won't trigger validation error but indicates data issue
             guardrails = ["[data corrupted - unavailable]"]
 

@@ -15,7 +15,7 @@ Key Principles:
 import re
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass, field
 
@@ -514,7 +514,7 @@ class PromptMetricsCalculator:
             quality=quality,
             performance=performance,
             impact=impact,
-            measured_at=datetime.utcnow(),
+            measured_at=datetime.now(UTC),
             framework=framework,
             provider=performance.provider,
             model=performance.model,

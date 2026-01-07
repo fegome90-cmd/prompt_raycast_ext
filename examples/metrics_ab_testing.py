@@ -6,7 +6,7 @@ Demonstrates how to compare two groups of prompts using the metrics framework.
 """
 
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, UTC, timedelta
 from hemdov.infrastructure.persistence.metrics_repository import (
     SQLiteMetricsRepository,
 )
@@ -29,7 +29,7 @@ async def main() -> None:
 
     try:
         # Get recent metrics
-        end = datetime.utcnow()
+        end = datetime.now(UTC)
         start = end - timedelta(days=30)
         all_metrics = await repo.get_by_date_range(start, end, limit=500)
 

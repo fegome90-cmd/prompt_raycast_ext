@@ -1,6 +1,6 @@
 # api/circuit_breaker.py
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from typing import Optional
 import logging
 
@@ -27,7 +27,7 @@ class CircuitBreaker:
         async with self._lock:
             # Check if disabled
             if self._disabled_until:
-                if datetime.utcnow() < self._disabled_until:
+                if datetime.now(UTC) < self._disabled_until:
                     logger.warning(
                         f"Circuit breaker open until {self._disabled_until.isoformat()}"
                     )
@@ -53,7 +53,7 @@ class CircuitBreaker:
             self._failure_count += 1
 
             if self._failure_count >= self._max_failures:
-                self._disabled_until = datetime.utcnow() + timedelta(
+                self._disabled_until = datetime.now(UTC) + timedelta(
                     seconds=self._timeout_seconds
                 )
                 logger.error(
