@@ -7,10 +7,17 @@ Cache key is SHA256(idea + context + mode) for deterministic lookups.
 
 import hashlib
 import logging
-from typing import Optional
+from typing import Optional, TypedDict
 from datetime import datetime, UTC
 
 from hemdov.domain.dto.nlac_models import PromptObject, NLaCRequest
+
+
+class CacheStats(TypedDict):
+    """Type-safe cache statistics dictionary."""
+    total_entries: int
+    total_hits: int
+    avg_hit_count: float
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +107,16 @@ class PromptCache:
         cache_key = self.generate_key(request)
         now = datetime.now(UTC).isoformat()
 
-        # Store in persistent cache
+        # ALWAYS store in memory cache first (for fast reads)
+        self._memory_cache[cache_key] = {
+            "prompt_obj": prompt_obj,
+            "hit_count": 0,  # Starts at 0, incremented on get
+            "created_at": now,
+            "last_accessed": now,
+        }
+        logger.debug(f"Cached to memory: {cache_key[:8]}...")
+
+        # Try persistent cache (for durability)
         if self.repository:
             try:
                 await self.repository.cache_prompt(
@@ -109,18 +125,8 @@ class PromptCache:
                     improved_prompt=prompt_obj.template,
                 )
                 logger.debug(f"Cached to repository: {cache_key[:8]}...")
-                return
             except Exception as e:
-                logger.warning(f"Cache write failed: {e}, falling back to memory")
-
-        # Fallback to in-memory cache
-        self._memory_cache[cache_key] = {
-            "prompt_obj": prompt_obj,
-            "hit_count": 0,  # Starts at 0, incremented on get
-            "created_at": now,
-            "last_accessed": now,
-        }
-        logger.debug(f"Cached to memory: {cache_key[:8]}...")
+                logger.warning(f"Failed to persist to repository: {e}")
 
     async def invalidate(self, request: NLaCRequest) -> bool:
         """
@@ -152,7 +158,7 @@ class PromptCache:
 
         return False
 
-    async def get_stats(self) -> dict:
+    async def get_stats(self) -> dict[str, object]:
         """
         Get cache statistics.
 
