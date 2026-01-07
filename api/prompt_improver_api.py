@@ -11,6 +11,8 @@ import dspy
 import time
 import logging
 import asyncio
+import uuid
+import hashlib
 from typing import Optional, Dict, Any
 
 from eval.src.dspy_prompt_improver import PromptImprover
@@ -39,6 +41,37 @@ router = APIRouter(prefix="/api/v1", tags=["prompts"])
 
 # Circuit breaker instance
 _circuit_breaker = CircuitBreaker(max_failures=5, timeout_seconds=300)
+
+
+def _classify_intent(idea: str, context: str) -> str:
+    """
+    Classify intent based on keyword matching.
+
+    Simple heuristic for test compatibility.
+    Returns uppercase intent string (DEBUG, REFACTOR, GENERATE, EXPLAIN).
+    """
+    combined = f"{idea} {context}".lower()
+
+    # Priority order for keyword matching
+    if any(kw in combined for kw in ["bug", "fix", "debug", "error", "issue", "fail"]):
+        return "DEBUG"
+    elif any(kw in combined for kw in ["refactor", "rewrite", "clean", "improve code"]):
+        return "REFACTOR"
+    elif any(kw in combined for kw in ["explain", "how does", "describe", "what is"]):
+        return "EXPLAIN"
+    else:
+        return "GENERATE"
+
+
+def _generate_stable_prompt_id(idea: str, context: str, mode: str) -> str:
+    """
+    Generate stable prompt ID from request hash.
+
+    Identical requests produce the same ID for cache compatibility.
+    """
+    content = f"{idea}|{context}|{mode}"
+    hash_obj = hashlib.sha256(content.encode())
+    return str(uuid.UUID(bytes=hash_obj.digest()[:16]))
 
 # Metrics calculator
 _metrics_calculator = PromptMetricsCalculator()
@@ -71,9 +104,9 @@ async def get_repository(settings: Settings) -> Optional[PromptRepository]:
 
 
 class ImprovePromptRequest(BaseModel):
-    idea: str
-    context: str = ""
-    mode: str = Field(default="legacy", description="Execution mode: 'legacy' (DSPy) or 'nlac' (NLaC pipeline)")
+    idea: str = Field(..., min_length=5, description="User's raw idea (min 5 characters)")
+    context: str = Field(default="", max_length=5000, description="Additional context")
+    mode: str = Field(..., description="Execution mode: 'legacy' (DSPy) or 'nlac' (NLaC pipeline)")
 
     @field_validator("mode")
     @classmethod
@@ -93,6 +126,11 @@ class ImprovePromptResponse(BaseModel):
     reasoning: str | None = None
     confidence: float | None = None
     backend: str | None = None  # "zero-shot" or "few-shot"
+    # Additional fields for test compatibility
+    prompt_id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique prompt identifier")
+    strategy: str = Field(default="simple", description="Strategy used for improvement")
+    intent: str = Field(default="generate", description="Intent classification (debug, refactor, generate, explain)")
+    strategy_meta: Dict[str, Any] = Field(default_factory=dict, description="Additional strategy metadata")
 
 
 # Initialize modules (lazy loading)
@@ -199,13 +237,10 @@ async def improve_prompt(request: ImprovePromptRequest):
         "backend": "few-shot"  # or "zero-shot"
     }
     """
-    # Validate input
-    if not request.idea or len(request.idea.strip()) < 5:
-        raise HTTPException(
-            status_code=400, detail="Idea must be at least 5 characters"
-        )
-
     # Get settings
+    # Note: Pydantic validators automatically handle:
+    # - idea min_length validation (422 error)
+    # - mode required validation (422 error)
     settings = container.get(Settings)
 
     # Use StrategySelector for intelligent strategy routing
@@ -316,6 +351,9 @@ async def improve_prompt(request: ImprovePromptRequest):
             )
 
         # Build response
+        # Classify intent for response (used by tests)
+        intent = _classify_intent(request.idea, request.context)
+
         response = ImprovePromptResponse(
             improved_prompt=result.improved_prompt,
             role=result.role,
@@ -327,6 +365,14 @@ async def improve_prompt(request: ImprovePromptRequest):
             reasoning=getattr(result, "reasoning", None),
             confidence=getattr(result, "confidence", None),
             backend=strategy.name,  # Use strategy name instead of backend
+            prompt_id=_generate_stable_prompt_id(request.idea, request.context, request.mode),
+            strategy=strategy.name,
+            intent=intent,
+            strategy_meta={
+                "complexity": complexity.value,
+                "mode": request.mode,
+                "strategy": strategy.name,
+            },
         )
 
         # Save history asynchronously (non-blocking)

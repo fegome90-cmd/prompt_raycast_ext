@@ -471,7 +471,8 @@ class TestEndToEndPipeline:
         data = response.json()
 
         # Complex request should trigger appropriate strategy
-        assert data["strategy"] in ["simple", "moderate", "complex"]
+        # NLaC mode uses "nlac" strategy, legacy mode uses simple/moderate/complex
+        assert data["strategy"] in ["simple", "moderate", "complex", "nlac"]
 
         # Prompt should be comprehensive
         prompt = data["improved_prompt"]
