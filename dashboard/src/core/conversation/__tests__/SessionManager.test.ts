@@ -29,6 +29,7 @@ describe("SessionManager", () => {
       expect(session.wizard.enabled).toBe(true);
       expect(session.wizard.bypassed).toBe(false);
       expect(session.wizard.resolved).toBe(false);
+      expect(session.wizard.canOfferSkip).toBe(false); // Low confidence
       expect(session.wizard.nlacAnalysis).toEqual({
         intent: "GENERATE",
         complexity: "SIMPLE",
@@ -36,19 +37,20 @@ describe("SessionManager", () => {
       });
     });
 
-    it("should disable wizard when confidence is high", async () => {
+    it("should disable wizard when confidence is high and maxTurns=1", async () => {
       const session = await SessionManager.createSession(
         "clear detailed input with specific requirements",
         "structured",
         "dspy",
         "auto",
-        2,
+        1, // maxTurns=1 means user doesn't want wizard
         { intent: "REFACTOR", complexity: "SIMPLE", confidence: 0.9 }
       );
 
       expect(session.wizard.enabled).toBe(false);
       expect(session.wizard.bypassed).toBe(true);
       expect(session.wizard.resolved).toBe(true);
+      expect(session.wizard.canOfferSkip).toBe(false); // maxTurns=1
     });
 
     it("should always enable wizard in always mode", async () => {
@@ -79,6 +81,7 @@ describe("SessionManager", () => {
       expect(session.wizard.enabled).toBe(false);
       expect(session.wizard.bypassed).toBe(true);
       expect(session.wizard.resolved).toBe(true);
+      expect(session.wizard.canOfferSkip).toBe(false); // Off mode
     });
 
     it("should use user's configured maxTurns regardless of complexity", async () => {
@@ -106,17 +109,18 @@ describe("SessionManager", () => {
       expect(complexSession.wizard.config.maxTurns).toBe(1);
     });
 
-    it("should enable wizard at exact confidence threshold (0.7)", async () => {
+    it("should NOT enable wizard at exact confidence threshold (0.7) when maxTurns=1", async () => {
       const session = await SessionManager.createSession(
         "test input",
         "structured",
         "dspy",
         "auto",
-        2,
+        1, // maxTurns=1 means user doesn't want wizard
         { intent: "ANALYZE", complexity: "SIMPLE", confidence: 0.7 }
       );
 
-      // confidence < 0.7 enables wizard, so 0.7 should NOT enable
+      // confidence < 0.7 OR maxTurns > 1 enables wizard
+      // Here: confidence=0.7 (not < 0.7) AND maxTurns=1 (not > 1) → wizard disabled
       expect(session.wizard.enabled).toBe(false);
     });
 
@@ -144,6 +148,101 @@ describe("SessionManager", () => {
       );
 
       expect(session.wizard.enabled).toBe(true);
+    });
+
+    it("should enable wizard when maxTurns > 1 regardless of confidence", async () => {
+      const session = await SessionManager.createSession(
+        "clear and specific input",
+        "structured",
+        "dspy",
+        "auto",
+        3, // maxTurns > 1 = user explicitly wants wizard
+        { intent: "ANALYZE", complexity: "SIMPLE", confidence: 0.95 }
+      );
+
+      // User configured 3 turns, so wizard should enable even with high confidence
+      expect(session.wizard.enabled).toBe(true);
+      expect(session.wizard.config.maxTurns).toBe(3);
+    });
+
+    describe("canOfferSkip", () => {
+      it("should offer skip in auto mode with high confidence and maxTurns > 1", async () => {
+        const session = await SessionManager.createSession(
+          "clear and specific input",
+          "structured",
+          "dspy",
+          "auto",
+          3, // maxTurns > 1
+          { intent: "ANALYZE", complexity: "SIMPLE", confidence: 0.9 } // High confidence
+        );
+
+        expect(session.wizard.canOfferSkip).toBe(true);
+      });
+
+      it("should NOT offer skip when maxTurns=1", async () => {
+        const session = await SessionManager.createSession(
+          "clear input",
+          "structured",
+          "dspy",
+          "auto",
+          1,
+          { intent: "ANALYZE", complexity: "SIMPLE", confidence: 0.9 }
+        );
+
+        expect(session.wizard.canOfferSkip).toBe(false);
+      });
+
+      it("should NOT offer skip when confidence is low", async () => {
+        const session = await SessionManager.createSession(
+          "unclear input",
+          "structured",
+          "dspy",
+          "auto",
+          3,
+          { intent: "ANALYZE", complexity: "SIMPLE", confidence: 0.5 }
+        );
+
+        expect(session.wizard.canOfferSkip).toBe(false);
+      });
+
+      it("should NOT offer skip when complexity is COMPLEX", async () => {
+        const session = await SessionManager.createSession(
+          "complex input",
+          "structured",
+          "dspy",
+          "auto",
+          3,
+          { intent: "ANALYZE", complexity: "COMPLEX", confidence: 0.9 }
+        );
+
+        expect(session.wizard.canOfferSkip).toBe(false);
+      });
+
+      it("should NOT offer skip when intent is GENERATE", async () => {
+        const session = await SessionManager.createSession(
+          "create something",
+          "structured",
+          "dspy",
+          "auto",
+          3,
+          { intent: "GENERATE", complexity: "SIMPLE", confidence: 0.9 }
+        );
+
+        expect(session.wizard.canOfferSkip).toBe(false);
+      });
+
+      it("should NOT offer skip in always mode", async () => {
+        const session = await SessionManager.createSession(
+          "clear input",
+          "structured",
+          "dspy",
+          "always",
+          3,
+          { intent: "ANALYZE", complexity: "SIMPLE", confidence: 0.9 }
+        );
+
+        expect(session.wizard.canOfferSkip).toBe(false);
+      });
     });
   });
 

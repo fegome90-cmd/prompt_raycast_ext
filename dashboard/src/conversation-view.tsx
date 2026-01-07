@@ -66,6 +66,7 @@ export default function ConversationView() {
   const [showFollowUpForm, setShowFollowUpForm] = useState(false);
 
   const wizardEnabled = session?.wizard.enabled ?? false;
+  const canOfferSkip = session?.wizard.canOfferSkip ?? false;
   const remainingTurns = session ? SessionManager.getRemainingTurns(session) : 0;
   const isWizardComplete = session?.wizard.resolved ?? true;
 
@@ -298,7 +299,32 @@ export default function ConversationView() {
         />
       ))}
 
-      {wizardEnabled && !isWizardComplete && (
+      {canOfferSkip && !isWizardComplete && (
+        <List.Item
+          icon={tokens.semantic.success.icon}
+          title="Prompt Looks Good!"
+          subtitle={`Confidence: ${Typography.confidence(session?.wizard.nlacAnalysis?.confidence ?? 0)} • You configured ${session?.wizard.config.maxTurns ?? 0} turns`}
+          accessories={[
+            { text: `⌘⇧ Enter: Skip` },
+            { text: `Enter: Continue` },
+          ]}
+          actions={
+            <ActionPanel>
+              <Action
+                title="Skip to Prompt"
+                onAction={handleSkipWizard}
+              />
+              <Action
+                title="Start Wizard Anyway"
+                onAction={() => setShowFollowUpForm(true)}
+                shortcut={{ modifiers: ["cmd"], key: "enter" }}
+              />
+            </ActionPanel>
+          }
+        />
+      )}
+
+      {wizardEnabled && !isWizardComplete && !canOfferSkip && (
         <List.Item
           icon="◐"
           title="Wizard Active"

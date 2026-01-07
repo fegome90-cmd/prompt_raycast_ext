@@ -44,7 +44,9 @@ export class SessionManager {
     maxTurns: number,
     nlacAnalysis?: { intent: IntentType; complexity: ComplexityLevel; confidence: number }
   ): Promise<ChatSession> {
-    const wizardEnabled = this.shouldEnableWizard(wizardMode, nlacAnalysis);
+    const wizardEnabled = this.shouldEnableWizard(wizardMode, nlacAnalysis, maxTurns);
+    const canOfferSkip = this.shouldOfferSkip(wizardMode, maxTurns, nlacAnalysis);
+
     const session: ChatSession = {
       id: randomUUID(),
       messages: [
@@ -60,6 +62,7 @@ export class SessionManager {
         enabled: wizardEnabled,
         bypassed: !wizardEnabled,
         resolved: !wizardEnabled,
+        canOfferSkip,
         config: {
           mode: wizardMode,
           maxTurns: this.calculateMaxTurns(maxTurns, nlacAnalysis?.complexity),
@@ -81,14 +84,34 @@ export class SessionManager {
 
   private static shouldEnableWizard(
     mode: WizardMode,
-    analysis?: { intent: IntentType; complexity: ComplexityLevel; confidence: number }
+    analysis?: { intent: IntentType; complexity: ComplexityLevel; confidence: number },
+    maxTurns?: number
   ): boolean {
     if (mode === "off") return false;
     if (mode === "always") return true;
     if (!analysis) return false;
 
+    // If user explicitly configured more than 1 turn, they want the wizard
+    if (maxTurns && maxTurns > 1) return true;
+
     const { confidence, complexity, intent } = analysis;
     return confidence < 0.7 || complexity === "COMPLEX" || intent === "GENERATE";
+  }
+
+  private static shouldOfferSkip(
+    mode: WizardMode,
+    maxTurns?: number,
+    analysis?: { intent: IntentType; complexity: ComplexityLevel; confidence: number }
+  ): boolean {
+    // Only in auto mode with user-configured multiple turns
+    if (mode !== "auto") return false;
+    if (!maxTurns || maxTurns <= 1) return false;
+    if (!analysis) return false;
+
+    const { confidence, complexity, intent } = analysis;
+
+    // Offer skip when prompt is already good (high confidence, not complex, not generation)
+    return confidence >= 0.7 && complexity !== "COMPLEX" && intent !== "GENERATE";
   }
 
   private static calculateMaxTurns(baseMaxTurns: number, complexity?: ComplexityLevel): number {

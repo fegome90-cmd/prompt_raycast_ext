@@ -54,6 +54,7 @@ export interface ChatSession {
     enabled: boolean;
     bypassed: boolean;  // true if wizard was never enabled
     resolved: boolean;  // true if conversation reached clarity
+    canOfferSkip: boolean;  // true when prompt is good but user configured multiple turns
     config: WizardConfig;
     ambiguityScore: number;
     nlacAnalysis?: {
