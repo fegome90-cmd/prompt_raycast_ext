@@ -2,6 +2,7 @@ import { promises as fs } from "fs";
 import { join } from "path";
 import { homedir } from "os";
 import { randomUUID } from "crypto";
+import { Mutex } from "async-mutex";
 import type { ChatSession, ChatMessage, WizardMode, IntentType, ComplexityLevel } from "./types";
 
 const SESSIONS_DIR = join(homedir(), ".raycast-prompt-improver", "sessions");
@@ -11,25 +12,34 @@ const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
 class SessionCache {
   private cache = new Map<string, ChatSession>();
   private maxSize = 10;
+  private mutex = new Mutex();
 
-  set(session: ChatSession): void {
-    if (this.cache.size >= this.maxSize) {
-      const oldestKey = this.cache.keys().next().value;
-      this.cache.delete(oldestKey);
-    }
-    this.cache.set(session.id, session);
+  async set(session: ChatSession): Promise<void> {
+    return await this.mutex.runExclusive(() => {
+      if (this.cache.size >= this.maxSize) {
+        const oldestKey = this.cache.keys().next().value;
+        this.cache.delete(oldestKey);
+      }
+      this.cache.set(session.id, session);
+    });
   }
 
-  get(id: string): ChatSession | undefined {
-    return this.cache.get(id);
+  async get(id: string): Promise<ChatSession | undefined> {
+    return await this.mutex.runExclusive(() => {
+      return this.cache.get(id);
+    });
   }
 
-  delete(id: string): void {
-    this.cache.delete(id);
+  async delete(id: string): Promise<void> {
+    await this.mutex.runExclusive(() => {
+      this.cache.delete(id);
+    });
   }
 
-  getAll(): ChatSession[] {
-    return Array.from(this.cache.values());
+  async getAll(): Promise<ChatSession[]> {
+    return await this.mutex.runExclusive(() => {
+      return Array.from(this.cache.values());
+    });
   }
 }
 
@@ -77,7 +87,7 @@ export class SessionManager {
       lastActivity: Date.now(),
     };
 
-    sessionCache.set(session);
+    await sessionCache.set(session);
     await this.saveSession(session);
     return session;
   }
@@ -121,7 +131,7 @@ export class SessionManager {
   }
 
   static async appendUserMessage(sessionId: string, content: string): Promise<ChatSession> {
-    const session = sessionCache.get(sessionId);
+    const session = await sessionCache.get(sessionId);
     if (!session) throw new Error(`Session not found: ${sessionId}`);
 
     const message: ChatMessage = {
@@ -141,7 +151,7 @@ export class SessionManager {
       }
     }
 
-    sessionCache.set(session);
+    await sessionCache.set(session);
     await this.saveSession(session);
     return session;
   }
@@ -151,7 +161,7 @@ export class SessionManager {
     content: string,
     ambiguityInfo?: { isAmbiguous: boolean; confidence: number; intent?: IntentType; complexity?: ComplexityLevel },
   ): Promise<ChatSession> {
-    const session = sessionCache.get(sessionId);
+    const session = await sessionCache.get(sessionId);
     if (!session) throw new Error(`Session not found: ${sessionId}`);
 
     const message: ChatMessage = {
@@ -174,7 +184,7 @@ export class SessionManager {
       session.wizard.resolved = !ambiguityInfo.isAmbiguous;
     }
 
-    sessionCache.set(session);
+    await sessionCache.set(session);
     await this.saveSession(session);
     return session;
   }
@@ -192,10 +202,10 @@ export class SessionManager {
   }
 
   static async completeWizard(sessionId: string): Promise<ChatSession> {
-    const session = sessionCache.get(sessionId);
+    const session = await sessionCache.get(sessionId);
     if (!session) throw new Error(`Session not found: ${sessionId}`);
     session.wizard.resolved = true;
-    sessionCache.set(session);
+    await sessionCache.set(session);
     await this.saveSession(session);
     return session;
   }
@@ -211,12 +221,12 @@ export class SessionManager {
     return lastAssistant?.content || null;
   }
 
-  static getSession(sessionId: string): ChatSession | undefined {
-    return sessionCache.get(sessionId);
+  static async getSession(sessionId: string): Promise<ChatSession | undefined> {
+    return await sessionCache.get(sessionId);
   }
 
-  static getAllSessions(): ChatSession[] {
-    return sessionCache.getAll();
+  static async getAllSessions(): Promise<ChatSession[]> {
+    return await sessionCache.getAll();
   }
 
   static async deleteSession(sessionId: string): Promise<void> {
@@ -228,7 +238,7 @@ export class SessionManager {
       // Don't remove from cache if file deletion failed
       return;
     }
-    sessionCache.delete(sessionId);
+    await sessionCache.delete(sessionId);
   }
 
   private static async saveSession(session: ChatSession): Promise<void> {
@@ -257,7 +267,7 @@ export class SessionManager {
           const session: ChatSession = JSON.parse(content);
           if (now - session.lastActivity > SESSION_TTL_MS) {
             await fs.unlink(sessionPath);
-            sessionCache.delete(session.id);
+            await sessionCache.delete(session.id);
             cleaned++;
           }
         } catch (error) {

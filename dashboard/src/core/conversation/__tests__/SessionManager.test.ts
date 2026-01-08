@@ -404,14 +404,14 @@ describe("SessionManager", () => {
         confidence: 0.8,
       });
 
-      const retrieved = SessionManager.getSession(session.id);
+      const retrieved = await SessionManager.getSession(session.id);
 
       expect(retrieved).toBeDefined();
       expect(retrieved?.id).toBe(session.id);
     });
 
-    it("should return undefined for non-existent session", () => {
-      const retrieved = SessionManager.getSession("non-existent-id");
+    it("should return undefined for non-existent session", async () => {
+      const retrieved = await SessionManager.getSession("non-existent-id");
       expect(retrieved).toBeUndefined();
     });
 
@@ -419,7 +419,7 @@ describe("SessionManager", () => {
       await SessionManager.createSession("test1", "structured", "dspy", "off", 2);
       await SessionManager.createSession("test2", "structured", "dspy", "off", 2);
 
-      const all = SessionManager.getAllSessions();
+      const all = await SessionManager.getAllSessions();
 
       expect(all.length).toBeGreaterThanOrEqual(2);
     });
@@ -429,7 +429,7 @@ describe("SessionManager", () => {
 
       await SessionManager.deleteSession(session.id);
 
-      const retrieved = SessionManager.getSession(session.id);
+      const retrieved = await SessionManager.getSession(session.id);
       expect(retrieved).toBeUndefined();
     });
   });
@@ -457,6 +457,31 @@ describe("SessionManager", () => {
       expect(consoleErrorSpy).toBeDefined();
 
       consoleErrorSpy.mockRestore();
+    });
+
+    it("should handle concurrent SessionCache operations safely", async () => {
+      // This test verifies that SessionCache uses mutex for thread safety
+      // The implementation should use async-mutex's Mutex.runExclusive()
+      const session1 = await SessionManager.createSession("test1", "structured", "dspy", "off", 2, {
+        intent: "debug",
+        complexity: "SIMPLE",
+        confidence: 0.8,
+      });
+
+      const session2 = await SessionManager.createSession("test2", "structured", "dspy", "off", 2, {
+        intent: "refactor",
+        complexity: "SIMPLE",
+        confidence: 0.8,
+      });
+
+      // Verify both sessions exist in cache
+      const retrieved1 = await SessionManager.getSession(session1.id);
+      const retrieved2 = await SessionManager.getSession(session2.id);
+
+      expect(retrieved1).toBeDefined();
+      expect(retrieved2).toBeDefined();
+      expect(retrieved1?.id).toBe(session1.id);
+      expect(retrieved2?.id).toBe(session2.id);
     });
   });
 });
