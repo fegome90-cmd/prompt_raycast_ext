@@ -4,7 +4,7 @@
  */
 
 export type WizardMode = "auto" | "always" | "off";
-export type IntentType = "DEBUG" | "REFACTOR" | "GENERATE" | "ANALYZE";
+export type IntentType = "debug" | "refactor" | "generate" | "explain";
 export type ComplexityLevel = "SIMPLE" | "MODERATE" | "COMPLEX";
 
 export interface ChatMessage {
@@ -52,9 +52,9 @@ export interface ChatSession {
   };
   wizard: {
     enabled: boolean;
-    bypassed: boolean;  // true if wizard was never enabled
-    resolved: boolean;  // true if conversation reached clarity
-    canOfferSkip: boolean;  // true when prompt is good but user configured multiple turns
+    bypassed: boolean; // true if wizard was never enabled
+    resolved: boolean; // true if conversation reached clarity
+    canOfferSkip: boolean; // true when prompt is good but user configured multiple turns
     config: WizardConfig;
     ambiguityScore: number;
     nlacAnalysis?: {

@@ -17,21 +17,18 @@ describe("SessionManager", () => {
 
   describe("createSession", () => {
     it("should create session with wizard enabled in auto mode when confidence is low", async () => {
-      const session = await SessionManager.createSession(
-        "test input",
-        "structured",
-        "dspy",
-        "auto",
-        2,
-        { intent: "GENERATE", complexity: "SIMPLE", confidence: 0.5 }
-      );
+      const session = await SessionManager.createSession("test input", "structured", "dspy", "auto", 2, {
+        intent: "generate",
+        complexity: "SIMPLE",
+        confidence: 0.5,
+      });
 
       expect(session.wizard.enabled).toBe(true);
       expect(session.wizard.bypassed).toBe(false);
       expect(session.wizard.resolved).toBe(false);
       expect(session.wizard.canOfferSkip).toBe(false); // Low confidence
       expect(session.wizard.nlacAnalysis).toEqual({
-        intent: "GENERATE",
+        intent: "generate",
         complexity: "SIMPLE",
         confidence: 0.5,
       });
@@ -44,7 +41,7 @@ describe("SessionManager", () => {
         "dspy",
         "auto",
         1, // maxTurns=1 means user doesn't want wizard
-        { intent: "REFACTOR", complexity: "SIMPLE", confidence: 0.9 }
+        { intent: "refactor", complexity: "SIMPLE", confidence: 0.9 },
       );
 
       expect(session.wizard.enabled).toBe(false);
@@ -54,14 +51,11 @@ describe("SessionManager", () => {
     });
 
     it("should always enable wizard in always mode", async () => {
-      const session = await SessionManager.createSession(
-        "any input",
-        "structured",
-        "dspy",
-        "always",
-        2,
-        { intent: "ANALYZE", complexity: "SIMPLE", confidence: 0.95 }
-      );
+      const session = await SessionManager.createSession("any input", "structured", "dspy", "always", 2, {
+        intent: "explain",
+        complexity: "SIMPLE",
+        confidence: 0.95,
+      });
 
       expect(session.wizard.enabled).toBe(true);
       expect(session.wizard.bypassed).toBe(false);
@@ -69,14 +63,11 @@ describe("SessionManager", () => {
     });
 
     it("should never enable wizard in off mode", async () => {
-      const session = await SessionManager.createSession(
-        "ambiguous input",
-        "structured",
-        "dspy",
-        "off",
-        2,
-        { intent: "GENERATE", complexity: "COMPLEX", confidence: 0.3 }
-      );
+      const session = await SessionManager.createSession("ambiguous input", "structured", "dspy", "off", 2, {
+        intent: "generate",
+        complexity: "COMPLEX",
+        confidence: 0.3,
+      });
 
       expect(session.wizard.enabled).toBe(false);
       expect(session.wizard.bypassed).toBe(true);
@@ -86,14 +77,11 @@ describe("SessionManager", () => {
 
     it("should use user's configured maxTurns regardless of complexity", async () => {
       // Complexity controls IF wizard runs (shouldEnableWizard), not HOW LONG
-      const simpleSession = await SessionManager.createSession(
-        "simple",
-        "structured",
-        "dspy",
-        "always",
-        3,
-        { intent: "ANALYZE", complexity: "SIMPLE", confidence: 0.5 }
-      );
+      const simpleSession = await SessionManager.createSession("simple", "structured", "dspy", "always", 3, {
+        intent: "explain",
+        complexity: "SIMPLE",
+        confidence: 0.5,
+      });
 
       expect(simpleSession.wizard.config.maxTurns).toBe(3);
 
@@ -103,7 +91,7 @@ describe("SessionManager", () => {
         "dspy",
         "always",
         1,
-        { intent: "GENERATE", complexity: "COMPLEX", confidence: 0.5 }
+        { intent: "generate", complexity: "COMPLEX", confidence: 0.5 },
       );
 
       expect(complexSession.wizard.config.maxTurns).toBe(1);
@@ -116,7 +104,7 @@ describe("SessionManager", () => {
         "dspy",
         "auto",
         1, // maxTurns=1 means user doesn't want wizard
-        { intent: "ANALYZE", complexity: "SIMPLE", confidence: 0.7 }
+        { intent: "explain", complexity: "SIMPLE", confidence: 0.7 },
       );
 
       // confidence < 0.7 OR maxTurns > 1 enables wizard
@@ -125,27 +113,21 @@ describe("SessionManager", () => {
     });
 
     it("should always enable wizard when intent is GENERATE regardless of confidence", async () => {
-      const session = await SessionManager.createSession(
-        "create something",
-        "structured",
-        "dspy",
-        "auto",
-        2,
-        { intent: "GENERATE", complexity: "SIMPLE", confidence: 0.95 }
-      );
+      const session = await SessionManager.createSession("create something", "structured", "dspy", "auto", 2, {
+        intent: "generate",
+        complexity: "SIMPLE",
+        confidence: 0.95,
+      });
 
       expect(session.wizard.enabled).toBe(true);
     });
 
     it("should always enable wizard when complexity is COMPLEX regardless of confidence", async () => {
-      const session = await SessionManager.createSession(
-        "very complex input",
-        "structured",
-        "dspy",
-        "auto",
-        2,
-        { intent: "ANALYZE", complexity: "COMPLEX", confidence: 0.95 }
-      );
+      const session = await SessionManager.createSession("very complex input", "structured", "dspy", "auto", 2, {
+        intent: "explain",
+        complexity: "COMPLEX",
+        confidence: 0.95,
+      });
 
       expect(session.wizard.enabled).toBe(true);
     });
@@ -157,7 +139,7 @@ describe("SessionManager", () => {
         "dspy",
         "auto",
         3, // maxTurns > 1 = user explicitly wants wizard
-        { intent: "ANALYZE", complexity: "SIMPLE", confidence: 0.95 }
+        { intent: "explain", complexity: "SIMPLE", confidence: 0.95 },
       );
 
       // User configured 3 turns, so wizard should enable even with high confidence
@@ -173,73 +155,58 @@ describe("SessionManager", () => {
           "dspy",
           "auto",
           3, // maxTurns > 1
-          { intent: "ANALYZE", complexity: "SIMPLE", confidence: 0.9 } // High confidence
+          { intent: "explain", complexity: "SIMPLE", confidence: 0.9 }, // High confidence
         );
 
         expect(session.wizard.canOfferSkip).toBe(true);
       });
 
       it("should NOT offer skip when maxTurns=1", async () => {
-        const session = await SessionManager.createSession(
-          "clear input",
-          "structured",
-          "dspy",
-          "auto",
-          1,
-          { intent: "ANALYZE", complexity: "SIMPLE", confidence: 0.9 }
-        );
+        const session = await SessionManager.createSession("clear input", "structured", "dspy", "auto", 1, {
+          intent: "explain",
+          complexity: "SIMPLE",
+          confidence: 0.9,
+        });
 
         expect(session.wizard.canOfferSkip).toBe(false);
       });
 
       it("should NOT offer skip when confidence is low", async () => {
-        const session = await SessionManager.createSession(
-          "unclear input",
-          "structured",
-          "dspy",
-          "auto",
-          3,
-          { intent: "ANALYZE", complexity: "SIMPLE", confidence: 0.5 }
-        );
+        const session = await SessionManager.createSession("unclear input", "structured", "dspy", "auto", 3, {
+          intent: "explain",
+          complexity: "SIMPLE",
+          confidence: 0.5,
+        });
 
         expect(session.wizard.canOfferSkip).toBe(false);
       });
 
       it("should NOT offer skip when complexity is COMPLEX", async () => {
-        const session = await SessionManager.createSession(
-          "complex input",
-          "structured",
-          "dspy",
-          "auto",
-          3,
-          { intent: "ANALYZE", complexity: "COMPLEX", confidence: 0.9 }
-        );
+        const session = await SessionManager.createSession("complex input", "structured", "dspy", "auto", 3, {
+          intent: "explain",
+          complexity: "COMPLEX",
+          confidence: 0.9,
+        });
 
         expect(session.wizard.canOfferSkip).toBe(false);
       });
 
       it("should NOT offer skip when intent is GENERATE", async () => {
-        const session = await SessionManager.createSession(
-          "create something",
-          "structured",
-          "dspy",
-          "auto",
-          3,
-          { intent: "GENERATE", complexity: "SIMPLE", confidence: 0.9 }
-        );
+        const session = await SessionManager.createSession("create something", "structured", "dspy", "auto", 3, {
+          intent: "generate",
+          complexity: "SIMPLE",
+          confidence: 0.9,
+        });
 
         expect(session.wizard.canOfferSkip).toBe(false);
       });
 
       it("should NOT offer skip in always mode", async () => {
-        const session = await SessionManager.createSession(
-          "clear input",
-          "structured",
-          "dspy",
-          "always",
-          3,
-          { intent: "ANALYZE", complexity: "SIMPLE", confidence: 0.9 }
-        );
+        const session = await SessionManager.createSession("clear input", "structured", "dspy", "always", 3, {
+          intent: "explain",
+          complexity: "SIMPLE",
+          confidence: 0.9,
+        });
 
         expect(session.wizard.canOfferSkip).toBe(false);
       });
@@ -248,14 +215,11 @@ describe("SessionManager", () => {
 
   describe("appendUserMessage", () => {
     it("should append user message and increment turn counter", async () => {
-      const session = await SessionManager.createSession(
-        "test",
-        "structured",
-        "dspy",
-        "always",
-        2,
-        { intent: "GENERATE", complexity: "SIMPLE", confidence: 0.5 }
-      );
+      const session = await SessionManager.createSession("test", "structured", "dspy", "always", 2, {
+        intent: "generate",
+        complexity: "SIMPLE",
+        confidence: 0.5,
+      });
 
       const updated = await SessionManager.appendUserMessage(session.id, "user response");
 
@@ -266,14 +230,11 @@ describe("SessionManager", () => {
     });
 
     it("should complete wizard when max turns reached", async () => {
-      const session = await SessionManager.createSession(
-        "test",
-        "structured",
-        "dspy",
-        "always",
-        1,
-        { intent: "GENERATE", complexity: "SIMPLE", confidence: 0.5 }
-      );
+      const session = await SessionManager.createSession("test", "structured", "dspy", "always", 1, {
+        intent: "generate",
+        complexity: "SIMPLE",
+        confidence: 0.5,
+      });
 
       const updated = await SessionManager.appendUserMessage(session.id, "response");
 
@@ -283,14 +244,11 @@ describe("SessionManager", () => {
 
   describe("appendAssistantMessage", () => {
     it("should append assistant message and update ambiguity score", async () => {
-      const session = await SessionManager.createSession(
-        "test",
-        "structured",
-        "dspy",
-        "always",
-        2,
-        { intent: "GENERATE", complexity: "SIMPLE", confidence: 0.5 }
-      );
+      const session = await SessionManager.createSession("test", "structured", "dspy", "always", 2, {
+        intent: "generate",
+        complexity: "SIMPLE",
+        confidence: 0.5,
+      });
 
       const updated = await SessionManager.appendAssistantMessage(session.id, "Clarification question", {
         confidence: 0.6,
@@ -305,14 +263,11 @@ describe("SessionManager", () => {
     });
 
     it("should complete wizard when isAmbiguous is false", async () => {
-      const session = await SessionManager.createSession(
-        "test",
-        "structured",
-        "dspy",
-        "always",
-        2,
-        { intent: "GENERATE", complexity: "SIMPLE", confidence: 0.5 }
-      );
+      const session = await SessionManager.createSession("test", "structured", "dspy", "always", 2, {
+        intent: "generate",
+        complexity: "SIMPLE",
+        confidence: 0.5,
+      });
 
       const updated = await SessionManager.appendAssistantMessage(session.id, "Final prompt", {
         confidence: 0.9,
@@ -325,27 +280,21 @@ describe("SessionManager", () => {
 
   describe("shouldContinueWizard", () => {
     it("should return true when wizard enabled and not complete", async () => {
-      const session = await SessionManager.createSession(
-        "test",
-        "structured",
-        "dspy",
-        "always",
-        2,
-        { intent: "GENERATE", complexity: "SIMPLE", confidence: 0.5 }
-      );
+      const session = await SessionManager.createSession("test", "structured", "dspy", "always", 2, {
+        intent: "generate",
+        complexity: "SIMPLE",
+        confidence: 0.5,
+      });
 
       expect(SessionManager.shouldContinueWizard(session)).toBe(true);
     });
 
     it("should return false after max turns reached", async () => {
-      const session = await SessionManager.createSession(
-        "test",
-        "structured",
-        "dspy",
-        "always",
-        1,
-        { intent: "GENERATE", complexity: "SIMPLE", confidence: 0.5 }
-      );
+      const session = await SessionManager.createSession("test", "structured", "dspy", "always", 1, {
+        intent: "generate",
+        complexity: "SIMPLE",
+        confidence: 0.5,
+      });
 
       await SessionManager.appendUserMessage(session.id, "response");
 
@@ -355,14 +304,11 @@ describe("SessionManager", () => {
 
   describe("getRemainingTurns", () => {
     it("should return remaining turns", async () => {
-      const session = await SessionManager.createSession(
-        "test",
-        "structured",
-        "dspy",
-        "always",
-        3,
-        { intent: "GENERATE", complexity: "COMPLEX", confidence: 0.5 }
-      );
+      const session = await SessionManager.createSession("test", "structured", "dspy", "always", 3, {
+        intent: "generate",
+        complexity: "COMPLEX",
+        confidence: 0.5,
+      });
 
       expect(SessionManager.getRemainingTurns(session)).toBe(3);
 
@@ -373,14 +319,11 @@ describe("SessionManager", () => {
 
   describe("completeWizard", () => {
     it("should mark wizard as complete", async () => {
-      const session = await SessionManager.createSession(
-        "test",
-        "structured",
-        "dspy",
-        "always",
-        2,
-        { intent: "GENERATE", complexity: "SIMPLE", confidence: 0.5 }
-      );
+      const session = await SessionManager.createSession("test", "structured", "dspy", "always", 2, {
+        intent: "generate",
+        complexity: "SIMPLE",
+        confidence: 0.5,
+      });
 
       const updated = await SessionManager.completeWizard(session.id);
 
@@ -390,14 +333,11 @@ describe("SessionManager", () => {
 
   describe("extractFinalPrompt", () => {
     it("should extract last assistant message starting with #", async () => {
-      const session = await SessionManager.createSession(
-        "test",
-        "structured",
-        "dspy",
-        "off",
-        2,
-        { intent: "ANALYZE", complexity: "SIMPLE", confidence: 0.8 }
-      );
+      const session = await SessionManager.createSession("test", "structured", "dspy", "off", 2, {
+        intent: "explain",
+        complexity: "SIMPLE",
+        confidence: 0.8,
+      });
 
       await SessionManager.appendAssistantMessage(session.id, "Regular message", {
         confidence: 0.5,
@@ -415,14 +355,11 @@ describe("SessionManager", () => {
     });
 
     it("should return null when no prompt starts with #", async () => {
-      const session = await SessionManager.createSession(
-        "test",
-        "structured",
-        "dspy",
-        "off",
-        2,
-        { intent: "ANALYZE", complexity: "SIMPLE", confidence: 0.8 }
-      );
+      const session = await SessionManager.createSession("test", "structured", "dspy", "off", 2, {
+        intent: "explain",
+        complexity: "SIMPLE",
+        confidence: 0.8,
+      });
 
       await SessionManager.appendAssistantMessage(session.id, "Regular message", {
         confidence: 0.5,
@@ -437,14 +374,11 @@ describe("SessionManager", () => {
 
   describe("toChatFormat", () => {
     it("should convert session to chat format for LLM", async () => {
-      const session = await SessionManager.createSession(
-        "test input",
-        "structured",
-        "dspy",
-        "off",
-        2,
-        { intent: "ANALYZE", complexity: "SIMPLE", confidence: 0.8 }
-      );
+      const session = await SessionManager.createSession("test input", "structured", "dspy", "off", 2, {
+        intent: "explain",
+        complexity: "SIMPLE",
+        confidence: 0.8,
+      });
 
       await SessionManager.appendUserMessage(session.id, "user message");
       await SessionManager.appendAssistantMessage(session.id, "assistant message", {
@@ -464,14 +398,11 @@ describe("SessionManager", () => {
 
   describe("session retrieval", () => {
     it("should get session by id", async () => {
-      const session = await SessionManager.createSession(
-        "test",
-        "structured",
-        "dspy",
-        "off",
-        2,
-        { intent: "ANALYZE", complexity: "SIMPLE", confidence: 0.8 }
-      );
+      const session = await SessionManager.createSession("test", "structured", "dspy", "off", 2, {
+        intent: "explain",
+        complexity: "SIMPLE",
+        confidence: 0.8,
+      });
 
       const retrieved = SessionManager.getSession(session.id);
 
@@ -505,15 +436,11 @@ describe("SessionManager", () => {
 
   describe("error handling", () => {
     it("should throw error when appending to non-existent session", async () => {
-      await expect(
-        SessionManager.appendUserMessage("non-existent-id", "test")
-      ).rejects.toThrow("Session not found");
+      await expect(SessionManager.appendUserMessage("non-existent-id", "test")).rejects.toThrow("Session not found");
     });
 
     it("should throw error when completing non-existent session", async () => {
-      await expect(
-        SessionManager.completeWizard("non-existent-id")
-      ).rejects.toThrow("Session not found");
+      await expect(SessionManager.completeWizard("non-existent-id")).rejects.toThrow("Session not found");
     });
   });
 });

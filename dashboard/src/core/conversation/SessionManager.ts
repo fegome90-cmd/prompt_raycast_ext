@@ -42,7 +42,7 @@ export class SessionManager {
     source: "dspy" | "ollama",
     wizardMode: WizardMode,
     maxTurns: number,
-    nlacAnalysis?: { intent: IntentType; complexity: ComplexityLevel; confidence: number }
+    nlacAnalysis?: { intent: IntentType; complexity: ComplexityLevel; confidence: number },
   ): Promise<ChatSession> {
     const wizardEnabled = this.shouldEnableWizard(wizardMode, nlacAnalysis, maxTurns);
     const canOfferSkip = this.shouldOfferSkip(wizardMode, maxTurns, nlacAnalysis);
@@ -85,7 +85,7 @@ export class SessionManager {
   private static shouldEnableWizard(
     mode: WizardMode,
     analysis?: { intent: IntentType; complexity: ComplexityLevel; confidence: number },
-    maxTurns?: number
+    maxTurns?: number,
   ): boolean {
     if (mode === "off") return false;
     if (mode === "always") return true;
@@ -95,13 +95,13 @@ export class SessionManager {
     if (maxTurns && maxTurns > 1) return true;
 
     const { confidence, complexity, intent } = analysis;
-    return confidence < 0.7 || complexity === "COMPLEX" || intent === "GENERATE";
+    return confidence < 0.7 || complexity === "COMPLEX" || intent === "generate";
   }
 
   private static shouldOfferSkip(
     mode: WizardMode,
     maxTurns?: number,
-    analysis?: { intent: IntentType; complexity: ComplexityLevel; confidence: number }
+    analysis?: { intent: IntentType; complexity: ComplexityLevel; confidence: number },
   ): boolean {
     // Only in auto mode with user-configured multiple turns
     if (mode !== "auto") return false;
@@ -111,7 +111,7 @@ export class SessionManager {
     const { confidence, complexity, intent } = analysis;
 
     // Offer skip when prompt is already good (high confidence, not complex, not generation)
-    return confidence >= 0.7 && complexity !== "COMPLEX" && intent !== "GENERATE";
+    return confidence >= 0.7 && complexity !== "COMPLEX" && intent !== "generate";
   }
 
   private static calculateMaxTurns(baseMaxTurns: number, complexity?: ComplexityLevel): number {
@@ -149,7 +149,7 @@ export class SessionManager {
   static async appendAssistantMessage(
     sessionId: string,
     content: string,
-    ambiguityInfo?: { isAmbiguous: boolean; confidence: number; intent?: IntentType; complexity?: ComplexityLevel }
+    ambiguityInfo?: { isAmbiguous: boolean; confidence: number; intent?: IntentType; complexity?: ComplexityLevel },
   ): Promise<ChatSession> {
     const session = sessionCache.get(sessionId);
     if (!session) throw new Error(`Session not found: ${sessionId}`);

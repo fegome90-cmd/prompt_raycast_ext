@@ -43,7 +43,7 @@ export async function improvePromptWithWizard(options: WizardOptions): Promise<{
     "dspy",
     options.wizardMode,
     options.maxWizardTurns,
-    nlacAnalysis
+    nlacAnalysis,
   );
 
   // Step 3: If wizard disabled, generate directly
@@ -63,11 +63,10 @@ export async function improvePromptWithWizard(options: WizardOptions): Promise<{
         },
       });
 
-      await SessionManager.appendAssistantMessage(
-        session.id,
-        result.improved_prompt,
-        { isAmbiguous: false, confidence: result.confidence }
-      );
+      await SessionManager.appendAssistantMessage(session.id, result.improved_prompt, {
+        isAmbiguous: false,
+        confidence: result.confidence,
+      });
 
       const updatedSession = SessionManager.getSession(session.id);
       if (!updatedSession) {
@@ -103,7 +102,7 @@ export async function improvePromptWithWizard(options: WizardOptions): Promise<{
 export async function continueWizard(
   sessionId: string,
   userResponse: string,
-  options: Omit<WizardOptions, "rawInput" | "wizardMode" | "maxWizardTurns">
+  options: Omit<WizardOptions, "rawInput" | "wizardMode" | "maxWizardTurns">,
 ): Promise<{ session: ChatSession; isComplete: boolean; prompt?: string }> {
   const session = SessionManager.getSession(sessionId);
   if (!session) throw new Error("Session not found");
@@ -177,7 +176,7 @@ export async function continueWizard(
 async function analyzeInput(input: string): Promise<NLaCAnalysis> {
   const trimmed = input.trim();
   if (!trimmed) {
-    return { intent: "ANALYZE", complexity: "SIMPLE", confidence: 0 };
+    return { intent: "explain", complexity: "SIMPLE", confidence: 0 };
   }
 
   const tokenCount = trimmed.split(/\s+/).length;
@@ -185,18 +184,18 @@ async function analyzeInput(input: string): Promise<NLaCAnalysis> {
     tokenCount < COMPLEXITY_THRESHOLDS.SIMPLE_MAX_WORDS
       ? "SIMPLE"
       : tokenCount < COMPLEXITY_THRESHOLDS.MODERATE_MAX_WORDS
-        ? "MODERATE"
-        : "COMPLEX";
+      ? "MODERATE"
+      : "COMPLEX";
 
   // Proper type guards instead of 'as any'
-  let intent: IntentType = "ANALYZE";
+  let intent: IntentType = "explain";
   const lowerInput = trimmed.toLowerCase();
   if (lowerInput.includes("create") || lowerInput.includes("build")) {
-    intent = "GENERATE";
+    intent = "generate";
   } else if (lowerInput.includes("debug") || lowerInput.includes("fix")) {
-    intent = "DEBUG";
+    intent = "debug";
   } else if (lowerInput.includes("refactor") || lowerInput.includes("improve")) {
-    intent = "REFACTOR";
+    intent = "refactor";
   }
 
   const confidence = tokenCount < COMPLEXITY_THRESHOLDS.LOW_CONFIDENCE_MAX_WORDS ? 0.4 : 0.8;
@@ -205,7 +204,7 @@ async function analyzeInput(input: string): Promise<NLaCAnalysis> {
 }
 
 function generateClarificationQuestions(analysis: NLaCAnalysis): string[] {
-  if (analysis.intent === "GENERATE") {
+  if (analysis.intent === "generate") {
     return ["What specific components or features do you need?", "What are the key requirements or constraints?"];
   }
   if (analysis.complexity === "COMPLEX") {
