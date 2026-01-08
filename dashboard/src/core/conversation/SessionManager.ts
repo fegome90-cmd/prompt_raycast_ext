@@ -247,16 +247,29 @@ export class SessionManager {
     try {
       const files = await fs.readdir(SESSIONS_DIR);
       const now = Date.now();
+      let cleaned = 0;
+
       for (const file of files) {
         if (!file.endsWith(".json")) continue;
         const sessionPath = join(SESSIONS_DIR, file);
-        const content = await fs.readFile(sessionPath, "utf-8");
-        const session: ChatSession = JSON.parse(content);
-        if (now - session.lastActivity > SESSION_TTL_MS) {
-          await fs.unlink(sessionPath);
-          sessionCache.delete(session.id);
+        try {
+          const content = await fs.readFile(sessionPath, "utf-8");
+          const session: ChatSession = JSON.parse(content);
+          if (now - session.lastActivity > SESSION_TTL_MS) {
+            await fs.unlink(sessionPath);
+            sessionCache.delete(session.id);
+            cleaned++;
+          }
+        } catch (error) {
+          console.warn(`[SessionManager] Failed to clean ${file}:`, error);
         }
       }
-    } catch {}
+
+      if (cleaned > 0) {
+        console.log(`[SessionManager] Cleaned up ${cleaned} old sessions`);
+      }
+    } catch (error) {
+      console.error("[SessionManager] Cleanup failed:", error);
+    }
   }
 }
