@@ -22,11 +22,12 @@ from hemdov.domain.dto.nlac_models import (
     OptimizeResponse,
 )
 from hemdov.domain.services.knn_provider import KNNProvider, FewShotExample
+from hemdov.domain.services.llm_protocol import LLMClient
 
 logger = logging.getLogger(__name__)
 
 
-class OPOROptimizer:
+class OPROOptimizer:
     """
     Optimization by PROmpting (OPRO).
 
@@ -40,7 +41,7 @@ class OPOROptimizer:
     MAX_ITERATIONS = 3  # Fixed iterations (latency control per user decision: 5-10 LLM calls)
     QUALITY_THRESHOLD = 1.0  # Early stopping if 100% pass
 
-    def __init__(self, llm_client=None, knn_provider: Optional[KNNProvider] = None):
+    def __init__(self, llm_client: Optional[LLMClient] = None, knn_provider: Optional[KNNProvider] = None):
         """
         Initialize optimizer.
 
@@ -68,7 +69,13 @@ class OPOROptimizer:
 
         Returns:
             OptimizeResponse with final result and full trajectory
+
+        Raises:
+            ValueError: If prompt_obj is None
         """
+        if prompt_obj is None:
+            raise ValueError("prompt_obj cannot be None")
+
         trajectory: List[OPROIteration] = []
         best_score = 0.0
         best_prompt = prompt_obj
@@ -173,12 +180,13 @@ class OPOROptimizer:
         # If previous iteration had low score, add clarity
         if trajectory:
             last_feedback = trajectory[-1].feedback
-            if "unclear" in last_feedback.lower() or "vague" in last_feedback.lower():
+            if last_feedback and ("unclear" in last_feedback.lower() or "vague" in last_feedback.lower()):
                 template = "# Clarified Request\n\n" + template
 
             # If format issues, add formatting instructions
-            if "format" in last_feedback.lower():
-                if "code" in prompt_obj.constraints.get("format", "").lower():
+            if last_feedback and "format" in last_feedback.lower():
+                format_value = prompt_obj.constraints.get("format", "")
+                if format_value and "code" in format_value.lower():
                     template += "\n\n## Response Format\nProvide code in appropriate language."
 
         return template
@@ -219,11 +227,18 @@ class OPOROptimizer:
             intent_str = candidate.strategy_meta.get("intent", "generate")
             complexity_str = candidate.strategy_meta.get("complexity", "moderate")
 
-            fewshot_examples = self.knn_provider.find_examples(
-                intent=intent_str,
-                complexity=complexity_str,
-                k=2  # Use 2 examples for meta-prompt (keep it concise)
-            )
+            try:
+                fewshot_examples = self.knn_provider.find_examples(
+                    intent=intent_str,
+                    complexity=complexity_str,
+                    k=2  # Use 2 examples for meta-prompt (keep it concise)
+                )
+            except (RuntimeError, KeyError, TypeError, ValueError, ConnectionError, TimeoutError) as e:
+                logger.exception(
+                    f"Failed to fetch KNN examples for meta-prompt. "
+                    f"Continuing without few-shot guidance. Error: {type(e).__name__}"
+                )
+                fewshot_examples = []
 
             if fewshot_examples:
                 examples_section = "\n\n## Reference Examples\nThese examples show good prompt patterns:\n\n"
@@ -326,6 +341,7 @@ class OPOROptimizer:
             early_stopped=early_stopped,
             trajectory=trajectory,
             improved_prompt=final_instruction,
+            total_latency_ms=None,
             backend="nlac-opro",
             model="oprop-optimizer",
         )
