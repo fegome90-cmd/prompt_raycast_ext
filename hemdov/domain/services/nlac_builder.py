@@ -21,11 +21,7 @@ from hemdov.domain.dto.nlac_models import (
 )
 from hemdov.domain.services.intent_classifier import IntentClassifier
 from hemdov.domain.services.knn_provider import KNNProvider, FewShotExample
-
-# Import existing complexity analyzer
-import sys
-sys.path.insert(0, "eval/src")
-from complexity_analyzer import ComplexityAnalyzer, ComplexityLevel
+from hemdov.domain.services.complexity_analyzer import ComplexityAnalyzer, ComplexityLevel
 
 logger = logging.getLogger(__name__)
 
@@ -100,14 +96,20 @@ class NLaCBuilder:
             # For REFACTOR, filter by expected_output (CRITICAL for MultiAIGCD Scenario III)
             has_expected_output = intent_str.startswith("refactor")
 
-            fewshot_examples = self.knn_provider.find_examples(
-                intent=intent_str,
-                complexity=complexity.value,
-                k=k,
-                has_expected_output=has_expected_output
-            )
-
-            logger.info(f"Fetched {len(fewshot_examples)} KNN examples for {intent_str}/{complexity.value}")
+            try:
+                fewshot_examples = self.knn_provider.find_examples(
+                    intent=intent_str,
+                    complexity=complexity.value,
+                    k=k,
+                    has_expected_output=has_expected_output
+                )
+                logger.info(f"Fetched {len(fewshot_examples)} KNN examples for {intent_str}/{complexity.value}")
+            except (RuntimeError, KeyError, TypeError, ValueError, ConnectionError, TimeoutError) as e:
+                logger.exception(
+                    f"Failed to fetch KNN examples for {intent_str}/{complexity.value}. "
+                    f"Continuing without few-shot guidance. Error: {type(e).__name__}"
+                )
+                # Continue with empty examples list
 
         # Step 6: Build template
         if complexity == ComplexityLevel.COMPLEX:
@@ -201,7 +203,7 @@ class NLaCBuilder:
             else:
                 return "Software Engineer"
 
-    def _build_simple_template(self, request: NLaCRequest, role: str, fewshot_examples: List[FewShotExample] = None) -> str:
+    def _build_simple_template(self, request: NLaCRequest, role: str, fewshot_examples: Optional[List[FewShotExample]] = None) -> str:
         """Build simple template without RaR, optionally with few-shot examples."""
         template_parts = [
             f"# Role\nYou are a {role}.",
@@ -266,7 +268,7 @@ class NLaCBuilder:
 
         return "\n".join(template_parts)
 
-    def _build_rar_template(self, request: NLaCRequest, role: str, fewshot_examples: List[FewShotExample] = None) -> str:
+    def _build_rar_template(self, request: NLaCRequest, role: str, fewshot_examples: Optional[List[FewShotExample]] = None) -> str:
         """
         Build template with RaR (Rephrase and Respond) and few-shot examples.
 
@@ -387,9 +389,9 @@ class NLaCBuilder:
         result = " ".join(rephrase_parts)
         return result[0].upper() + result[1:] if result else "Process the request"
 
-    def _build_constraints(self, request: NLaCRequest, complexity: ComplexityLevel) -> dict:
+    def _build_constraints(self, request: NLaCRequest, complexity: ComplexityLevel) -> dict[str, object]:
         """Build constraints dict for the prompt."""
-        constraints = {}
+        constraints: dict[str, object] = {}
 
         # Length constraint based on complexity
         if complexity == ComplexityLevel.SIMPLE:
@@ -408,9 +410,3 @@ class NLaCBuilder:
         constraints["include_explanation"] = complexity == ComplexityLevel.COMPLEX
 
         return constraints
-
-    def _is_sql_request(self, request: NLaCRequest) -> bool:
-        """Check if this is a SQL-related request."""
-        sql_keywords = ["sql", "query", "database", "tabla", "select"]
-        combined = (request.idea + " " + request.context).lower()
-        return any(keyword in combined for keyword in sql_keywords)
