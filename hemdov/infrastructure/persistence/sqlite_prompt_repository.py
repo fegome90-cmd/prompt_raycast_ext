@@ -1,4 +1,12 @@
-# hemdov/infrastructure/persistence/sqlite_prompt_repository.py
+"""
+SQLite Prompt Repository - Persistent storage for prompt history and cache.
+
+Async repository implementation using aiosqlite with:
+- Connection pooling (single connection for WAL mode)
+- Automatic schema migrations
+- Graceful error handling
+- Prompt caching with SHA256 keys
+"""
 import aiosqlite
 import json
 import asyncio
@@ -27,6 +35,12 @@ class SQLitePromptRepository(PromptRepository):
     """
 
     def __init__(self, settings: Settings):
+        """
+        Initialize SQLite repository with settings.
+
+        Args:
+            settings: Application settings with database configuration
+        """
         self.settings = settings
         self.db_path = Path(settings.SQLITE_DB_PATH)
         self._connection: Optional[aiosqlite.Connection] = None
@@ -41,8 +55,8 @@ class SQLitePromptRepository(PromptRepository):
             self._connection.row_factory = aiosqlite.Row
             try:
                 await self._configure_connection(self._connection)
-            except Exception:
-                logger.exception("Failed to configure SQLite connection, cleaning up")
+            except (aiosqlite.Error, OSError, RuntimeError) as e:
+                logger.exception(f"Failed to configure SQLite connection: {e}")
                 # Clean up connection if configure fails
                 await self._connection.close()
                 self._connection = None
@@ -66,7 +80,15 @@ class SQLitePromptRepository(PromptRepository):
         logger.info(f"SQLite repository initialized: {self.db_path}")
 
     async def save(self, history: PromptHistory) -> int:
-        """Save a prompt history record."""
+        """
+        Save a prompt history record to database.
+
+        Args:
+            history: PromptHistory entity to persist
+
+        Returns:
+            ID of the inserted record
+        """
         async with self._lock:
             conn = await self._get_connection()
 
@@ -101,7 +123,15 @@ class SQLitePromptRepository(PromptRepository):
             return cursor.lastrowid
 
     async def find_by_id(self, history_id: int) -> Optional[PromptHistory]:
-        """Find a prompt history by ID."""
+        """
+        Find a prompt history record by ID.
+
+        Args:
+            history_id: Primary key of the record
+
+        Returns:
+            PromptHistory if found, None otherwise
+        """
         async with self._lock:
             conn = await self._get_connection()
 
@@ -121,7 +151,18 @@ class SQLitePromptRepository(PromptRepository):
         provider: Optional[str] = None,
         backend: Optional[str] = None,
     ) -> List[PromptHistory]:
-        """Find recent prompts with optional filters."""
+        """
+        Find recent prompt history records with optional filters.
+
+        Args:
+            limit: Maximum number of records to return
+            offset: Number of records to skip
+            provider: Filter by LLM provider
+            backend: Filter by backend type
+
+        Returns:
+            List of PromptHistory entities, most recent first
+        """
         async with self._lock:
             conn = await self._get_connection()
 
@@ -145,7 +186,16 @@ class SQLitePromptRepository(PromptRepository):
                 return [self._row_to_entity(row) for row in rows]
 
     async def search(self, query: str, limit: int = 20) -> List[PromptHistory]:
-        """Search prompts by text content."""
+        """
+        Search prompt history by text content.
+
+        Args:
+            query: Search string for original_idea and improved_prompt fields
+            limit: Maximum number of results to return
+
+        Returns:
+            List of matching PromptHistory entities
+        """
         async with self._lock:
             conn = await self._get_connection()
 
@@ -163,7 +213,15 @@ class SQLitePromptRepository(PromptRepository):
                 return [self._row_to_entity(row) for row in rows]
 
     async def delete_old_records(self, days: int) -> int:
-        """Delete records older than specified days."""
+        """
+        Delete prompt history records older than specified days.
+
+        Args:
+            days: Delete records older than this many days
+
+        Returns:
+            Number of records deleted
+        """
         async with self._lock:
             conn = await self._get_connection()
 
@@ -180,7 +238,13 @@ class SQLitePromptRepository(PromptRepository):
             return deleted
 
     async def get_statistics(self) -> dict:
-        """Get usage statistics."""
+        """
+        Get usage statistics from prompt history.
+
+        Returns:
+            Dict with total_count, average_confidence, average_latency_ms,
+            and backend_distribution
+        """
         async with self._lock:
             conn = await self._get_connection()
 
@@ -209,7 +273,7 @@ class SQLitePromptRepository(PromptRepository):
             }
 
     async def close(self):
-        """Close database connection."""
+        """Close database connection and release resources."""
         async with self._lock:
             if self._connection:
                 await self._connection.close()
