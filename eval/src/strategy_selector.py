@@ -7,6 +7,8 @@ from .strategies.simple_strategy import SimpleStrategy
 from .strategies.moderate_strategy import ModerateStrategy
 from .strategies.complex_strategy import ComplexStrategy
 from .strategies.nlac_strategy import NLaCStrategy
+from hemdov.domain.services.knn_provider import KNNProvider
+from hemdov.domain.services.llm_protocol import LLMClient
 
 
 class StrategySelector:
@@ -34,7 +36,7 @@ class StrategySelector:
         compiled_path: Optional[str] = None,
         fewshot_k: int = 3,
         use_nlac: bool = False,
-        llm_client=None,
+        llm_client: Optional[LLMClient] = None,
     ):
         """
         Initialize strategy selector.
@@ -54,7 +56,29 @@ class StrategySelector:
 
         # Initialize NLaC strategy if enabled
         if use_nlac:
-            self.nlac_strategy = NLaCStrategy(llm_client=llm_client)
+            # Initialize KNNProvider with ComponentCatalog
+            catalog_path = Path("datasets/exports/unified-fewshot-pool-v2.json")
+            knn_provider = None
+            if catalog_path.exists():
+                try:
+                    knn_provider = KNNProvider(catalog_path=catalog_path, k=3)
+                    logger = __import__("logging").getLogger(__name__)
+                    logger.info(f"KNNProvider initialized with catalog: {catalog_path}")
+                except Exception as e:
+                    logger = __import__("logging").getLogger(__name__)
+                    logger.warning(
+                        f"KNNProvider initialization failed, continuing without KNN: {e}"
+                    )
+            else:
+                logger = __import__("logging").getLogger(__name__)
+                logger.warning(
+                    f"ComponentCatalog not found at {catalog_path}, continuing without KNN"
+                )
+
+            self.nlac_strategy = NLaCStrategy(
+                llm_client=llm_client,
+                knn_provider=knn_provider
+            )
             logger = __import__("logging").getLogger(__name__)
             logger.info("NLaC strategy enabled - using unified NLaC pipeline")
             return  # Skip legacy strategy initialization

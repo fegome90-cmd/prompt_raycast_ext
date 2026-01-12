@@ -126,7 +126,6 @@ describe("promptStorage", () => {
       const history10 = await storageModule.getPromptHistory(10);
       expect(history10).toHaveLength(5);
     });
-
   });
 
   describe("trimHistory (MAX_HISTORY enforcement)", () => {

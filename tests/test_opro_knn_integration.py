@@ -5,13 +5,13 @@ Tests few-shot examples in meta-prompts for better optimization.
 """
 from unittest.mock import Mock
 from hemdov.domain.dto.nlac_models import NLaCRequest, PromptObject, IntentType
-from hemdov.domain.services.oprop_optimizer import OPOROptimizer
+from hemdov.domain.services.oprop_optimizer import OPROOptimizer
 from hemdov.domain.services.knn_provider import KNNProvider, FewShotExample
 
 
 def test_opro_without_knn():
     """OPROOptimizer should work without KNNProvider"""
-    optimizer = OPOROptimizer(llm_client=None, knn_provider=None)
+    optimizer = OPROOptimizer(llm_client=None, knn_provider=None)
 
     request = NLaCRequest(
         idea="Optimize this function",
@@ -63,7 +63,7 @@ def test_opro_with_knn_builds_enhanced_meta_prompt():
         ),
     ]
 
-    optimizer = OPOROptimizer(llm_client=None, knn_provider=mock_knn)
+    optimizer = OPROOptimizer(llm_client=None, knn_provider=mock_knn)
 
     # Create a PromptObject with trajectory
     prompt_obj = PromptObject(

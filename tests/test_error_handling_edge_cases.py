@@ -13,6 +13,7 @@ import tempfile
 
 from hemdov.domain.services.knn_provider import KNNProvider
 from hemdov.domain.services.reflexion_service import ReflexionService
+from hemdov.domain.services.oprop_optimizer import OPROOptimizer
 from eval.src.strategies.nlac_strategy import NLaCStrategy
 
 
@@ -24,7 +25,7 @@ class TestKNNProviderErrorHandling:
     """Test KNNProvider error handling and edge cases."""
 
     def test_knn_provider_with_empty_catalog(self):
-        """KNNProvider should handle empty catalog gracefully."""
+        """KNNProvider should raise ValueError when catalog is empty."""
         # Create temporary empty catalog
         with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
             import json
@@ -32,27 +33,15 @@ class TestKNNProviderErrorHandling:
             temp_path = f.name
 
         try:
-            provider = KNNProvider(catalog_path=Path(temp_path))
-            examples = provider.find_examples(
-                intent="debug",
-                complexity="simple",
-                k=3
-            )
-            # Should return empty list, not crash
-            assert examples == []
+            with pytest.raises(ValueError, match="No valid examples found"):
+                provider = KNNProvider(catalog_path=Path(temp_path))
         finally:
             Path(temp_path).unlink()
 
     def test_knn_provider_with_invalid_catalog_path(self):
-        """KNNProvider should handle missing catalog file."""
-        provider = KNNProvider(catalog_path=Path("/nonexistent/path.json"))
-        examples = provider.find_examples(
-            intent="debug",
-            complexity="simple",
-            k=3
-        )
-        # Should return empty list, not crash
-        assert examples == []
+        """KNNProvider should raise FileNotFoundError when catalog missing."""
+        with pytest.raises(FileNotFoundError, match="ComponentCatalog not found"):
+            provider = KNNProvider(catalog_path=Path("/nonexistent/path.json"))
 
     def test_knn_provider_with_zero_k(self):
         """KNNProvider returns all examples when k=0 (current behavior)."""
@@ -79,11 +68,70 @@ class TestKNNProviderErrorHandling:
 
 
 # ============================================================================
+# OPROOptimizer Edge Cases
+# ============================================================================
+
+class TestOPROOptimizerEdgeCases:
+    """Test OPROOptimizer input validation."""
+
+    def test_opro_with_none_prompt_obj(self):
+        """OPROOptimizer should raise ValueError when prompt_obj is None."""
+        optimizer = OPROOptimizer(llm_client=None)
+
+        from hemdov.domain.dto.nlac_models import PromptObject, IntentType
+        with pytest.raises(ValueError, match="prompt_obj cannot be None"):
+            optimizer.run_loop(prompt_obj=None)
+
+
+# ============================================================================
 # ReflexionService Edge Cases
 # ============================================================================
 
 class TestReflexionServiceEdgeCases:
     """Test ReflexionService edge cases."""
+
+    def test_reflexion_with_none_prompt(self):
+        """Reflexion should raise ValueError when prompt is None."""
+        class MockLLM:
+            def generate(self, prompt: str, **kwargs):
+                return "def test():\n    return 1"
+
+        reflexion = ReflexionService(llm_client=MockLLM())
+
+        with pytest.raises(ValueError, match="prompt and error_type cannot be None"):
+            reflexion.refine(
+                prompt=None,
+                error_type="Error"
+            )
+
+    def test_reflexion_with_empty_prompt(self):
+        """Reflexion should raise ValueError when prompt is empty."""
+        class MockLLM:
+            def generate(self, prompt: str, **kwargs):
+                return "def test():\n    return 1"
+
+        reflexion = ReflexionService(llm_client=MockLLM())
+
+        with pytest.raises(ValueError, match="prompt cannot be empty"):
+            reflexion.refine(
+                prompt="   ",
+                error_type="Error"
+            )
+
+    def test_reflexion_with_invalid_max_iterations(self):
+        """Reflexion should raise ValueError when max_iterations < 1."""
+        class MockLLM:
+            def generate(self, prompt: str, **kwargs):
+                return "def test():\n    return 1"
+
+        reflexion = ReflexionService(llm_client=MockLLM())
+
+        with pytest.raises(ValueError, match="max_iterations must be at least 1"):
+            reflexion.refine(
+                prompt="Fix this",
+                error_type="Error",
+                max_iterations=0
+            )
 
     def test_reflexion_with_executor_always_failing(self):
         """Reflexion should stop when executor always fails."""

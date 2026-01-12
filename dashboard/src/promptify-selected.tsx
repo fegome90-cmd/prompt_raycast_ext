@@ -10,14 +10,7 @@ import { ToastHelper } from "./core/design/toast";
 
 const LOG_PREFIX = "[PromptifySelected]";
 
-type LoadingStage =
-  | "idle"
-  | "validating"
-  | "connecting"
-  | "analyzing"
-  | "improving"
-  | "success"
-  | "error";
+type LoadingStage = "idle" | "validating" | "connecting" | "analyzing" | "improving" | "success" | "error";
 
 const STAGE_MESSAGES = {
   idle: "",
@@ -196,7 +189,9 @@ export default function Command() {
 
   return (
     <Detail
-      markdown={`## ${STAGE_MESSAGES[loadingStage] || "Loading..."}${loadingStage !== "idle" ? `\n\n_${loadingStage}_` : ""}`}
+      markdown={`## ${STAGE_MESSAGES[loadingStage] || "Loading..."}${
+        loadingStage !== "idle" ? `\n\n_${loadingStage}_` : ""
+      }`}
       isLoading={isLoading}
     />
   );

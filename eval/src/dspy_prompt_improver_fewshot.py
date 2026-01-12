@@ -46,7 +46,7 @@ class FixedVocabularyVectorizer:
         for text in texts:
             text = text.lower()
             # Count character bigrams
-            counts = {}
+            counts: dict[str, int] = {}
             for i in range(len(text) - 1):
                 ngram = text[i:i+2]
                 counts[ngram] = counts.get(ngram, 0) + 1
@@ -109,7 +109,7 @@ class PromptImproverWithFewShot(dspy.Module):
         self.k = k
         self.fallback_to_zeroshot = fallback_to_zeroshot
         self._compiled = False
-        self.compiled_improver = None
+        self.compiled_improver: Optional[dspy.Module] = None
 
         # Try to load existing compiled module
         if compiled_path and Path(compiled_path).exists():
@@ -122,6 +122,8 @@ class PromptImproverWithFewShot(dspy.Module):
         compilation state separately and recompile if needed.
         """
         # Check if compilation metadata exists
+        if not self.compiled_path:
+            return
         metadata_path = Path(self.compiled_path).with_suffix('.metadata.json')
         if metadata_path.exists():
             with open(metadata_path, 'r') as f:

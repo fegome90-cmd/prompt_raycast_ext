@@ -1,4 +1,8 @@
 # eval/src/complexity_analyzer.py
+# DEPRECATED: This module has moved to hemdov/domain/services/complexity_analyzer.py
+# This file is kept for backward compatibility but should not be used in new code.
+# Please import from: from hemdov.domain.services import ComplexityAnalyzer, ComplexityLevel
+import warnings
 import re
 from enum import Enum
 
@@ -11,7 +15,12 @@ class ComplexityLevel(Enum):
 
 
 class ComplexityAnalyzer:
-    """Analyzes prompt complexity using multi-dimensional scoring."""
+    """
+    Analyzes prompt complexity using multi-dimensional scoring.
+
+    DEPRECATED: This class has moved to hemdov.domain.services.complexity_analyzer.
+    Import from there instead.
+    """
 
     # Thresholds for length-based classification
     SIMPLE_MAX_LENGTH = 50

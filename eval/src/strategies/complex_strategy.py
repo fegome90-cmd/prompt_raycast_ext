@@ -3,7 +3,6 @@ import logging
 import dspy
 from pathlib import Path
 from typing import Optional
-from hemdov.domain.dspy_modules.prompt_improver import PromptImproverSignature
 from .base import PromptImproverStrategy
 
 logger = logging.getLogger(__name__)

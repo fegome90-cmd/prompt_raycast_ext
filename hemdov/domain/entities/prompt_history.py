@@ -1,4 +1,9 @@
-# hemdov/domain/entities/prompt_history.py
+"""
+Prompt History Entity - Domain entity for prompt improvement events.
+
+Immutable value object following Domain-Driven Design principles.
+Represents a single prompt improvement event with full audit trail.
+"""
 import logging
 from dataclasses import dataclass
 from datetime import datetime, UTC

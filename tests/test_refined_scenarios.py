@@ -218,10 +218,10 @@ class TestOPROWithKNNIntegration:
 
     def test_opro_without_knn(self):
         """OPROOptimizer should work without KNNProvider"""
-        from hemdov.domain.services.oprop_optimizer import OPOROptimizer
+        from hemdov.domain.services.oprop_optimizer import OPROOptimizer
         from hemdov.domain.dto.nlac_models import PromptObject, IntentType
 
-        optimizer = OPOROptimizer(llm_client=None, knn_provider=None)
+        optimizer = OPROOptimizer(llm_client=None, knn_provider=None)
 
         prompt_obj = PromptObject(
             id="test-1",
@@ -241,7 +241,7 @@ class TestOPROWithKNNIntegration:
 
     def test_opro_with_mock_knn(self):
         """OPROOptimizer should include KNN examples in meta-prompt"""
-        from hemdov.domain.services.oprop_optimizer import OPOROptimizer
+        from hemdov.domain.services.oprop_optimizer import OPROOptimizer
         from hemdov.domain.dto.nlac_models import PromptObject, IntentType
         from hemdov.domain.services.knn_provider import FewShotExample
 
@@ -261,7 +261,7 @@ class TestOPROWithKNNIntegration:
             )
         ]
 
-        optimizer = OPOROptimizer(llm_client=None, knn_provider=mock_knn)
+        optimizer = OPROOptimizer(llm_client=None, knn_provider=mock_knn)
 
         prompt_obj = PromptObject(
             id="test-2",

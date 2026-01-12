@@ -38,23 +38,27 @@ class StrategyMetadata(TypedDict):
     Type-safe dictionary for strategy metadata.
 
     Expected keys:
+        strategy: str - Selected strategy name (simple_debug, moderate_debug, etc.)
         intent: str - Intent classification (debug, refactor, generate, explain)
         complexity: str - Complexity level (simple, moderate, complex)
         knn_enabled: bool - Whether KNN few-shot was used
         fewshot_count: int - Number of few-shot examples injected
-        rar_used: Whether RaR (Rephrase and Respond) was used
+        rar_used: bool - Whether RaR (Rephrase and Respond) was used
         role: str - Role assigned to the AI
-        directive: str - Primary directive/instruction
-        framework: str - Framework or methodology used
+        directive: NotRequired[str] - Primary directive/instruction (optional)
+        framework: NotRequired[str] - Framework or methodology used (optional)
+        guardrails: NotRequired[list[str]] - Guardrails/constraints (optional)
     """
+    strategy: str
     intent: str
     complexity: str
     knn_enabled: bool
     fewshot_count: int
+    rar_used: bool
     role: str
-    directive: str
-    framework: str
-    rar_used: NotRequired[bool]
+    directive: NotRequired[str]
+    framework: NotRequired[str]
+    guardrails: NotRequired[list[str]]
 
 
 class PromptConstraints(TypedDict):
@@ -63,16 +67,14 @@ class PromptConstraints(TypedDict):
 
     Expected keys:
         max_tokens: Maximum tokens in response
-        min_tokens: Minimum tokens in response
-        format: Required output format (json, markdown, etc.)
-        temperature: LLM temperature (0.0-1.0)
-        timeout_seconds: Maximum execution time
+        format: Required output format (e.g., "code in Python")
+        include_examples: Whether to include examples in response
+        include_explanation: Whether to include explanation
     """
-    max_tokens: NotRequired[int]
-    min_tokens: NotRequired[int]
+    max_tokens: int
     format: NotRequired[str]
-    temperature: NotRequired[float]
-    timeout_seconds: NotRequired[int]
+    include_examples: NotRequired[bool]
+    include_explanation: NotRequired[bool]
 
 
 # ============================================================================
@@ -132,7 +134,7 @@ class NLaCRequest(BaseModel):
         description="Additional context or requirements (max 5000 chars)"
     )
     inputs: Optional[NLaCInputs] = Field(
-        default_factory=NLaCInputs,
+        default=None,
         description="Structured inputs for intent classification"
     )
     mode: Literal["legacy", "nlac"] = Field(

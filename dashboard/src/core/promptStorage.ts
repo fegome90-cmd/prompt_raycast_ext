@@ -74,7 +74,12 @@ export async function getPromptHistory(limit: number = 10): Promise<PromptEntry[
           return JSON.parse(line) as PromptEntry;
         } catch (error) {
           // Log warning for corrupted entries (helps detect data corruption)
-          console.warn(`${LOG_PREFIX} ⚠️ Skipping malformed JSON line (${line.length} chars): ${(error instanceof Error ? error.message : String(error)).substring(0, 50)}`);
+          console.warn(
+            `${LOG_PREFIX} ⚠️ Skipping malformed JSON line (${line.length} chars): ${(error instanceof Error
+              ? error.message
+              : String(error)
+            ).substring(0, 50)}`,
+          );
           return null;
         }
       })

@@ -41,9 +41,7 @@ export async function fetchWithTimeout(url: string, options: FetchOptions = {}):
       // Enhance AbortError with operation context
       if (error instanceof Error && error.name === "AbortError") {
         const enhancedError = new Error(
-          operation
-            ? `${operation} timed out after ${timeout}ms`
-            : `Request to ${url} timed out after ${timeout}ms`,
+          operation ? `${operation} timed out after ${timeout}ms` : `Request to ${url} timed out after ${timeout}ms`,
         );
         enhancedError.name = "AbortError";
         enhancedError.cause = error;
