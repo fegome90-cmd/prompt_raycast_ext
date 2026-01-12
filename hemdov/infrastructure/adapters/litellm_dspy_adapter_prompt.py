@@ -58,8 +58,8 @@ class PromptImproverLiteLLMAdapter(dspy.LM):
                 messages=messages,
                 **params,
             )
-        except Exception as exc:
-            raise RuntimeError(f"LiteLLM request failed: {str(exc)}") from exc
+        except (ConnectionError, TimeoutError, ValueError, RuntimeError) as exc:
+            raise RuntimeError(f"LiteLLM request failed: {type(exc).__name__}: {exc}") from exc
 
         outputs: list[str] = []
         for choice in response.choices:

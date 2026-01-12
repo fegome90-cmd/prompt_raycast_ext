@@ -6,9 +6,12 @@ Cache key is SHA256(idea + context + mode) for deterministic lookups.
 """
 
 import hashlib
+import json
 import logging
 from typing import Optional, TypedDict
 from datetime import datetime, UTC
+
+import aiosqlite
 
 from hemdov.domain.dto.nlac_models import PromptObject, NLaCRequest
 
@@ -82,8 +85,8 @@ class PromptCache:
                     await self.repository.update_cache_access(cache_key)
                     logger.debug(f"Cache hit: {cache_key[:8]}...")
                     return cached
-            except Exception as e:
-                logger.warning(f"Cache lookup failed: {e}, falling back to memory")
+            except (aiosqlite.Error, ConnectionError, TimeoutError, json.JSONDecodeError) as e:
+                logger.warning(f"Cache lookup failed: {type(e).__name__}: {e}, falling back to memory")
 
         # Fallback to in-memory cache
         if cache_key in self._memory_cache:
@@ -125,8 +128,8 @@ class PromptCache:
                     improved_prompt=prompt_obj.template,
                 )
                 logger.debug(f"Cached to repository: {cache_key[:8]}...")
-            except Exception as e:
-                logger.warning(f"Failed to persist to repository: {e}")
+            except (aiosqlite.Error, ConnectionError, TimeoutError) as e:
+                logger.warning(f"Failed to persist to repository: {type(e).__name__}: {e}")
 
     async def invalidate(self, request: NLaCRequest) -> bool:
         """
@@ -147,8 +150,8 @@ class PromptCache:
                 if deleted:
                     logger.info(f"Invalidated cache: {cache_key[:8]}...")
                     return True
-            except Exception as e:
-                logger.warning(f"Cache invalidation failed: {e}")
+            except (aiosqlite.Error, ConnectionError, TimeoutError) as e:
+                logger.warning(f"Cache invalidation failed: {type(e).__name__}: {e}")
 
         # Fallback to in-memory cache
         if cache_key in self._memory_cache:
@@ -169,8 +172,8 @@ class PromptCache:
         if self.repository:
             try:
                 return await self.repository.get_cache_stats()
-            except Exception as e:
-                logger.warning(f"Failed to get cache stats: {e}")
+            except (aiosqlite.Error, ConnectionError, TimeoutError, json.JSONDecodeError) as e:
+                logger.warning(f"Failed to get cache stats: {type(e).__name__}: {e}")
 
         # Fallback to in-memory stats
         total_hits = sum(e["hit_count"] for e in self._memory_cache.values())
@@ -194,8 +197,8 @@ class PromptCache:
             try:
                 count = await self.repository.clear_cache()
                 logger.info(f"Cleared {count} cache entries from repository")
-            except Exception as e:
-                logger.warning(f"Cache clear failed: {e}")
+            except (aiosqlite.Error, ConnectionError, TimeoutError) as e:
+                logger.warning(f"Cache clear failed: {type(e).__name__}: {e}")
 
         # Clear in-memory cache
         memory_count = len(self._memory_cache)

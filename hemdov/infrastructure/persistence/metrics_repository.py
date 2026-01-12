@@ -63,7 +63,7 @@ class SQLiteMetricsRepository:
                 self._connection = await aiosqlite.connect(self.db_path)
                 self._connection.row_factory = aiosqlite.Row
                 await self._configure_connection(self._connection)
-            except Exception:
+            except (aiosqlite.Error, OSError, PermissionError):
                 # Clean up connection if initialization fails
                 if self._connection:
                     await self._connection.close()
