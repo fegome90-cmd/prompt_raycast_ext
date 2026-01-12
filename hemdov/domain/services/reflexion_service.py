@@ -11,6 +11,8 @@ import logging
 from dataclasses import dataclass, field
 from typing import Optional, Callable
 
+from hemdov.domain.services.llm_protocol import LLMClient
+
 logger = logging.getLogger(__name__)
 
 
@@ -39,7 +41,7 @@ class ReflexionService:
     Reference: https://arxiv.org/abs/2303.11366
     """
 
-    def __init__(self, llm_client=None, executor: Optional[Callable] = None):
+    def __init__(self, llm_client: Optional[LLMClient] = None, executor: Optional[Callable] = None):
         """
         Initialize ReflexionService.
 
@@ -55,9 +57,9 @@ class ReflexionService:
         self,
         prompt: str,
         error_type: str,
-        error_message: str = None,
+        error_message: Optional[str] = None,
         max_iterations: int = 2,
-        initial_context: str = None
+        initial_context: Optional[str] = None
     ) -> ReflexionResult:
         """
         Run Reflexion loop to fix/debug code.
@@ -71,8 +73,24 @@ class ReflexionService:
 
         Returns:
             ReflexionResult with final code and iteration history
+
+        Raises:
+            ValueError: If prompt or error_type is None or empty
+            TypeError: If prompt or error_type is not a string
         """
-        error_history = []
+        # Input validation
+        if prompt is None or error_type is None:
+            raise ValueError("prompt and error_type cannot be None")
+        if not isinstance(prompt, str) or not isinstance(error_type, str):
+            raise TypeError("prompt and error_type must be strings")
+        if not prompt.strip():
+            raise ValueError("prompt cannot be empty")
+        if not error_type.strip():
+            raise ValueError("error_type cannot be empty")
+        if max_iterations < 1:
+            raise ValueError("max_iterations must be at least 1")
+
+        error_history: list[str] = []
         current_prompt = self._build_initial_prompt(
             prompt,
             error_type,
@@ -90,7 +108,7 @@ class ReflexionService:
                 else:
                     # Fallback for testing
                     code = f"# Generated code for iteration {iteration}"
-            except Exception as e:
+            except (ConnectionError, TimeoutError, RuntimeError, ValueError, TypeError) as e:
                 # LLM generation failed - abort with error
                 logger.exception(
                     f"LLM generation failed at iteration {iteration}/{max_iterations}. "
@@ -116,7 +134,7 @@ class ReflexionService:
                         success=True,
                         error_history=error_history
                     )
-                except Exception as e:
+                except (RuntimeError, TimeoutError, ValueError, TypeError, KeyError) as e:
                     # Execution failed - add error to context
                     error_msg = str(e)
                     error_history.append(error_msg)
@@ -156,8 +174,8 @@ class ReflexionService:
         self,
         prompt: str,
         error_type: str,
-        error_message: str = None,
-        context: str = None
+        error_message: Optional[str] = None,
+        context: Optional[str] = None
     ) -> str:
         """Build initial debugging prompt."""
         parts = [

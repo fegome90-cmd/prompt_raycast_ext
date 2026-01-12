@@ -377,8 +377,8 @@ class SQLitePromptRepository(PromptRepository):
                 )
                 await conn.commit()
                 return True
-            except Exception as e:
-                logger.error(f"Failed to cache prompt: {e}")
+            except (aiosqlite.Error, ConnectionError, TimeoutError, json.JSONDecodeError) as e:
+                logger.error(f"Failed to cache prompt: {type(e).__name__}: {e}")
                 return False
 
     async def update_cache_access(self, cache_key: str) -> bool:
@@ -404,8 +404,8 @@ class SQLitePromptRepository(PromptRepository):
                 )
                 await conn.commit()
                 return True
-            except Exception as e:
-                logger.error(f"Failed to update cache access: {e}")
+            except (aiosqlite.Error, ConnectionError, TimeoutError) as e:
+                logger.error(f"Failed to update cache access: {type(e).__name__}: {e}")
                 return False
 
     async def delete_cached_prompt(self, cache_key: str) -> bool:

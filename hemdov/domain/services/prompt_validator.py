@@ -26,6 +26,10 @@ class PromptValidator:
 
     MAX_RETRIES = 1  # Reflexion loop: 1 retry attempt
 
+    def __init__(self, llm_client=None):
+        """Initialize validator with optional LLM client."""
+        self.llm_client = llm_client
+
     def validate(self, prompt_obj: PromptObject) -> Tuple[bool, List[str]]:
         """
         Validate prompt against constraints.
@@ -171,7 +175,7 @@ class PromptValidator:
                 object.__setattr__(prompt_obj, 'updated_at', datetime.now(UTC).isoformat())
                 logger.info("Autocorrection successful")
                 return True
-        except Exception as e:
+        except (ConnectionError, TimeoutError, RuntimeError, ValueError) as e:
             logger.exception(
                 f"LLM autocorrection failed. Error: {type(e).__name__}"
             )
@@ -237,7 +241,3 @@ class PromptValidator:
 
 Please correct the prompt to address these issues.
 Respond only with the corrected prompt template."""
-
-    def __init__(self, llm_client=None):
-        """Initialize validator with optional LLM client."""
-        self.llm_client = llm_client

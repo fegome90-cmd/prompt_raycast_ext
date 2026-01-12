@@ -39,7 +39,7 @@
           "description": "Prompt improvement pipeline",
           "type": "dropdown",
           "required": false,
-          "default": "legacy",
+          "default": "nlac",
           "data": [
             {
               "title": "DSPy Legacy (Few-shot)",
