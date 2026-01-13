@@ -104,14 +104,16 @@ def test_knn_provider_raises_when_no_examples():
 
 
 def test_find_examples_raises_when_vectorizer_none(monkeypatch):
-    """find_examples should raise RuntimeError when vectorizer is None."""
+    """find_examples should raise KNNProviderError when vectorizer is None."""
+    from hemdov.domain.services.knn_provider import KNNProviderError
+
     provider = KNNProvider(catalog_path=Path("datasets/exports/unified-fewshot-pool-v2.json"))
 
     # Mock vectorizer to None to simulate initialization failure
     monkeypatch.setattr(provider, '_vectorizer', None)
 
-    # Should raise RuntimeError, not return first-k examples
-    with pytest.raises(RuntimeError, match="vectorizer not initialized"):
+    # Should raise KNNProviderError, not return first-k examples
+    with pytest.raises(KNNProviderError, match="vectorizer not initialized"):
         provider.find_examples(intent="explain", complexity="moderate", k=3)
 
 
