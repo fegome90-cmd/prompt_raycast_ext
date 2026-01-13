@@ -3,6 +3,24 @@ KNNProvider - Bridge between ComponentCatalog and NLaC.
 
 Provides semantic search functionality over the unified few-shot pool
 using DSPy's KNNFewShot vector similarity.
+
+ARCHITECTURE NOTE: Repository Pattern Integration
+This service follows Hexagonal Architecture principles:
+- Domain layer: Pure business logic, no I/O
+- Infrastructure: FileSystemCatalogRepository handles file access
+
+Migration Path (Legacy → Preferred):
+- Legacy: KNNProvider(catalog_path=Path(...))  # Violates purity
+- Preferred: KNNProvider(repository=repo)     # Clean separation
+
+The catalog_path parameter is a legacy adapter maintained for backward compatibility.
+New code should use the repository parameter.
+
+Design Decisions:
+- frozenset for VALID_INTENTS/VALID_COMPLEXITIES: Immutability prevents runtime modification
+- TYPE_CHECKING for forward references: Avoids runtime import errors
+- _find_examples_impl(): DRY principle - single implementation for both APIs
+- Single Source of Truth: VALID_INTENTS/VALID_COMPLEXITIES derived from enums (IntentType, ComplexityLevel)
 """
 
 import logging
@@ -14,6 +32,10 @@ import dspy
 
 if TYPE_CHECKING:
     from hemdov.infrastructure.repositories.catalog_repository import CatalogRepositoryInterface
+
+# Import enums for type-safe validation
+from hemdov.domain.dto.nlac_models import IntentType
+from hemdov.domain.services.complexity_analyzer import ComplexityLevel
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +115,7 @@ class FewShotExample:
     metadata: dict[str, object] = field(default_factory=dict)
 
 
-@dataclass
+@dataclass(frozen=True)
 class FindExamplesResult:
     """Result from find_examples with metadata for debugging.
 
@@ -105,6 +127,30 @@ class FindExamplesResult:
     threshold_used: float
     total_candidates: int
     met_threshold: bool
+
+    def __post_init__(self):
+        """Enforce invariants for FindExamplesResult.
+
+        Raises:
+            ValueError: If invariants are violated
+        """
+        # highest_similarity must be in valid cosine similarity range [-1, 1]
+        if not (-1.0 <= self.highest_similarity <= 1.0):
+            raise ValueError(
+                f"highest_similarity must be in [-1, 1], got {self.highest_similarity}"
+            )
+
+        # total_candidates cannot be negative
+        if self.total_candidates < 0:
+            raise ValueError(
+                f"total_candidates cannot be negative, got {self.total_candidates}"
+            )
+
+        # Consistency check: met_threshold=True requires non-empty examples
+        if self.met_threshold and not self.examples:
+            raise ValueError(
+                f"met_threshold=True requires non-empty examples, got {len(self.examples)} examples"
+            )
 
     @property
     def empty(self) -> bool:
@@ -134,10 +180,21 @@ class KNNProvider:
         Initialize KNNProvider with ComponentCatalog.
 
         Args:
-            catalog_path: Path to unified-fewshot-pool-v2.json (legacy, creates repository)
-            catalog_data: Pre-loaded catalog data (skip repository)
-            repository: Catalog repository instance
+            catalog_path: Path to unified-fewshot-pool-v2.json (legacy, creates repository).
+                         NOTE: This parameter couples domain to filesystem concepts.
+                         Prefer using 'repository' parameter for pure domain architecture.
+            catalog_data: Pre-loaded catalog data (skip repository, useful for testing)
+            repository: Catalog repository instance (recommended for production)
             k: Default number of examples to retrieve
+
+        Raises:
+            ValueError: If none of catalog_path, catalog_data, or repository are provided
+
+        Architecture Note:
+            The catalog_path parameter is a legacy adapter for backward compatibility.
+            It violates hexagonal architecture purity by coupling the domain layer
+            to filesystem concepts. New code should use the 'repository' parameter
+            with dependency injection from the infrastructure layer.
 
         **Backward Compatibility:** If repository is None and catalog_path is provided,
         creates FileSystemCatalogRepository automatically. If catalog_data is provided,
@@ -250,7 +307,7 @@ class KNNProvider:
                 )
 
             # CRITICAL threshold at 20%
-            if skip_rate > self.SKIP_RATE_CRITICAL_THRESHOLD:
+            if skip_rate >= self.SKIP_RATE_CRITICAL_THRESHOLD:
                 raise ValueError(
                     f"Catalog data quality issue: {skip_rate:.1%} of examples ({skipped_count}/{len(examples_data)}) "
                     f"failed validation. This may indicate a schema mismatch or data corruption. "
@@ -306,6 +363,127 @@ class KNNProvider:
     # Floating-point epsilon for division safety when computing cosine similarity
     NORM_ZERO_THRESHOLD: float = 1e-10
 
+    # Valid intent values derived from IntentType enum (Single Source of Truth)
+    # Used for validation in _build_query_text
+    # frozenset ensures immutability - prevents runtime modification
+    VALID_INTENTS: frozenset[str] = frozenset(e.value for e in IntentType)
+
+    # Valid complexity values derived from ComplexityLevel enum (Single Source of Truth)
+    # Used for validation in _build_query_text
+    # frozenset ensures immutability - prevents runtime modification
+    VALID_COMPLEXITIES: frozenset[str] = frozenset(e.value for e in ComplexityLevel)
+
+    def _find_examples_impl(
+        self,
+        intent: str,
+        complexity: str,
+        k: Optional[int] = None,
+        has_expected_output: bool = False,
+        user_input: Optional[str] = None,
+        min_similarity: Optional[float] = None,
+        return_metadata: bool = False,
+    ) -> List[FewShotExample] | FindExamplesResult:
+        """
+        Unified implementation for finding similar examples.
+
+        This method consolidates the logic for both find_examples() and
+        find_examples_with_metadata() to eliminate code duplication.
+
+        Args:
+            intent: Intent type (debug, refactor, generate, explain)
+            complexity: Complexity level (simple, moderate, complex)
+            k: Number of examples to retrieve (defaults to self.k)
+            has_expected_output: Filter for examples with expected_output
+            user_input: Optional user input for better semantic matching
+            min_similarity: Minimum cosine similarity threshold
+            return_metadata: If True, returns FindExamplesResult; otherwise returns List
+
+        Returns:
+            List[FewShotExample] or FindExamplesResult depending on return_metadata
+
+        Raises:
+            ValueError: If k <= 0, or min_similarity not in [-1, 1]
+            RuntimeError: If vectorizer is not initialized
+            TypeError: If user_input is not str or None
+        """
+        k = self.k if k is None else k
+        min_similarity = self.MIN_SIMILARITY_THRESHOLD if min_similarity is None else min_similarity
+
+        # Validate parameters
+        if k <= 0:
+            raise ValueError(f"k must be positive, got {k}")
+
+        if not (-1.0 <= min_similarity <= 1.0):
+            raise ValueError(f"min_similarity must be in [-1, 1], got {min_similarity}")
+
+        if user_input is not None and not isinstance(user_input, str):
+            raise TypeError(f"user_input must be str or None, got {type(user_input).__name__}")
+
+        # Filter candidates
+        candidates = self._filter_candidates_by_expected_output(has_expected_output)
+
+        if not candidates:
+            logger.warning(
+                f"No candidates found after filtering. "
+                f"Intent='{intent}', Complexity='{complexity}', "
+                f"has_expected_output={has_expected_output}. "
+                f"Catalog may be missing examples for this combination."
+            )
+            if return_metadata:
+                return FindExamplesResult(
+                    examples=[],
+                    highest_similarity=0.0,
+                    threshold_used=min_similarity,
+                    total_candidates=0,
+                    met_threshold=False
+                )
+            return []
+
+        # Early return if we have fewer candidates than k
+        if len(candidates) <= k:
+            if len(candidates) < k:
+                logger.warning(
+                    f"Returning {len(candidates)} examples (requested k={k}). "
+                    f"Candidate pool exhausted - results may be lower quality than expected."
+                )
+            if return_metadata:
+                return FindExamplesResult(
+                    examples=candidates[:k],
+                    highest_similarity=1.0,  # No filtering done, assume max
+                    threshold_used=min_similarity,
+                    total_candidates=len(candidates),
+                    met_threshold=True
+                )
+            return candidates[:k]
+
+        # Semantic search
+        if not self._vectorizer:
+            raise RuntimeError(
+                "KNNProvider vectorizer not initialized. "
+                "Cannot perform semantic search. Check logs for initialization errors."
+            )
+
+        # Build query and compute similarities
+        query_text = self._build_query_text(intent, complexity, user_input)
+        candidate_vectors = self._get_candidate_vectors(candidates)
+        query_vector = self._vectorizer([query_text])[0]
+        similarities = self._compute_cosine_similarities(candidate_vectors, query_vector)
+
+        # Filter and rank by similarity
+        filtered, highest_sim, total_cands, met_threshold = self._filter_and_rank_by_similarity(
+            candidates, similarities, k, min_similarity
+        )
+
+        if return_metadata:
+            return FindExamplesResult(
+                examples=filtered,
+                highest_similarity=highest_sim,
+                threshold_used=min_similarity,
+                total_candidates=total_cands,
+                met_threshold=met_threshold
+            )
+        return filtered
+
     def find_examples(
         self,
         intent: str,
@@ -332,34 +510,73 @@ class KNNProvider:
 
         Returns:
             List of FewShotExample sorted by similarity
+
+        Raises:
+            ValueError: If k <= 0, or min_similarity not in [-1, 1]
+            RuntimeError: If vectorizer is not initialized
+            TypeError: If user_input is not str or None
         """
-        k = k or self.k
-        min_similarity = min_similarity if min_similarity is not None else self.MIN_SIMILARITY_THRESHOLD
+        result = self._find_examples_impl(
+            intent=intent,
+            complexity=complexity,
+            k=k,
+            has_expected_output=has_expected_output,
+            user_input=user_input,
+            min_similarity=min_similarity,
+            return_metadata=False,
+        )
+        # Type narrowing: we know result is List when return_metadata=False
+        assert isinstance(result, list)
+        return result
 
-        # Filter candidates
-        candidates = self._filter_candidates_by_expected_output(has_expected_output)
-        if not candidates:
-            return []
+    def find_examples_with_metadata(
+        self,
+        intent: str,
+        complexity: str,
+        k: Optional[int] = None,
+        has_expected_output: bool = False,
+        user_input: Optional[str] = None,
+        min_similarity: Optional[float] = None
+    ) -> FindExamplesResult:
+        """
+        Find k similar examples using semantic search with metadata.
 
-        # Early return if we have fewer candidates than k
-        if len(candidates) <= k:
-            return candidates[:k]
+        This is the recommended API for production use as it provides
+        diagnostic metadata about the search results.
 
-        # Semantic search
-        if not self._vectorizer:
-            raise RuntimeError(
-                "KNNProvider vectorizer not initialized. "
-                "Cannot perform semantic search. Check logs for initialization errors."
-            )
+        Args:
+            intent: Intent type (debug, refactor, generate, explain)
+            complexity: Complexity level (simple, moderate, complex)
+            k: Number of examples to retrieve (defaults to self.k)
+            has_expected_output: Filter for examples with expected_output
+            user_input: Optional user input for better semantic matching
+            min_similarity: Minimum cosine similarity threshold
 
-        # Build query and compute similarities
-        query_text = self._build_query_text(intent, complexity, user_input)
-        candidate_vectors = self._get_candidate_vectors(candidates)
-        query_vector = self._vectorizer([query_text])[0]
-        similarities = self._compute_cosine_similarities(candidate_vectors, query_vector)
+        Returns:
+            FindExamplesResult with examples and diagnostic metadata
 
-        # Relevance filtering and ranking
-        return self._filter_and_rank_by_similarity(candidates, similarities, k, min_similarity)
+        Raises:
+            ValueError: If k <= 0, or min_similarity not in [-1, 1]
+            RuntimeError: If vectorizer is not initialized
+            TypeError: If user_input is not str or None
+
+        Example:
+            >>> result = provider.find_examples_with_metadata("debug", "simple", k=3)
+            >>> if result.empty:
+            ...     print(f"No examples met threshold. Highest similarity: {result.highest_similarity}")
+        """
+        result = self._find_examples_impl(
+            intent=intent,
+            complexity=complexity,
+            k=k,
+            has_expected_output=has_expected_output,
+            user_input=user_input,
+            min_similarity=min_similarity,
+            return_metadata=True,
+        )
+        # Type narrowing: we know result is FindExamplesResult when return_metadata=True
+        assert isinstance(result, FindExamplesResult)
+        return result
 
     def _filter_candidates_by_expected_output(self, has_expected_output: bool) -> List[FewShotExample]:
         """Filter catalog by expected_output flag."""
@@ -372,7 +589,29 @@ class KNNProvider:
         return filtered
 
     def _build_query_text(self, intent: str, complexity: str, user_input: Optional[str]) -> str:
-        """Build search query from intent, complexity, and optional user input."""
+        """Build search query from intent, complexity, and optional user input.
+
+        Args:
+            intent: Intent type (must be one of VALID_INTENTS)
+            complexity: Complexity level (must be one of VALID_COMPLEXITIES)
+            user_input: Optional user input for better semantic matching
+
+        Returns:
+            Search query string
+
+        Raises:
+            ValueError: If intent or complexity are not valid values
+        """
+        # Validate inputs (defense in depth - IntentClassifier already validates)
+        if intent not in self.VALID_INTENTS:
+            raise ValueError(
+                f"Invalid intent '{intent}'. Must be one of: {', '.join(sorted(self.VALID_INTENTS))}"
+            )
+        if complexity not in self.VALID_COMPLEXITIES:
+            raise ValueError(
+                f"Invalid complexity '{complexity}'. Must be one of: {', '.join(sorted(self.VALID_COMPLEXITIES))}"
+            )
+
         query_parts = [intent, complexity]
         if user_input and user_input.strip():
             query_parts.append(user_input.strip())
@@ -393,7 +632,23 @@ class KNNProvider:
         candidate_vectors: np.ndarray,
         query_vector: np.ndarray
     ) -> np.ndarray:
-        """Calculate cosine similarities using vectorized operations (7x faster)."""
+        """Calculate cosine similarities using vectorized operations (7x faster).
+
+        Raises:
+            ValueError: If vectors contain NaN or infinite values
+        """
+        # Validate inputs for NaN/inf
+        if not np.all(np.isfinite(candidate_vectors)):
+            raise ValueError(
+                f"Candidate vectors contain NaN or infinite values. "
+                f"This may indicate corrupted data or invalid vectorization."
+            )
+        if not np.all(np.isfinite(query_vector)):
+            raise ValueError(
+                f"Query vector contains NaN or infinite values. "
+                f"This may indicate corrupted input data."
+            )
+
         # Cosine similarity = (A . B) / (|A| * |B|)
         dot_products = np.dot(candidate_vectors, query_vector)
         query_norm = np.linalg.norm(query_vector)
@@ -401,11 +656,23 @@ class KNNProvider:
         similarities = dot_products / (query_norm * candidate_norms)
 
         # Handle division by zero using epsilon threshold
-        return np.where(
+        result = np.where(
             (query_norm > self.NORM_ZERO_THRESHOLD) & (candidate_norms > self.NORM_ZERO_THRESHOLD),
             similarities,
             0
         )
+
+        # Log when zero-norm vectors are detected (silent failure prevention)
+        zero_norm_count = np.sum(result == 0)
+        if zero_norm_count > 0:
+            zero_norm_pct = (zero_norm_count / len(candidate_vectors)) * 100
+            logger.warning(
+                f"Zero-norm vectors detected in {zero_norm_count}/{len(candidate_vectors)} "
+                f"candidates ({zero_norm_pct:.1f}%). These vectors have no semantic content "
+                f"and will have 0 similarity. Consider reviewing catalog data quality."
+            )
+
+        return result
 
     def _filter_and_rank_by_similarity(
         self,
@@ -413,19 +680,27 @@ class KNNProvider:
         similarities: np.ndarray,
         k: int,
         min_similarity: float
-    ) -> List[FewShotExample]:
-        """Filter by threshold and return top-k examples."""
+    ) -> tuple[List[FewShotExample], float, int, bool]:
+        """
+        Filter by threshold and return top-k examples with metadata.
+
+        Returns:
+            Tuple of (examples, highest_similarity, total_candidates, met_threshold)
+        """
         # Filter by minimum similarity threshold (relevance filtering)
         relevant_mask = similarities >= min_similarity
         relevant_indices = np.where(relevant_mask)[0]
 
-        if len(relevant_indices) == 0:
+        highest_similarity = float(similarities.max()) if len(similarities) > 0 else 0.0
+        met_threshold = len(relevant_indices) > 0
+
+        if not met_threshold:
             logger.warning(
                 f"No examples met similarity threshold {min_similarity:.2f}. "
-                f"Highest similarity: {similarities.max():.2f}. "
-                f"Returning empty list - user input does not match any catalog examples."
+                f"Highest similarity: {highest_similarity:.2f}. "
+                f"Returning empty - user input does not match any catalog examples."
             )
-            return []
+            return [], highest_similarity, len(candidates), False
 
         # Sort relevant examples by similarity (descending) and return top k
         relevant_similarities = similarities[relevant_indices]
@@ -437,7 +712,8 @@ class KNNProvider:
             f"met threshold {min_similarity:.2f}, returning top {len(top_indices)}"
         )
 
-        return [candidates[i] for i in top_indices]
+        filtered_examples = [candidates[i] for i in top_indices]
+        return filtered_examples, highest_similarity, len(candidates), True
 
 
 def handle_knn_failure(
