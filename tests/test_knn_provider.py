@@ -103,16 +103,34 @@ def test_knn_provider_raises_when_no_examples():
         catalog_path.unlink()
 
 
-def test_find_examples_raises_when_vectorizer_none(monkeypatch):
-    """find_examples should raise KNNProviderError when vectorizer is None."""
-    from hemdov.domain.services.knn_provider import KNNProviderError
+def test_find_examples_raises_after_initialization_failure(tmp_path):
+    """find_examples should raise KNNProviderError when vectorizer initialization fails."""
+    import json
+    from hemdov.domain.services.knn_provider import KNNProviderError, KNNProvider
 
-    provider = KNNProvider(catalog_path=Path("datasets/exports/unified-fewshot-pool-v2.json"))
+    # Create catalog with enough examples to bypass early return (len > k)
+    # This ensures semantic search path is taken where vectorizer check occurs
+    catalog_path = tmp_path / "test_catalog.json"
 
-    # Mock vectorizer to None to simulate initialization failure
-    monkeypatch.setattr(provider, '_vectorizer', None)
+    # Need > k examples to trigger vectorizer check (k=3 by default in test)
+    # Early return optimization: if len(candidates) <= k, return without vectorizer
+    examples_list = [
+        {
+            "inputs": {"original_idea": f"test idea {i}"},
+            "outputs": {"improved_prompt": f"improved {i}"}
+        }
+        for i in range(5)  # 5 examples > k=3, ensures semantic search path
+    ]
 
-    # Should raise KNNProviderError, not return first-k examples
+    catalog_path.write_text(json.dumps({"examples": examples_list}))
+
+    provider = KNNProvider(catalog_path=catalog_path)
+
+    # Set vectorizer to None to simulate initialization failure
+    # (this would happen if _initialize_knn() failed partway through)
+    provider._vectorizer = None
+
+    # find_examples should raise KNNProviderError since len(examples) > k
     with pytest.raises(KNNProviderError, match="vectorizer not initialized"):
         provider.find_examples(intent="explain", complexity="moderate", k=3)
 
