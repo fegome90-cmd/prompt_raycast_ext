@@ -314,8 +314,8 @@ class KNNProvider:
         if self._vectorizer:
             # Transform query to vector - include user input for better semantic matching
             query_parts = [intent, complexity]
-            if user_input:
-                query_parts.append(user_input)
+            if user_input and user_input.strip():  # Validate non-empty after stripping
+                query_parts.append(user_input.strip())
             query_text = " ".join(query_parts)
             query_vector = self._vectorizer([query_text])[0]
 

@@ -156,3 +156,34 @@ def test_knn_raises_when_skip_rate_high(tmp_path):
     # Should raise due to 80% skip rate
     with pytest.raises(ValueError, match="80.0%"):
         KNNProvider(catalog_path=catalog_path)
+
+
+def test_find_examples_ignores_empty_user_input():
+    """find_examples should ignore empty or whitespace-only user_input."""
+    provider = KNNProvider(catalog_path=Path("datasets/exports/unified-fewshot-pool-v2.json"))
+
+    # Empty string should be ignored
+    result1 = provider.find_examples(
+        intent="explain",
+        complexity="moderate",
+        user_input="",
+        k=2
+    )
+
+    # Whitespace-only should be ignored
+    result2 = provider.find_examples(
+        intent="explain",
+        complexity="moderate",
+        user_input="   ",
+        k=2
+    )
+
+    # Both should return same results as no user_input
+    result3 = provider.find_examples(
+        intent="explain",
+        complexity="moderate",
+        k=2
+    )
+
+    # Results should be identical (same examples selected)
+    assert len(result1) == len(result2) == len(result3)
