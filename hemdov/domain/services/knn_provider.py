@@ -231,8 +231,11 @@ class KNNProvider:
     def _initialize_knn(self) -> None:
         """Initialize vectorizer for semantic search and pre-compute catalog vectors."""
         if not self._dspy_examples:
-            logger.warning("No examples to initialize vectorizer")
-            return
+            raise RuntimeError(
+                "KNNProvider cannot initialize: No DSPy examples available. "
+                "This indicates catalog loading failed or produced no valid examples. "
+                f"Catalog path: {self.catalog_path}, examples loaded: {len(self.catalog)}"
+            )
 
         # Create and fit vectorizer on all examples
         self._vectorizer = FixedVocabularyVectorizer()
@@ -249,12 +252,18 @@ class KNNProvider:
             f"pre-computed {self._catalog_vectors.shape[0]} catalog vectors"
         )
 
+    # Minimum cosine similarity threshold for relevance filtering
+    # Character bigram similarity is less precise than embeddings, so threshold is conservative
+    MIN_SIMILARITY_THRESHOLD = 0.1
+
     def find_examples(
         self,
         intent: str,
         complexity: str,
         k: Optional[int] = None,
-        has_expected_output: bool = False
+        has_expected_output: bool = False,
+        user_input: Optional[str] = None,
+        min_similarity: Optional[float] = None
     ) -> List[FewShotExample]:
         """
         Find k similar examples using semantic search.
@@ -268,11 +277,14 @@ class KNNProvider:
             k: Number of examples to retrieve (defaults to self.k)
             has_expected_output: Filter for examples with expected_output
                               (CRITICAL for REFACTOR - MultiAIGCD Scenario III)
+            user_input: Optional user input for better semantic matching
+            min_similarity: Minimum cosine similarity threshold (defaults to MIN_SIMILARITY_THRESHOLD)
 
         Returns:
             List of FewShotExample sorted by similarity
         """
         k = k or self.k
+        min_similarity = min_similarity if min_similarity is not None else self.MIN_SIMILARITY_THRESHOLD
 
         # Start with all examples
         candidates = self.catalog
@@ -291,8 +303,11 @@ class KNNProvider:
 
         # Use KNN to find most similar by semantic search
         if self._vectorizer:
-            # Transform query to vector
-            query_text = f"{intent} {complexity}"
+            # Transform query to vector - include user input for better semantic matching
+            query_parts = [intent, complexity]
+            if user_input:
+                query_parts.append(user_input)
+            query_text = " ".join(query_parts)
             query_vector = self._vectorizer([query_text])[0]
 
             # Use cached vectors if available and no filtering, otherwise re-vectorize candidates
@@ -311,10 +326,32 @@ class KNNProvider:
             # Handle division by zero
             similarities = np.where((query_norm > 0) & (candidate_norms > 0), similarities, 0)
 
-            # Sort by similarity (descending) and return top k
-            top_indices = np.argsort(similarities)[::-1][:k]
+            # Filter by minimum similarity threshold (relevance filtering)
+            relevant_mask = similarities >= min_similarity
+            relevant_indices = np.where(relevant_mask)[0]
+
+            if len(relevant_indices) == 0:
+                logger.warning(
+                    f"No examples met similarity threshold {min_similarity:.2f}. "
+                    f"Returning top {k} anyway (highest similarity: {similarities.max():.2f})"
+                )
+                # Fallback: return top k even if below threshold
+                top_indices = np.argsort(similarities)[::-1][:k]
+            else:
+                # Sort relevant examples by similarity (descending) and return top k
+                relevant_similarities = similarities[relevant_indices]
+                sorted_relevant_idx = np.argsort(relevant_similarities)[::-1][:k]
+                top_indices = relevant_indices[sorted_relevant_idx]
+
+                logger.debug(
+                    f"KNN relevance filtering: {len(relevant_indices)}/{len(candidates)} examples "
+                    f"met threshold {min_similarity:.2f}, returning top {len(top_indices)}"
+                )
+
             return [candidates[i] for i in top_indices]
         else:
-            # Fallback: return first k candidates
-            logger.warning("Vectorizer not initialized, returning first k examples")
-            return candidates[:k]
+            # Vectorizer not initialized - this is a critical failure
+            raise RuntimeError(
+                "KNNProvider vectorizer not initialized. "
+                "Cannot perform semantic search. Check logs for initialization errors."
+            )
