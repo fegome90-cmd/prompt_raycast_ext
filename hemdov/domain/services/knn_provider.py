@@ -317,79 +317,108 @@ class KNNProvider:
         k = k or self.k
         min_similarity = min_similarity if min_similarity is not None else self.MIN_SIMILARITY_THRESHOLD
 
-        # Start with all examples
-        candidates = self.catalog
-
-        # Filter by expected_output if requested (CRITICAL for REFACTOR)
-        if has_expected_output:
-            candidates = [ex for ex in candidates if ex.expected_output is not None]
-
+        # Filter candidates
+        candidates = self._filter_candidates_by_expected_output(has_expected_output)
         if not candidates:
-            logger.warning(f"No examples found (catalog empty or filtered out)")
             return []
 
-        # If we have fewer candidates than k, return all
+        # Early return if we have fewer candidates than k
         if len(candidates) <= k:
             return candidates[:k]
 
-        # Use KNN to find most similar by semantic search
-        if self._vectorizer:
-            # Transform query to vector - include user input for better semantic matching
-            query_parts = [intent, complexity]
-            if user_input and user_input.strip():  # Validate non-empty after stripping
-                query_parts.append(user_input.strip())
-            query_text = " ".join(query_parts)
-            query_vector = self._vectorizer([query_text])[0]
-
-            # Use cached vectors if available and no filtering, otherwise re-vectorize candidates
-            if self._catalog_vectors is not None and candidates == self.catalog:
-                candidate_vectors = self._catalog_vectors
-            else:
-                candidate_texts = [ex.input_idea for ex in candidates]
-                candidate_vectors = self._vectorizer(candidate_texts)
-
-            # Calculate cosine similarity using vectorized operations (7x faster)
-            # Cosine similarity = (A . B) / (|A| * |B|)
-            dot_products = np.dot(candidate_vectors, query_vector)
-            query_norm = np.linalg.norm(query_vector)
-            candidate_norms = np.linalg.norm(candidate_vectors, axis=1)
-            similarities = dot_products / (query_norm * candidate_norms)
-            # Handle division by zero using epsilon threshold
-            similarities = np.where(
-                (query_norm > self.NORM_ZERO_THRESHOLD) & (candidate_norms > self.NORM_ZERO_THRESHOLD),
-                similarities,
-                0
-            )
-
-            # Filter by minimum similarity threshold (relevance filtering)
-            relevant_mask = similarities >= min_similarity
-            relevant_indices = np.where(relevant_mask)[0]
-
-            if len(relevant_indices) == 0:
-                logger.warning(
-                    f"No examples met similarity threshold {min_similarity:.2f}. "
-                    f"Highest similarity: {similarities.max():.2f}. "
-                    f"Returning empty list - user input does not match any catalog examples."
-                )
-                return []  # Let caller decide how to handle no examples
-            else:
-                # Sort relevant examples by similarity (descending) and return top k
-                relevant_similarities = similarities[relevant_indices]
-                sorted_relevant_idx = np.argsort(relevant_similarities)[::-1][:k]
-                top_indices = relevant_indices[sorted_relevant_idx]
-
-                logger.debug(
-                    f"KNN relevance filtering: {len(relevant_indices)}/{len(candidates)} examples "
-                    f"met threshold {min_similarity:.2f}, returning top {len(top_indices)}"
-                )
-
-            return [candidates[i] for i in top_indices]
-        else:
-            # Vectorizer not initialized - this is a critical failure
+        # Semantic search
+        if not self._vectorizer:
             raise RuntimeError(
                 "KNNProvider vectorizer not initialized. "
                 "Cannot perform semantic search. Check logs for initialization errors."
             )
+
+        # Build query and compute similarities
+        query_text = self._build_query_text(intent, complexity, user_input)
+        candidate_vectors = self._get_candidate_vectors(candidates)
+        query_vector = self._vectorizer([query_text])[0]
+        similarities = self._compute_cosine_similarities(candidate_vectors, query_vector)
+
+        # Relevance filtering and ranking
+        return self._filter_and_rank_by_similarity(candidates, similarities, k, min_similarity)
+
+    def _filter_candidates_by_expected_output(self, has_expected_output: bool) -> List[FewShotExample]:
+        """Filter catalog by expected_output flag."""
+        if not has_expected_output:
+            return self.catalog
+
+        filtered = [ex for ex in self.catalog if ex.expected_output is not None]
+        if not filtered:
+            logger.warning("No examples found (filtered by expected_output)")
+        return filtered
+
+    def _build_query_text(self, intent: str, complexity: str, user_input: Optional[str]) -> str:
+        """Build search query from intent, complexity, and optional user input."""
+        query_parts = [intent, complexity]
+        if user_input and user_input.strip():
+            query_parts.append(user_input.strip())
+        return " ".join(query_parts)
+
+    def _get_candidate_vectors(self, candidates: List[FewShotExample]) -> np.ndarray:
+        """Get cached or compute candidate vectors."""
+        # Use cached vectors if available and no filtering
+        if self._catalog_vectors is not None and candidates == self.catalog:
+            return self._catalog_vectors
+
+        # Otherwise re-vectorize candidates
+        candidate_texts = [ex.input_idea for ex in candidates]
+        return self._vectorizer(candidate_texts)
+
+    def _compute_cosine_similarities(
+        self,
+        candidate_vectors: np.ndarray,
+        query_vector: np.ndarray
+    ) -> np.ndarray:
+        """Calculate cosine similarities using vectorized operations (7x faster)."""
+        # Cosine similarity = (A . B) / (|A| * |B|)
+        dot_products = np.dot(candidate_vectors, query_vector)
+        query_norm = np.linalg.norm(query_vector)
+        candidate_norms = np.linalg.norm(candidate_vectors, axis=1)
+        similarities = dot_products / (query_norm * candidate_norms)
+
+        # Handle division by zero using epsilon threshold
+        return np.where(
+            (query_norm > self.NORM_ZERO_THRESHOLD) & (candidate_norms > self.NORM_ZERO_THRESHOLD),
+            similarities,
+            0
+        )
+
+    def _filter_and_rank_by_similarity(
+        self,
+        candidates: List[FewShotExample],
+        similarities: np.ndarray,
+        k: int,
+        min_similarity: float
+    ) -> List[FewShotExample]:
+        """Filter by threshold and return top-k examples."""
+        # Filter by minimum similarity threshold (relevance filtering)
+        relevant_mask = similarities >= min_similarity
+        relevant_indices = np.where(relevant_mask)[0]
+
+        if len(relevant_indices) == 0:
+            logger.warning(
+                f"No examples met similarity threshold {min_similarity:.2f}. "
+                f"Highest similarity: {similarities.max():.2f}. "
+                f"Returning empty list - user input does not match any catalog examples."
+            )
+            return []
+
+        # Sort relevant examples by similarity (descending) and return top k
+        relevant_similarities = similarities[relevant_indices]
+        sorted_relevant_idx = np.argsort(relevant_similarities)[::-1][:k]
+        top_indices = relevant_indices[sorted_relevant_idx]
+
+        logger.debug(
+            f"KNN relevance filtering: {len(relevant_indices)}/{len(candidates)} examples "
+            f"met threshold {min_similarity:.2f}, returning top {len(top_indices)}"
+        )
+
+        return [candidates[i] for i in top_indices]
 
 
 def handle_knn_failure(
