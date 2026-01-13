@@ -167,6 +167,8 @@ class OPROOptimizer:
             is_active=original.is_active,
             created_at=original.created_at,
             updated_at=datetime.now(UTC).isoformat(),
+            knn_failed=original.knn_failed,
+            knn_error=original.knn_error,
         )
 
     def _simple_refinement(self, prompt_obj: PromptObject, trajectory: List[OPROIteration]) -> str:
@@ -231,7 +233,8 @@ class OPROOptimizer:
                 fewshot_examples = self.knn_provider.find_examples(
                     intent=intent_str,
                     complexity=complexity_str,
-                    k=2  # Use 2 examples for meta-prompt (keep it concise)
+                    k=2,  # Use 2 examples for meta-prompt (keep it concise)
+                    user_input=prompt_obj.template  # Use template for semantic matching
                 )
             except (RuntimeError, KeyError, TypeError, ValueError, ConnectionError, TimeoutError) as e:
                 logger.exception(

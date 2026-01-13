@@ -88,7 +88,10 @@ class NLaCBuilder:
         role = self._inject_role(intent_str, complexity)
 
         # Step 5: Fetch KNN examples
+        knn_failed = False
+        knn_error = None
         fewshot_examples: List[FewShotExample] = []
+
         if self.knn_provider:
             # Determine k based on complexity (k=3 for simple/moderate, k=5 for complex)
             k = 5 if complexity == ComplexityLevel.COMPLEX else 3
@@ -101,7 +104,8 @@ class NLaCBuilder:
                     intent=intent_str,
                     complexity=complexity.value,
                     k=k,
-                    has_expected_output=has_expected_output
+                    has_expected_output=has_expected_output,
+                    user_input=request.idea
                 )
                 logger.info(f"Fetched {len(fewshot_examples)} KNN examples for {intent_str}/{complexity.value}")
             except (RuntimeError, KeyError, TypeError, ValueError, ConnectionError, TimeoutError) as e:
@@ -109,6 +113,8 @@ class NLaCBuilder:
                     f"Failed to fetch KNN examples for {intent_str}/{complexity.value}. "
                     f"Continuing without few-shot guidance. Error: {type(e).__name__}"
                 )
+                knn_failed = True
+                knn_error = f"{type(e).__name__}: {str(e)[:100]}"
                 # Continue with empty examples list
 
         # Step 6: Build template
@@ -140,6 +146,8 @@ class NLaCBuilder:
             constraints=constraints,
             created_at=datetime.now(UTC).isoformat(),
             updated_at=datetime.now(UTC).isoformat(),
+            knn_failed=knn_failed,
+            knn_error=knn_error,
         )
 
     def _select_strategy(self, complexity: ComplexityLevel, intent: str) -> str:

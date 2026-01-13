@@ -113,3 +113,26 @@ def test_nlac_builder_filters_refactor_examples():
     # The builder should have attempted to fetch with has_expected_output=True
     assert result.strategy_meta["knn_enabled"] == True
     assert result.strategy_meta["fewshot_count"] == 0  # No examples found
+
+
+def test_nlac_builder_includes_knn_failure_metadata():
+    """NLaCBuilder should include KNN failure metadata in PromptObject."""
+    from hemdov.domain.dto.nlac_models import IntentType
+
+    # Create mock KNN provider that raises error
+    mock_knn = Mock(spec=KNNProvider)
+    mock_knn.find_examples.side_effect = ConnectionError("KNN backend unavailable")
+
+    builder = NLaCBuilder(knn_provider=mock_knn)
+
+    request = NLaCRequest(
+        idea="test prompt",
+        context="test context"
+    )
+
+    result = builder.build(request)
+
+    # Should have metadata indicating KNN failed
+    assert result.knn_failed is True
+    assert "KNN backend unavailable" in result.knn_error or result.knn_error is not None
+    assert "ConnectionError" in result.knn_error

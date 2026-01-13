@@ -212,6 +212,10 @@ class PromptObject(BaseModel):
     created_at: str = Field(..., description="ISO timestamp")
     updated_at: str = Field(..., description="ISO timestamp")
 
+    # KNN failure tracking (for monitoring and debugging)
+    knn_failed: bool = Field(default=False, description="Whether KNN provider failed to fetch examples")
+    knn_error: Optional[str] = Field(None, description="Error message if KNN failed")
+
     @field_validator("template")
     @classmethod
     def validate_template(cls, v):
