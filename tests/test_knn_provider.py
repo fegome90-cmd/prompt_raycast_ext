@@ -187,3 +187,22 @@ def test_find_examples_ignores_empty_user_input():
 
     # Results should be identical (same examples selected)
     assert len(result1) == len(result2) == len(result3)
+
+
+def test_handle_knn_failure_returns_correct_tuple(caplog):
+    """Given: KNN failure exception
+    When: Call handle_knn_failure utility
+    Then: Returns (failed=True, error_message)"""
+    import logging
+    from hemdov.domain.services.knn_provider import handle_knn_failure
+
+    logger_instance = logging.getLogger("test")
+    exception = RuntimeError("vectorizer not initialized")
+
+    with caplog.at_level(logging.ERROR):
+        failed, error = handle_knn_failure(logger_instance, "test_context", exception)
+
+    assert failed is True
+    assert "RuntimeError" in error
+    assert "vectorizer not initialized" in error
+    assert "test_context" in caplog.text

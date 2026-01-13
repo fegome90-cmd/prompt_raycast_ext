@@ -164,10 +164,15 @@ def test_knn_failure_propagated_to_response():
     assert "KNN" in result.knn_error or "knn" in result.knn_error.lower()
 
     # Assert - NLaCResponse model supports knn_failure field
+    # New utility format: "KNN failure in {context}: {ExceptionType}: {message}"
+    # Extract error_type from the middle
+    parts = result.knn_error.split(":")
+    error_type = parts[1].strip() if len(parts) > 1 else "ConnectionError"
+
     knn_failure_metadata = {
         "failed": True,
         "error": result.knn_error,
-        "error_type": result.knn_error.split(":")[0] if ":" in result.knn_error else "ConnectionError",
+        "error_type": error_type,
         "timestamp": datetime.now(UTC).isoformat()
     }
 

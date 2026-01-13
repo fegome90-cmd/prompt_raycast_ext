@@ -20,7 +20,7 @@ from hemdov.domain.dto.nlac_models import (
     IntentType,
 )
 from hemdov.domain.services.intent_classifier import IntentClassifier
-from hemdov.domain.services.knn_provider import KNNProvider, FewShotExample
+from hemdov.domain.services.knn_provider import KNNProvider, FewShotExample, handle_knn_failure
 from hemdov.domain.services.complexity_analyzer import ComplexityAnalyzer, ComplexityLevel
 
 logger = logging.getLogger(__name__)
@@ -109,12 +109,9 @@ class NLaCBuilder:
                 )
                 logger.info(f"Fetched {len(fewshot_examples)} KNN examples for {intent_str}/{complexity.value}")
             except (RuntimeError, KeyError, TypeError, ValueError, ConnectionError, TimeoutError) as e:
-                logger.exception(
-                    f"Failed to fetch KNN examples for {intent_str}/{complexity.value}. "
-                    f"Continuing without few-shot guidance. Error: {type(e).__name__}"
+                knn_failed, knn_error = handle_knn_failure(
+                    logger, "NLaCBuilder.build", e
                 )
-                knn_failed = True
-                knn_error = f"{type(e).__name__}: {str(e)[:100]}"
                 # Continue with empty examples list
 
         # Step 6: Build template

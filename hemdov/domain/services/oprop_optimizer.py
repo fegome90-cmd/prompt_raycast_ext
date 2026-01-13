@@ -21,7 +21,7 @@ from hemdov.domain.dto.nlac_models import (
     OPROIteration,
     OptimizeResponse,
 )
-from hemdov.domain.services.knn_provider import KNNProvider, FewShotExample
+from hemdov.domain.services.knn_provider import KNNProvider, FewShotExample, handle_knn_failure
 from hemdov.domain.services.llm_protocol import LLMClient
 
 logger = logging.getLogger(__name__)
@@ -271,10 +271,9 @@ class OPROOptimizer:
                     "complexity": complexity_str
                 })
 
-                logger.error(
-                    f"KNN failed for OPRO meta-prompt: {type(e).__name__}: {e}. "
-                    f"Meta-prompt will proceed without few-shot examples "
-                    f"(may reduce optimization quality)."
+                # Use utility for consistent error handling
+                handle_knn_failure(
+                    logger, "OPROOptimizer._build_meta_prompt", e
                 )
                 fewshot_examples = []
 

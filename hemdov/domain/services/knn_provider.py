@@ -366,3 +366,38 @@ class KNNProvider:
                 "KNNProvider vectorizer not initialized. "
                 "Cannot perform semantic search. Check logs for initialization errors."
             )
+
+
+def handle_knn_failure(
+    logger_instance: logging.Logger,
+    context: str,
+    exception: Exception
+) -> tuple[bool, str]:
+    """
+    Handle KNN provider failures consistently.
+
+    This utility provides uniform error handling across all KNN call sites,
+    ensuring consistent logging and error messages.
+
+    Args:
+        logger_instance: Logger to use for error messages
+        context: Description of where the failure occurred (e.g., "NLaCBuilder.build")
+        exception: The exception that was caught
+
+    Returns:
+        Tuple of (failed: bool, error_message: str)
+
+    Example:
+        >>> import logging
+        >>> logger = logging.getLogger(__name__)
+        >>> failed, error = handle_knn_failure(logger, "test_context", RuntimeError("test"))
+        >>> assert failed is True
+        >>> assert "RuntimeError" in error
+    """
+    error_msg = f"KNN failure in {context}: {type(exception).__name__}: {exception}"
+    logger_instance.error(
+        f"{error_msg}. "
+        f"Proceeding without few-shot examples "
+        f"(may reduce prompt quality)."
+    )
+    return True, error_msg
