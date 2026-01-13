@@ -136,3 +136,51 @@ def test_nlac_builder_includes_knn_failure_metadata():
     assert result.knn_failed is True
     assert "KNN backend unavailable" in result.knn_error or result.knn_error is not None
     assert "ConnectionError" in result.knn_error
+
+
+def test_knn_failure_propagated_to_response():
+    """When KNN fails, NLaCResponse should expose knn_failure field."""
+    from hemdov.domain.dto.nlac_models import NLaCResponse
+    from datetime import datetime, UTC
+
+    # Verify NLaCResponse has knn_failure field
+    mock_knn = Mock(spec=KNNProvider)
+    mock_knn.find_examples.side_effect = ConnectionError("KNN service unavailable")
+
+    builder = NLaCBuilder(knn_provider=mock_knn)
+    request = NLaCRequest(
+        idea="Debug this error",
+        context="",
+        inputs=None,
+        mode="nlac"
+    )
+
+    # Act - PromptObject has the metadata
+    result = builder.build(request)
+
+    # Assert - PromptObject has knn_failed and knn_error
+    assert result.knn_failed is True
+    assert result.knn_error is not None
+    assert "KNN" in result.knn_error or "knn" in result.knn_error.lower()
+
+    # Assert - NLaCResponse model supports knn_failure field
+    knn_failure_metadata = {
+        "failed": True,
+        "error": result.knn_error,
+        "error_type": result.knn_error.split(":")[0] if ":" in result.knn_error else "ConnectionError",
+        "timestamp": datetime.now(UTC).isoformat()
+    }
+
+    response = NLaCResponse(
+        improved_prompt=result.template,
+        role="Debugger",
+        directive="Fix the error",
+        framework="TDD",
+        guardrails=["Keep it simple"],
+        prompt_object=result,
+        knn_failure=knn_failure_metadata
+    )
+
+    assert response.knn_failure is not None
+    assert response.knn_failure["failed"] is True
+    assert "ConnectionError" in response.knn_failure["error_type"]

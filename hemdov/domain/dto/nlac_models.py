@@ -304,3 +304,9 @@ class NLaCResponse(BaseModel):
         default=False,
         description="Whether result was served from cache"
     )
+
+    # KNN failure tracking
+    knn_failure: Optional[Dict[str, Any]] = Field(
+        None,
+        description="KNN failure metadata if few-shot examples were unavailable"
+    )
