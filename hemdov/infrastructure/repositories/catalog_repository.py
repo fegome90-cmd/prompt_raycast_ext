@@ -49,7 +49,7 @@ class FileSystemCatalogRepository(CatalogRepositoryInterface):
 
         Raises:
             FileNotFoundError: If catalog file doesn't exist
-            RuntimeError: If file cannot be read
+            PermissionError: If catalog file cannot be read due to permissions
             ValueError: If JSON is invalid or format is wrong
         """
         if not self.catalog_path.exists():
@@ -61,11 +61,6 @@ class FileSystemCatalogRepository(CatalogRepositoryInterface):
         try:
             with open(self.catalog_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-        except (FileNotFoundError, PermissionError) as e:
-            raise RuntimeError(
-                f"Failed to open ComponentCatalog at {self.catalog_path}. "
-                f"Error: {type(e).__name__}: {e}"
-            ) from e
         except json.JSONDecodeError as e:
             raise ValueError(
                 f"Failed to parse JSON from ComponentCatalog at {self.catalog_path}. "

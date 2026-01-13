@@ -1,0 +1,20 @@
+[
+  {
+    "input_idea": "Fix authentication bug",
+    "input_context": "Users cannot login",
+    "improved_prompt": "Fix the auth bug",
+    "role": "Debugger",
+    "directive": "Fix authentication",
+    "framework": "Direct",
+    "guardrails": ["Use logging"]
+  },
+  {
+    "input_idea": "Add feature",
+    "invalid_field": "This example is missing required fields",
+    "improved_prompt": "Incomplete example"
+  },
+  {
+    "input_idea": "Another incomplete example",
+    "missing_directive": true
+  }
+]

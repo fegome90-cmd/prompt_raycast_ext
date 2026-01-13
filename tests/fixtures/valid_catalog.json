@@ -1,0 +1,52 @@
+[
+  {
+    "input_idea": "Fix authentication bug",
+    "input_context": "Users cannot login with valid credentials",
+    "improved_prompt": "You are debugging an authentication system. Analyze the login flow and identify why valid credentials are being rejected.",
+    "role": "Debugger",
+    "directive": "Fix the authentication bug in the login flow",
+    "framework": "Direct",
+    "guardrails": ["Use logging to trace execution", "Verify password hashing"],
+    "expected_output": "Code fix for authentication"
+  },
+  {
+    "input_idea": "Add user profile feature",
+    "input_context": "Users need to edit their profile information",
+    "improved_prompt": "You are building a user profile feature. Implement CRUD operations for user profile data with proper validation.",
+    "role": "Feature Developer",
+    "directive": "Build the user profile management feature",
+    "framework": "RESTful API",
+    "guardrails": ["Validate all inputs", "Handle concurrent edits"],
+    "expected_output": "Profile management endpoints"
+  },
+  {
+    "input_idea": "Optimize database queries",
+    "input_context": "Dashboard loads slowly due to N+1 queries",
+    "improved_prompt": "You are optimizing database performance. Identify and fix N+1 query problems in the dashboard loading process.",
+    "role": "Performance Engineer",
+    "directive": "Optimize database queries for dashboard",
+    "framework": "Query Optimization",
+    "guardrails": ["Maintain data consistency", "Add query logging"],
+    "expected_output": "Optimized query plan"
+  },
+  {
+    "input_idea": "Refactor payment service",
+    "input_context": "Payment logic is scattered across multiple files",
+    "improved_prompt": "You are refactoring a payment service. Consolidate payment logic into a single service module with clear interfaces.",
+    "role": "Refactoring Specialist",
+    "directive": "Refactor payment service for better organization",
+    "framework": "Service Layer Pattern",
+    "guardrails": ["Maintain backward compatibility", "Add integration tests"],
+    "expected_output": "Refactored payment module"
+  },
+  {
+    "input_idea": "Generate API documentation",
+    "input_context": "API endpoints lack proper documentation",
+    "improved_prompt": "You are generating API documentation. Create comprehensive documentation for all REST endpoints including examples and error codes.",
+    "role": "Technical Writer",
+    "directive": "Generate complete API documentation",
+    "framework": "OpenAPI Specification",
+    "guardrails": ["Include authentication details", "Provide request/response examples"],
+    "expected_output": "OpenAPI specification file"
+  }
+]

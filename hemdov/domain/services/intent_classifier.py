@@ -57,10 +57,14 @@ class IntentClassifier:
             "improve", "refactor", "optimize", "clean up"
         }
 
-        # Explain keywords
+        # Explain keywords (includes review/analysis in Spanish)
         self._explain_keywords = {
             "explain", "how does", "why", "qué es", "cómo funciona",
-            "explicar", "entender", "understand"
+            "explicar", "entender", "understand",
+            "revisión", "revisar", "revision", "review",  # Review/analyze
+            "auditoría", "auditoria", "audit",  # Audit
+            "analizar", "análisis", "analysis", "analyze",  # Analysis
+            "examinar", "examine",  # Examine
         }
 
         # Frustration indicators (negative sentiment)

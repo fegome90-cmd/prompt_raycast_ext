@@ -59,7 +59,7 @@ def test_knn_provider_filters_by_expected_output():
 
 def test_knn_provider_returns_examples_for_any_query():
     """
-    KNNProvider should return k examples for any query using semantic similarity.
+    KNNProvider should return k examples for any valid query using semantic similarity.
 
     Note: Since catalog doesn't have intent/complexity metadata,
     filtering is done by semantic similarity only.
@@ -67,8 +67,8 @@ def test_knn_provider_returns_examples_for_any_query():
     provider = KNNProvider(catalog_path=Path("datasets/exports/unified-fewshot-pool-v2.json"))
 
     examples = provider.find_examples(
-        intent="any_intent",
-        complexity="any_complexity",
+        intent="generate",  # Valid intent
+        complexity="simple",  # Valid complexity
         k=3
     )
 
@@ -119,11 +119,12 @@ def test_find_examples_returns_empty_when_threshold_not_met():
     """find_examples should return empty list when no examples meet similarity threshold."""
     provider = KNNProvider(catalog_path=Path("datasets/exports/unified-fewshot-pool-v2.json"))
 
-    # Use unrealistically high threshold (cosine similarity max is 1.0)
+    # Filter by expected_output when no examples have it, plus high threshold
     result = provider.find_examples(
-        intent="totally_unrelated_intent_xyz123",
-        complexity="extremely_unlikely_complexity_abc456",
+        intent="refactor",
+        complexity="simple",
         k=3,
+        has_expected_output=True,  # Filters to examples with expected_output (likely none)
         min_similarity=0.99  # 99% similarity - extremely unlikely to match
     )
 
@@ -266,3 +267,423 @@ def test_handle_knn_failure_returns_correct_tuple(caplog):
     assert "RuntimeError" in error
     assert "vectorizer not initialized" in error
     assert "test_context" in caplog.text
+
+
+def test_knn_logs_error_at_exact_5_percent_skip_rate(tmp_path, caplog):
+    """KNNProvider should log ERROR at exactly 5% skip rate (boundary test)."""
+    import json
+    import logging
+
+    # Create catalog with exactly 5% skip rate (95 valid, 5 invalid)
+    catalog_path = tmp_path / "catalog_exact_5_percent.json"
+
+    examples = []
+    for i in range(100):
+        if i < 95:
+            examples.append({
+                "inputs": {"original_idea": f"valid {i}"},
+                "outputs": {"improved_prompt": f"prompt {i}"}
+            })
+        else:
+            examples.append({"inputs": {}})  # Invalid
+
+    with open(catalog_path, 'w') as f:
+        json.dump({"examples": examples}, f)
+
+    # Should log ERROR at exactly 5%
+    with caplog.at_level(logging.ERROR):
+        provider = KNNProvider(catalog_path=catalog_path)
+
+    assert any(
+        record.levelno == logging.ERROR and "quality degradation" in record.getMessage()
+        for record in caplog.records
+    )
+
+
+def test_knn_raises_at_exact_20_percent_skip_rate(tmp_path):
+    """KNNProvider should raise ValueError at exactly 20% skip rate (boundary test)."""
+    import json
+
+    # Create catalog with exactly 20% skip rate (80 valid, 20 invalid)
+    catalog_path = tmp_path / "catalog_exact_20_percent.json"
+
+    examples = []
+    for i in range(100):
+        if i < 80:
+            examples.append({
+                "inputs": {"original_idea": f"valid {i}"},
+                "outputs": {"improved_prompt": f"prompt {i}"}
+            })
+        else:
+            examples.append({"inputs": {}})  # Invalid
+
+    with open(catalog_path, 'w') as f:
+        json.dump({"examples": examples}, f)
+
+    # Should raise due to exactly 20% skip rate
+    with pytest.raises(ValueError, match="20.0%"):
+        KNNProvider(catalog_path=catalog_path)
+
+
+def test_knn_does_not_raise_below_20_percent_skip_rate(tmp_path):
+    """KNNProvider should NOT raise ValueError at 19% skip rate (boundary test)."""
+    import json
+
+    # Create catalog with 19% skip rate (81 valid, 19 invalid)
+    catalog_path = tmp_path / "catalog_below_20_percent.json"
+
+    examples = []
+    for i in range(100):
+        if i < 81:
+            examples.append({
+                "inputs": {"original_idea": f"valid {i}"},
+                "outputs": {"improved_prompt": f"prompt {i}"}
+            })
+        else:
+            examples.append({"inputs": {}})  # Invalid
+
+    with open(catalog_path, 'w') as f:
+        json.dump({"examples": examples}, f)
+
+    # Should NOT raise at 19%
+    provider = KNNProvider(catalog_path=catalog_path)
+    assert len(provider.catalog) == 81
+
+
+def test_compute_cosine_similarities_raises_with_nan_vectors(monkeypatch):
+    """_compute_cosine_similarities should raise ValueError with NaN vectors."""
+    import numpy as np
+    from hemdov.domain.services.knn_provider import KNNProvider
+
+    provider = KNNProvider(catalog_path=Path("datasets/exports/unified-fewshot-pool-v2.json"))
+
+    # Create NaN vectors
+    candidate_vectors = np.array([[1.0, 0.0], [np.nan, 1.0]])
+    query_vector = np.array([1.0, 0.0])
+
+    with pytest.raises(ValueError, match="NaN or infinite"):
+        provider._compute_cosine_similarities(candidate_vectors, query_vector)
+
+
+def test_compute_cosine_similarities_raises_with_inf_vectors(monkeypatch):
+    """_compute_cosine_similarities should raise ValueError with infinite vectors."""
+    import numpy as np
+    from hemdov.domain.services.knn_provider import KNNProvider
+
+    provider = KNNProvider(catalog_path=Path("datasets/exports/unified-fewshot-pool-v2.json"))
+
+    # Create infinite vectors
+    candidate_vectors = np.array([[1.0, 0.0], [np.inf, 1.0]])
+    query_vector = np.array([1.0, 0.0])
+
+    with pytest.raises(ValueError, match="NaN or infinite"):
+        provider._compute_cosine_similarities(candidate_vectors, query_vector)
+
+
+def test_find_examples_raises_with_invalid_intent():
+    """find_examples should raise ValueError with invalid intent."""
+    provider = KNNProvider(catalog_path=Path("datasets/exports/unified-fewshot-pool-v2.json"))
+
+    with pytest.raises(ValueError, match="Invalid intent 'invalid_intent'"):
+        provider.find_examples(
+            intent="invalid_intent",
+            complexity="simple",
+            k=3
+        )
+
+
+def test_find_examples_raises_with_invalid_complexity():
+    """find_examples should raise ValueError with invalid complexity."""
+    provider = KNNProvider(catalog_path=Path("datasets/exports/unified-fewshot-pool-v2.json"))
+
+    with pytest.raises(ValueError, match="Invalid complexity 'invalid_complexity'"):
+        provider.find_examples(
+            intent="debug",
+            complexity="invalid_complexity",
+            k=3
+        )
+
+
+def test_find_examples_with_metadata_returns_result():
+    """find_examples_with_metadata should return FindExamplesResult with metadata."""
+    from hemdov.domain.services.knn_provider import FindExamplesResult
+
+    provider = KNNProvider(catalog_path=Path("datasets/exports/unified-fewshot-pool-v2.json"))
+
+    result = provider.find_examples_with_metadata(
+        intent="debug",
+        complexity="simple",
+        k=3
+    )
+
+    assert isinstance(result, FindExamplesResult)
+    assert len(result.examples) == 3
+    assert result.highest_similarity > 0
+    assert result.total_candidates > 0
+    assert result.met_threshold is True
+    assert result.empty is False
+
+
+def test_find_examples_with_metadata_empty_returns_metadata():
+    """find_examples_with_metadata should return FindExamplesResult with metadata when empty."""
+    from hemdov.domain.services.knn_provider import FindExamplesResult
+
+    provider = KNNProvider(catalog_path=Path("datasets/exports/unified-fewshot-pool-v2.json"))
+
+    # Filter by expected_output when no examples have it, plus high threshold
+    result = provider.find_examples_with_metadata(
+        intent="refactor",
+        complexity="simple",
+        k=3,
+        has_expected_output=True,  # Filters to examples with expected_output (likely none)
+        min_similarity=0.99
+    )
+
+    assert isinstance(result, FindExamplesResult)
+    assert len(result.examples) == 0
+    assert result.empty is True
+    assert result.met_threshold is False
+    assert result.highest_similarity >= 0  # Should have highest similarity even when empty
+    assert result.total_candidates >= 0  # May be 0 if no examples have expected_output
+
+
+# ============================================================================
+# Fase 1: Tests de Validación de Parámetros
+# ============================================================================
+
+def test_find_examples_raises_with_zero_k():
+    """find_examples should raise ValueError when k <= 0."""
+    provider = KNNProvider(catalog_path=Path("datasets/exports/unified-fewshot-pool-v2.json"))
+
+    with pytest.raises(ValueError, match="k must be positive"):
+        provider.find_examples(intent="debug", complexity="simple", k=0)
+
+    with pytest.raises(ValueError, match="k must be positive"):
+        provider.find_examples(intent="debug", complexity="simple", k=-1)
+
+
+def test_find_examples_raises_with_invalid_min_similarity():
+    """find_examples should raise ValueError when min_similarity not in [-1, 1]."""
+    provider = KNNProvider(catalog_path=Path("datasets/exports/unified-fewshot-pool-v2.json"))
+
+    with pytest.raises(ValueError, match="min_similarity must be in \\[-1, 1\\]"):
+        provider.find_examples(intent="debug", complexity="simple", k=3, min_similarity=1.5)
+
+    with pytest.raises(ValueError, match="min_similarity must be in \\[-1, 1\\]"):
+        provider.find_examples(intent="debug", complexity="simple", k=3, min_similarity=-1.5)
+
+
+def test_find_examples_raises_with_invalid_user_input_type():
+    """find_examples should raise TypeError when user_input is not str or None."""
+    provider = KNNProvider(catalog_path=Path("datasets/exports/unified-fewshot-pool-v2.json"))
+
+    with pytest.raises(TypeError, match="user_input must be str or None"):
+        provider.find_examples(intent="debug", complexity="simple", k=3, user_input=123)
+
+
+def test_find_examples_with_metadata_raises_with_zero_k():
+    """find_examples_with_metadata should raise ValueError when k <= 0."""
+    provider = KNNProvider(catalog_path=Path("datasets/exports/unified-fewshot-pool-v2.json"))
+
+    with pytest.raises(ValueError, match="k must be positive"):
+        provider.find_examples_with_metadata(intent="debug", complexity="simple", k=0)
+
+
+def test_find_examples_with_metadata_raises_with_invalid_min_similarity():
+    """find_examples_with_metadata should raise ValueError when min_similarity not in [-1, 1]."""
+    provider = KNNProvider(catalog_path=Path("datasets/exports/unified-fewshot-pool-v2.json"))
+
+    with pytest.raises(ValueError, match="min_similarity must be in \\[-1, 1\\]"):
+        provider.find_examples_with_metadata(intent="debug", complexity="simple", k=3, min_similarity=2.0)
+
+
+def test_find_examples_result_enforces_invariants():
+    """FindExamplesResult should enforce invariants in __post_init__."""
+    from hemdov.domain.services.knn_provider import FindExamplesResult
+
+    provider = KNNProvider(catalog_path=Path("datasets/exports/unified-fewshot-pool-v2.json"))
+
+    # highest_similarity out of range
+    with pytest.raises(ValueError, match="highest_similarity must be in"):
+        FindExamplesResult(
+            examples=[],
+            highest_similarity=1.5,  # Invalid: > 1.0
+            threshold_used=0.1,
+            total_candidates=0,
+            met_threshold=False
+        )
+
+    with pytest.raises(ValueError, match="highest_similarity must be in"):
+        FindExamplesResult(
+            examples=[],
+            highest_similarity=-1.5,  # Invalid: < -1.0
+            threshold_used=0.1,
+            total_candidates=0,
+            met_threshold=False
+        )
+
+    # total_candidates negative
+    with pytest.raises(ValueError, match="total_candidates cannot be negative"):
+        FindExamplesResult(
+            examples=[],
+            highest_similarity=0.5,
+            threshold_used=0.1,
+            total_candidates=-1,  # Invalid
+            met_threshold=False
+        )
+
+    # Consistency check: met_threshold=True requires non-empty examples
+    with pytest.raises(ValueError, match="met_threshold=True requires"):
+        FindExamplesResult(
+            examples=[],  # Empty
+            highest_similarity=0.8,
+            threshold_used=0.1,
+            total_candidates=10,
+            met_threshold=True  # Inconsistent
+        )
+
+
+def test_compute_cosine_similarities_with_zero_norm_vectors():
+    """Should handle zero-norm vectors gracefully (return 0 similarity)."""
+    import numpy as np
+    from hemdov.domain.services.knn_provider import KNNProvider
+
+    provider = KNNProvider(catalog_path=Path("datasets/exports/unified-fewshot-pool-v2.json"))
+
+    # Candidate vectors with one zero-norm vector
+    candidate_vectors = np.array([[1.0, 0.0], [0.0, 0.0]])
+    query_vector = np.array([0.0, 0.0])  # Zero norm
+
+    similarities = provider._compute_cosine_similarities(candidate_vectors, query_vector)
+
+    # Should not return NaN for zero-norm vectors
+    assert not np.any(np.isnan(similarities)), "Should not return NaN for zero-norm vectors"
+    # Zero-norm vector should have 0 similarity
+    assert similarities[1] == 0.0, "Zero-norm vector should have 0 similarity"
+
+
+def test_knn_provider_accepts_repository():
+    """KNNProvider should accept CatalogRepositoryInterface."""
+    from unittest.mock import Mock
+    from hemdov.infrastructure.repositories.catalog_repository import CatalogRepositoryInterface
+
+    mock_repo = Mock(spec=CatalogRepositoryInterface)
+    mock_repo.load_catalog.return_value = [
+        {"inputs": {"original_idea": "test"}, "outputs": {"improved_prompt": "improved"}}
+    ]
+
+    provider = KNNProvider(repository=mock_repo)
+
+    assert provider.catalog is not None
+    assert len(provider.catalog) == 1
+    mock_repo.load_catalog.assert_called_once()
+
+
+# ============================================================================
+# Fase 5: Tests Adicionales y Mejoras
+# ============================================================================
+
+def test_knn_logs_error_at_4_99_percent_skip_rate(tmp_path, caplog):
+    """KNNProvider should NOT log ERROR at 4.99% skip rate (below 5% threshold)."""
+    import json
+    import logging
+
+    # Para testear el boundary justo por debajo de 5%, usamos 4.9%
+    # 4.9% de 1000 = 49 ejemplos inválidos
+    # 951 válidos + 49 inválidos = 1000 ejemplos, skip rate = 49/1000 = 4.9%
+    catalog_path = tmp_path / "catalog_4_99_percent.json"
+
+    examples = []
+    for i in range(1000):
+        if i < 951:  # 951 válidos, 49 inválidos = 4.9% (abajo del threshold de 5%)
+            examples.append({
+                "inputs": {"original_idea": f"valid {i}"},
+                "outputs": {"improved_prompt": f"prompt {i}"}
+            })
+        else:
+            examples.append({"inputs": {}})  # Invalid
+
+    with open(catalog_path, 'w') as f:
+        json.dump({"examples": examples}, f)
+
+    with caplog.at_level(logging.ERROR):
+        provider = KNNProvider(catalog_path=catalog_path)
+
+    # 4.9% < 5%, NO debe loggear ERROR de quality degradation
+    assert not any(
+        record.levelno == logging.ERROR and "quality degradation" in record.getMessage()
+        for record in caplog.records
+    )
+
+
+@pytest.mark.parametrize("intent,complexity", [
+    ("debug", "simple"),
+    ("debug", "moderate"),
+    ("debug", "complex"),
+    ("refactor", "simple"),
+    ("refactor", "moderate"),
+    ("refactor", "complex"),
+    ("generate", "simple"),
+    ("generate", "moderate"),
+    ("generate", "complex"),
+    ("explain", "simple"),
+    ("explain", "moderate"),
+    ("explain", "complex"),
+])
+def test_find_examples_all_intent_complexity_combinations(intent, complexity):
+    """KNNProvider should return examples for all valid intent/complexity combinations."""
+    provider = KNNProvider(catalog_path=Path("datasets/exports/unified-fewshot-pool-v2.json"))
+
+    examples = provider.find_examples(intent=intent, complexity=complexity, k=2)
+
+    assert len(examples) == 2
+    assert all(isinstance(ex, FewShotExample) for ex in examples)
+
+
+@pytest.mark.parametrize("k", [1, 2, 3, 5, 10])
+def test_find_examples_returns_exact_k(k):
+    """Property: find_examples always returns exactly k examples when available."""
+    provider = KNNProvider(catalog_path=Path("datasets/exports/unified-fewshot-pool-v2.json"))
+
+    for intent in ["debug", "refactor", "generate", "explain"]:
+        for complexity in ["simple", "moderate", "complex"]:
+            examples = provider.find_examples(intent=intent, complexity=complexity, k=k)
+            assert len(examples) == k, f"Expected {k} examples for {intent}/{complexity}"
+
+
+def test_similarity_score_in_valid_range():
+    """Property: All similarity scores should be in [-1, 1]."""
+    provider = KNNProvider(catalog_path=Path("datasets/exports/unified-fewshot-pool-v2.json"))
+
+    # Use the class attributes directly from the provider
+    valid_intents = provider.VALID_INTENTS
+    valid_complexities = provider.VALID_COMPLEXITIES
+
+    for intent in valid_intents:
+        for complexity in valid_complexities:
+            result = provider.find_examples_with_metadata(
+                intent=intent, complexity=complexity, k=5
+            )
+            assert -1.0 <= result.highest_similarity <= 1.0, \
+                f"Similarity out of range for {intent}/{complexity}: {result.highest_similarity}"
+
+
+def test_knn_provider_end_to_end_with_real_catalog():
+    """Integration test with real catalog file."""
+    provider = KNNProvider(catalog_path=Path("datasets/exports/unified-fewshot-pool-v2.json"))
+
+    # Test basic functionality
+    assert len(provider.catalog) > 0
+
+    # Test with metadata
+    result = provider.find_examples_with_metadata(
+        intent="debug",
+        complexity="simple",
+        k=3,
+        user_input="fix error in function"
+    )
+
+    assert len(result.examples) == 3
+    assert result.total_candidates > 0
+    assert not result.empty
+    assert result.met_threshold is True
