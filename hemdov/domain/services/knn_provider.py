@@ -294,6 +294,11 @@ class KNNProvider:
                 )
                 skipped_count += 1
                 continue
+            # NOTE: Broad exception catching is intentional here because:
+            # - We process external JSON data (user-provided catalog)
+            # - All exceptions are logged with full context for debugging
+            # - Skip rate threshold (20%) catches systemic data issues
+            # - Individual examples fail gracefully without crashing initialization
             except (TypeError, ValueError) as e:
                 logger.exception(
                     f"Skipping example {idx} due to invalid data: {e}. "
