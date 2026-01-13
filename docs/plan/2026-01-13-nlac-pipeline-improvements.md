@@ -737,7 +737,7 @@ def poc_ollama_embeddings():
     # Test 3: Latency <500ms
     print("\n3️⃣ Testing latency P95...")
     latencies = []
-    for _ in range(100):
+    for i in range(100):  # ✅ FIX #2: Changed _ to i for f-string usage
         start = time.perf_counter()
         response = requests.post(
             "http://localhost:11434/api/embeddings",
@@ -750,14 +750,67 @@ def poc_ollama_embeddings():
     assert p95 < 500, f"❌ Latency too high: {p95:.2f}ms (target: <500ms)"
     print(f"   ✅ Latency P95: {p95:.2f}ms (target: <500ms)")
 
-    # Test 4: Quality assessment
+    # Test 4: Quality assessment - ✅ FIX #3: Semantic consistency test
     print("\n4️⃣ Testing semantic quality...")
-    # Compare with bigram baseline
-    # This requires running KNN with both vectorizers
-    # For PoC, just verify embeddings produce non-zero vectors
+
+    def cosine_similarity(a, b):
+        """Calculate cosine similarity between two vectors."""
+        return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+
+    # Test 4a: Semantic consistency - similar queries should produce similar embeddings
+    similar_queries = [
+        "create a function to sort list",
+        "write code for sorting arrays",
+        "implement sorting algorithm"
+    ]
+
+    similar_embeddings = []
+    for query in similar_queries:
+        response = requests.post(
+            "http://localhost:11434/api/embeddings",
+            json={"model": "nomic-embed-text", "prompt": query}
+        )
+        similar_embeddings.append(np.array(response.json()["embedding"]))
+
+    # Calculate pairwise similarities
+    similarities = []
+    for i in range(len(similar_embeddings)):
+        for j in range(i+1, len(similar_embeddings)):
+            sim = cosine_similarity(similar_embeddings[i], similar_embeddings[j])
+            similarities.append(sim)
+
+    mean_similarity = np.mean(similarities)
+    print(f"   Similar queries similarity: {mean_similarity:.4f}")
+    assert mean_similarity > 0.7, f"❌ Low semantic consistency: {mean_similarity:.4f}"
+    print(f"   ✅ Semantic consistency validated")
+
+    # Test 4b: Non-randomness - different queries should produce different embeddings
+    different_queries = ["sort list", "bake cake", "fly plane"]
+
+    different_embeddings = []
+    for query in different_queries:
+        response = requests.post(
+            "http://localhost:11434/api/embeddings",
+            json={"model": "nomic-embed-text", "prompt": query}
+        )
+        different_embeddings.append(np.array(response.json()["embedding"]))
+
+    # Calculate pairwise similarities for different queries
+    diff_similarities = []
+    for i in range(len(different_embeddings)):
+        for j in range(i+1, len(different_embeddings)):
+            sim = cosine_similarity(different_embeddings[i], different_embeddings[j])
+            diff_similarities.append(sim)
+
+    mean_diff_similarity = np.mean(diff_similarities)
+    print(f"   Different queries similarity: {mean_diff_similarity:.4f}")
+    assert mean_diff_similarity < 0.8, f"❌ Embeddings may be too similar: {mean_diff_similarity:.4f}"
+    print(f"   ✅ Embeddings are distinct for different concepts")
+
+    print(f"   ✅ Semantic quality passed (similar: {mean_similarity:.3f}, different: {mean_diff_similarity:.3f})")
+
+    # Store embedding norm for results
     embedding_norm = np.linalg.norm(embedding)
-    assert embedding_norm > 0, "❌ Zero vector - embedding failed"
-    print(f"   ✅ Embedding norm: {embedding_norm:.4f} (non-zero)")
 
     # Save PoC results
     results = {

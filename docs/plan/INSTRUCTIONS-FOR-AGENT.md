@@ -243,6 +243,7 @@ def bootstrap_calibration():
 
     calibration_data = {
         "threshold_tested": 0.7,
+        "calibrated_threshold": 0.7,  # ✅ FIX #1: Added for IFEvalValidator compatibility
         "results": results,
         "statistics": {
             "min": min(scores),
