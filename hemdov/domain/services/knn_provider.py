@@ -93,6 +93,25 @@ class FewShotExample:
     metadata: dict[str, object] = field(default_factory=dict)
 
 
+@dataclass
+class FindExamplesResult:
+    """Result from find_examples with metadata for debugging.
+
+    Provides similarity metadata when no examples match threshold,
+    allowing callers to understand why no examples were returned.
+    """
+    examples: List[FewShotExample]
+    highest_similarity: float
+    threshold_used: float
+    total_candidates: int
+    met_threshold: bool
+
+    @property
+    def empty(self) -> bool:
+        """Whether no examples met the similarity threshold."""
+        return len(self.examples) == 0
+
+
 class KNNProvider:
     """
     KNN-based few-shot example provider.
