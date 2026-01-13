@@ -234,12 +234,13 @@ class OPROOptimizer:
                     intent=intent_str,
                     complexity=complexity_str,
                     k=2,  # Use 2 examples for meta-prompt (keep it concise)
-                    user_input=prompt_obj.template  # Use template for semantic matching
+                    user_input=candidate.template  # Use template for semantic matching
                 )
             except (RuntimeError, KeyError, TypeError, ValueError, ConnectionError, TimeoutError) as e:
-                logger.exception(
-                    f"Failed to fetch KNN examples for meta-prompt. "
-                    f"Continuing without few-shot guidance. Error: {type(e).__name__}"
+                logger.error(
+                    f"KNN failed for OPRO meta-prompt: {type(e).__name__}: {e}. "
+                    f"Meta-prompt will proceed without few-shot examples "
+                    f"(may reduce optimization quality)."
                 )
                 fewshot_examples = []
 

@@ -83,3 +83,30 @@ def test_opro_with_knn_builds_enhanced_meta_prompt():
     assert "Reference Examples" in meta_prompt
     assert "Optimize code" in meta_prompt
     assert "Refactor function" in meta_prompt
+
+
+def test_opro_handles_knn_failure_gracefully():
+    """OPRO should handle KNN failures without crashing."""
+    # Create mock KNN that fails
+    mock_knn = Mock(spec=KNNProvider)
+    mock_knn.find_examples.side_effect = ConnectionError("KNN unavailable")
+
+    optimizer = OPROOptimizer(llm_client=None, knn_provider=mock_knn)
+
+    prompt_obj = PromptObject(
+        id="test-3",
+        version="1.0.0",
+        intent_type=IntentType.EXPLAIN,
+        template="Test prompt",
+        strategy_meta={"intent": "explain", "complexity": "moderate"},
+        constraints={},
+        is_active=True,
+        created_at="2026-01-06T00:00:00Z",
+        updated_at="2026-01-06T00:00:00Z",
+    )
+
+    # Should not raise, should complete without few-shot examples
+    result = optimizer.run_loop(prompt_obj)
+
+    assert result is not None
+    assert result.trajectory is not None
