@@ -21,7 +21,7 @@ from hemdov.domain.dto.nlac_models import (
     OPROIteration,
     OptimizeResponse,
 )
-from hemdov.domain.services.knn_provider import KNNProvider, FewShotExample, handle_knn_failure
+from hemdov.domain.services.knn_provider import KNNProvider, FewShotExample, handle_knn_failure, KNNProviderError
 from hemdov.domain.services.llm_protocol import LLMClient
 
 logger = logging.getLogger(__name__)
@@ -261,7 +261,7 @@ class OPROOptimizer:
                     k=2,  # Use 2 examples for meta-prompt (keep it concise)
                     user_input=candidate.template  # Use template for semantic matching
                 )
-            except (RuntimeError, KeyError, TypeError, ValueError, ConnectionError, TimeoutError) as e:
+            except (KNNProviderError, RuntimeError, KeyError, TypeError, ValueError, ConnectionError, TimeoutError) as e:
                 # Track failure with metadata
                 self._knn_failures.append({
                     "error_type": type(e).__name__,

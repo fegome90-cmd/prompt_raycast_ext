@@ -658,16 +658,16 @@ class KNNProvider:
         """Calculate cosine similarities using vectorized operations (7x faster).
 
         Raises:
-            ValueError: If vectors contain NaN or infinite values
+            KNNProviderError: If vectors contain NaN or infinite values
         """
         # Validate inputs for NaN/inf
         if not np.all(np.isfinite(candidate_vectors)):
-            raise ValueError(
+            raise KNNProviderError(
                 f"Candidate vectors contain NaN or infinite values. "
                 f"This may indicate corrupted data or invalid vectorization."
             )
         if not np.all(np.isfinite(query_vector)):
-            raise ValueError(
+            raise KNNProviderError(
                 f"Query vector contains NaN or infinite values. "
                 f"This may indicate corrupted input data."
             )
