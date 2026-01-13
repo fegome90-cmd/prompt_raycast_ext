@@ -103,15 +103,35 @@ def test_knn_provider_raises_when_no_examples():
         catalog_path.unlink()
 
 
-def test_find_examples_raises_when_vectorizer_none(monkeypatch):
-    """find_examples should raise RuntimeError when vectorizer is None."""
-    provider = KNNProvider(catalog_path=Path("datasets/exports/unified-fewshot-pool-v2.json"))
+def test_find_examples_raises_after_initialization_failure(tmp_path):
+    """find_examples should raise KNNProviderError when vectorizer initialization fails."""
+    import json
+    from hemdov.domain.services.knn_provider import KNNProviderError, KNNProvider
 
-    # Mock vectorizer to None to simulate initialization failure
-    monkeypatch.setattr(provider, '_vectorizer', None)
+    # Create catalog with enough examples to bypass early return (len > k)
+    # This ensures semantic search path is taken where vectorizer check occurs
+    catalog_path = tmp_path / "test_catalog.json"
 
-    # Should raise RuntimeError, not return first-k examples
-    with pytest.raises(RuntimeError, match="vectorizer not initialized"):
+    # Need > k examples to trigger vectorizer check (k=3 by default in test)
+    # Early return optimization: if len(candidates) <= k, return without vectorizer
+    examples_list = [
+        {
+            "inputs": {"original_idea": f"test idea {i}"},
+            "outputs": {"improved_prompt": f"improved {i}"}
+        }
+        for i in range(5)  # 5 examples > k=3, ensures semantic search path
+    ]
+
+    catalog_path.write_text(json.dumps({"examples": examples_list}))
+
+    provider = KNNProvider(catalog_path=catalog_path)
+
+    # Set vectorizer to None to simulate initialization failure
+    # (this would happen if _initialize_knn() failed partway through)
+    provider._vectorizer = None
+
+    # find_examples should raise KNNProviderError since len(examples) > k
+    with pytest.raises(KNNProviderError, match="vectorizer not initialized"):
         provider.find_examples(intent="explain", complexity="moderate", k=3)
 
 
@@ -351,9 +371,9 @@ def test_knn_does_not_raise_below_20_percent_skip_rate(tmp_path):
 
 
 def test_compute_cosine_similarities_raises_with_nan_vectors(monkeypatch):
-    """_compute_cosine_similarities should raise ValueError with NaN vectors."""
+    """_compute_cosine_similarities should raise KNNProviderError with NaN vectors."""
     import numpy as np
-    from hemdov.domain.services.knn_provider import KNNProvider
+    from hemdov.domain.services.knn_provider import KNNProvider, KNNProviderError
 
     provider = KNNProvider(catalog_path=Path("datasets/exports/unified-fewshot-pool-v2.json"))
 
@@ -361,14 +381,14 @@ def test_compute_cosine_similarities_raises_with_nan_vectors(monkeypatch):
     candidate_vectors = np.array([[1.0, 0.0], [np.nan, 1.0]])
     query_vector = np.array([1.0, 0.0])
 
-    with pytest.raises(ValueError, match="NaN or infinite"):
+    with pytest.raises(KNNProviderError, match="NaN or infinite"):
         provider._compute_cosine_similarities(candidate_vectors, query_vector)
 
 
 def test_compute_cosine_similarities_raises_with_inf_vectors(monkeypatch):
-    """_compute_cosine_similarities should raise ValueError with infinite vectors."""
+    """_compute_cosine_similarities should raise KNNProviderError with infinite vectors."""
     import numpy as np
-    from hemdov.domain.services.knn_provider import KNNProvider
+    from hemdov.domain.services.knn_provider import KNNProvider, KNNProviderError
 
     provider = KNNProvider(catalog_path=Path("datasets/exports/unified-fewshot-pool-v2.json"))
 
@@ -376,7 +396,7 @@ def test_compute_cosine_similarities_raises_with_inf_vectors(monkeypatch):
     candidate_vectors = np.array([[1.0, 0.0], [np.inf, 1.0]])
     query_vector = np.array([1.0, 0.0])
 
-    with pytest.raises(ValueError, match="NaN or infinite"):
+    with pytest.raises(KNNProviderError, match="NaN or infinite"):
         provider._compute_cosine_similarities(candidate_vectors, query_vector)
 
 
@@ -687,3 +707,42 @@ def test_knn_provider_end_to_end_with_real_catalog():
     assert result.total_candidates > 0
     assert not result.empty
     assert result.met_threshold is True
+
+
+def test_knn_raises_knn_error_when_no_dspy_examples(monkeypatch):
+    """KNNProvider should raise KNNProviderError when no DSPy examples available."""
+    from hemdov.domain.services.knn_provider import KNNProviderError
+
+    provider = KNNProvider(catalog_path=Path("datasets/exports/unified-fewshot-pool-v2.json"))
+    monkeypatch.setattr(provider, '_dspy_examples', [])
+
+    with pytest.raises(KNNProviderError, match="No DSPy examples available"):
+        provider._initialize_knn()
+
+
+def test_knn_provider_error_is_runtime_error():
+    """KNNProviderError should inherit from RuntimeError for backward compatibility."""
+    from hemdov.domain.services.knn_provider import KNNProviderError
+
+    error = KNNProviderError("test error")
+    assert isinstance(error, RuntimeError)
+
+    # Can be caught as RuntimeError
+    caught = False
+    try:
+        raise error
+    except RuntimeError:
+        caught = True
+    assert caught
+
+
+def test_knn_propagates_repository_permission_error():
+    """KNNProvider should propagate PermissionError from repository."""
+    from unittest.mock import Mock
+    from hemdov.infrastructure.repositories.catalog_repository import CatalogRepositoryInterface
+
+    mock_repo = Mock(spec=CatalogRepositoryInterface)
+    mock_repo.load_catalog.side_effect = PermissionError("Permission denied")
+
+    with pytest.raises(PermissionError, match="Permission denied"):
+        KNNProvider(repository=mock_repo)

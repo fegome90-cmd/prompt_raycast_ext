@@ -24,7 +24,7 @@ Design Decisions:
 """
 
 import logging
-from pathlib import Path
+import os
 from typing import List, Optional, TYPE_CHECKING
 from dataclasses import dataclass, field
 import numpy as np
@@ -38,6 +38,15 @@ from hemdov.domain.dto.nlac_models import IntentType
 from hemdov.domain.services.complexity_analyzer import ComplexityLevel
 
 logger = logging.getLogger(__name__)
+
+
+class KNNProviderError(RuntimeError):
+    """Domain-specific exception for KNN provider errors.
+
+    Provides consistent error type for all KNN-related failures,
+    allowing callers to catch and handle KNN errors specifically.
+    """
+    pass
 
 
 class FixedVocabularyVectorizer:
@@ -171,7 +180,7 @@ class KNNProvider:
 
     def __init__(
         self,
-        catalog_path: Optional[Path] = None,
+        catalog_path: Optional[str | os.PathLike[str]] = None,
         catalog_data: Optional[List[dict]] = None,
         repository: Optional['CatalogRepositoryInterface'] = None,
         k: int = 3
@@ -218,10 +227,14 @@ class KNNProvider:
             self.catalog_path = getattr(repository, 'catalog_path', None)
         elif catalog_path is not None:
             # Legacy behavior: create repository (backward compatible)
+            # Import Path locally to avoid domain layer coupling
+            from pathlib import Path
             from hemdov.infrastructure.repositories.catalog_repository import FileSystemCatalogRepository
-            repo = FileSystemCatalogRepository(catalog_path)
+            # Convert str/os.PathLike to Path for repository
+            path_obj = Path(catalog_path) if not isinstance(catalog_path, Path) else catalog_path
+            repo = FileSystemCatalogRepository(path_obj)
             examples_data = repo.load_catalog()
-            self.catalog_path = catalog_path
+            self.catalog_path = str(path_obj)  # Store as string for domain purity
         else:
             raise ValueError("Must provide one of: catalog_path, catalog_data, or repository")
 
@@ -281,6 +294,11 @@ class KNNProvider:
                 )
                 skipped_count += 1
                 continue
+            # NOTE: Broad exception catching is intentional here because:
+            # - We process external JSON data (user-provided catalog)
+            # - All exceptions are logged with full context for debugging
+            # - Skip rate threshold (20%) catches systemic data issues
+            # - Individual examples fail gracefully without crashing initialization
             except (TypeError, ValueError) as e:
                 logger.exception(
                     f"Skipping example {idx} due to invalid data: {e}. "
@@ -328,7 +346,7 @@ class KNNProvider:
     def _initialize_knn(self) -> None:
         """Initialize vectorizer for semantic search and pre-compute catalog vectors."""
         if not self._dspy_examples:
-            raise RuntimeError(
+            raise KNNProviderError(
                 "KNNProvider cannot initialize: No DSPy examples available. "
                 "This indicates catalog loading failed or produced no valid examples. "
                 f"Catalog path: {self.catalog_path}, examples loaded: {len(self.catalog)}"
@@ -403,7 +421,7 @@ class KNNProvider:
 
         Raises:
             ValueError: If k <= 0, or min_similarity not in [-1, 1]
-            RuntimeError: If vectorizer is not initialized
+            KNNProviderError: If vectorizer is not initialized
             TypeError: If user_input is not str or None
         """
         k = self.k if k is None else k
@@ -458,7 +476,7 @@ class KNNProvider:
 
         # Semantic search
         if not self._vectorizer:
-            raise RuntimeError(
+            raise KNNProviderError(
                 "KNNProvider vectorizer not initialized. "
                 "Cannot perform semantic search. Check logs for initialization errors."
             )
@@ -513,7 +531,7 @@ class KNNProvider:
 
         Raises:
             ValueError: If k <= 0, or min_similarity not in [-1, 1]
-            RuntimeError: If vectorizer is not initialized
+            KNNProviderError: If vectorizer is not initialized
             TypeError: If user_input is not str or None
         """
         result = self._find_examples_impl(
@@ -557,7 +575,7 @@ class KNNProvider:
 
         Raises:
             ValueError: If k <= 0, or min_similarity not in [-1, 1]
-            RuntimeError: If vectorizer is not initialized
+            KNNProviderError: If vectorizer is not initialized
             TypeError: If user_input is not str or None
 
         Example:
@@ -645,16 +663,16 @@ class KNNProvider:
         """Calculate cosine similarities using vectorized operations (7x faster).
 
         Raises:
-            ValueError: If vectors contain NaN or infinite values
+            KNNProviderError: If vectors contain NaN or infinite values
         """
         # Validate inputs for NaN/inf
         if not np.all(np.isfinite(candidate_vectors)):
-            raise ValueError(
+            raise KNNProviderError(
                 f"Candidate vectors contain NaN or infinite values. "
                 f"This may indicate corrupted data or invalid vectorization."
             )
         if not np.all(np.isfinite(query_vector)):
-            raise ValueError(
+            raise KNNProviderError(
                 f"Query vector contains NaN or infinite values. "
                 f"This may indicate corrupted input data."
             )

@@ -62,14 +62,14 @@ def test_repository_raises_on_invalid_format(tmp_path):
 def test_repository_handles_permission_error(tmp_path):
     """Given: Catalog file with no read permissions
     When: Load catalog
-    Then: Raises RuntimeError with permission error"""
+    Then: Raises PermissionError (original exception exposed)"""
     catalog_file = tmp_path / "test-catalog.json"
     catalog_file.write_text('{"examples": []}')
     os.chmod(catalog_file, 0o000)
 
     repo = FileSystemCatalogRepository(catalog_file)
 
-    with pytest.raises(RuntimeError, match="PermissionError"):
+    with pytest.raises(PermissionError):
         repo.load_catalog()
 
 

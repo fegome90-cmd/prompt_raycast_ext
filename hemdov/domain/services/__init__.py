@@ -2,6 +2,7 @@
 
 from hemdov.domain.services.complexity_analyzer import ComplexityAnalyzer, ComplexityLevel
 from hemdov.domain.services.intent_classifier import IntentClassifier
+from hemdov.domain.services.knn_provider import KNNProvider, KNNProviderError
 from hemdov.domain.services.llm_protocol import LLMClient
 from hemdov.domain.services.nlac_builder import NLaCBuilder
 from hemdov.domain.services.oprop_optimizer import OPROOptimizer
@@ -13,6 +14,8 @@ __all__ = [
     "ComplexityAnalyzer",
     "ComplexityLevel",
     "IntentClassifier",
+    "KNNProvider",
+    "KNNProviderError",
     "LLMClient",
     "NLaCBuilder",
     "OPROOptimizer",

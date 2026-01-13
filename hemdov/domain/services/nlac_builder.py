@@ -20,7 +20,7 @@ from hemdov.domain.dto.nlac_models import (
     IntentType,
 )
 from hemdov.domain.services.intent_classifier import IntentClassifier
-from hemdov.domain.services.knn_provider import KNNProvider, FewShotExample, handle_knn_failure
+from hemdov.domain.services.knn_provider import KNNProvider, FewShotExample, handle_knn_failure, KNNProviderError
 from hemdov.domain.services.complexity_analyzer import ComplexityAnalyzer, ComplexityLevel
 
 logger = logging.getLogger(__name__)
@@ -108,7 +108,7 @@ class NLaCBuilder:
                     user_input=request.idea
                 )
                 logger.info(f"Fetched {len(fewshot_examples)} KNN examples for {intent_str}/{complexity.value}")
-            except (RuntimeError, KeyError, TypeError, ValueError, ConnectionError, TimeoutError) as e:
+            except (KNNProviderError, RuntimeError, KeyError, TypeError, ValueError, ConnectionError, TimeoutError) as e:
                 knn_failed, knn_error = handle_knn_failure(
                     logger, "NLaCBuilder.build", e
                 )
@@ -129,6 +129,8 @@ class NLaCBuilder:
             "rar_used": complexity == ComplexityLevel.COMPLEX,
             "fewshot_count": len(fewshot_examples),  # Track KNN examples
             "knn_enabled": self.knn_provider is not None,
+            "knn_failed": knn_failed,  # Expose KNN failure to user
+            "knn_error": knn_error,  # Expose error details for debugging
         }
 
         # Step 8: Build constraints
