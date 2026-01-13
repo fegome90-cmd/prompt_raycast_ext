@@ -96,8 +96,8 @@ def test_knn_provider_raises_when_no_examples():
         catalog_path = Path(f.name)
 
     try:
-        # Should raise ValueError when all examples fail validation
-        with pytest.raises(ValueError, match="No valid examples found"):
+        # Should raise ValueError (either from skip rate check or empty catalog check)
+        with pytest.raises(ValueError, match="100.0%|No valid examples found"):
             KNNProvider(catalog_path=catalog_path)
     finally:
         catalog_path.unlink()
