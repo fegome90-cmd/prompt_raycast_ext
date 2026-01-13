@@ -333,10 +333,10 @@ class KNNProvider:
             if len(relevant_indices) == 0:
                 logger.warning(
                     f"No examples met similarity threshold {min_similarity:.2f}. "
-                    f"Returning top {k} anyway (highest similarity: {similarities.max():.2f})"
+                    f"Highest similarity: {similarities.max():.2f}. "
+                    f"Returning empty list - user input does not match any catalog examples."
                 )
-                # Fallback: return top k even if below threshold
-                top_indices = np.argsort(similarities)[::-1][:k]
+                return []  # Let caller decide how to handle no examples
             else:
                 # Sort relevant examples by similarity (descending) and return top k
                 relevant_similarities = similarities[relevant_indices]

@@ -113,3 +113,19 @@ def test_find_examples_raises_when_vectorizer_none(monkeypatch):
     # Should raise RuntimeError, not return first-k examples
     with pytest.raises(RuntimeError, match="vectorizer not initialized"):
         provider.find_examples(intent="explain", complexity="moderate", k=3)
+
+
+def test_find_examples_returns_empty_when_threshold_not_met():
+    """find_examples should return empty list when no examples meet similarity threshold."""
+    provider = KNNProvider(catalog_path=Path("datasets/exports/unified-fewshot-pool-v2.json"))
+
+    # Use unrealistically high threshold (cosine similarity max is 1.0)
+    result = provider.find_examples(
+        intent="totally_unrelated_intent_xyz123",
+        complexity="extremely_unlikely_complexity_abc456",
+        k=3,
+        min_similarity=0.99  # 99% similarity - extremely unlikely to match
+    )
+
+    # Should return empty list, not fallback to top-k below threshold
+    assert result == []
