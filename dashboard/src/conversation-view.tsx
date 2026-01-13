@@ -20,14 +20,7 @@ import { ToastHelper } from "./core/design/toast";
 
 const DEFAULT_MODEL = "hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M";
 
-type LoadingStage =
-  | "idle"
-  | "validating"
-  | "connecting"
-  | "analyzing"
-  | "improving"
-  | "success"
-  | "error";
+type LoadingStage = "idle" | "validating" | "connecting" | "analyzing" | "improving" | "success" | "error";
 
 const STAGE_MESSAGES = {
   idle: "",
@@ -277,11 +270,7 @@ export default function ConversationView() {
         <ActionPanel>
           <Action title="New Conversation" onAction={handleReset} shortcut={{ modifiers: ["cmd"], key: "n" }} />
           {wizardEnabled && !isWizardComplete && (
-            <Action
-              title="Skip Wizard"
-              shortcut={{ modifiers: ["cmd"], key: "enter" }}
-              onAction={handleSkipWizard}
-            />
+            <Action title="Skip Wizard" shortcut={{ modifiers: ["cmd", "shift"], key: "s" }} onAction={handleSkipWizard} />
           )}
         </ActionPanel>
       }
@@ -303,21 +292,17 @@ export default function ConversationView() {
         <List.Item
           icon={tokens.semantic.success.icon}
           title="Prompt Looks Good!"
-          subtitle={`Confidence: ${Typography.confidence(session?.wizard.nlacAnalysis?.confidence ?? 0)} • You configured ${session?.wizard.config.maxTurns ?? 0} turns`}
-          accessories={[
-            { text: `⌘⇧ Enter: Skip` },
-            { text: `Enter: Continue` },
-          ]}
+          subtitle={`Confidence: ${Typography.confidence(
+            session?.wizard.nlacAnalysis?.confidence ?? 0,
+          )} • You configured ${session?.wizard.config.maxTurns ?? 0} turns`}
+          accessories={[{ text: `⌘⇧ S: Skip` }, { text: `Enter: Continue` }]}
           actions={
             <ActionPanel>
-              <Action
-                title="Skip to Prompt"
-                onAction={handleSkipWizard}
-              />
+              <Action title="Skip to Prompt" onAction={handleSkipWizard} />
               <Action
                 title="Start Wizard Anyway"
                 onAction={() => setShowFollowUpForm(true)}
-                shortcut={{ modifiers: ["cmd"], key: "enter" }}
+                shortcut={{ modifiers: ["cmd", "shift"], key: "w" }}
               />
             </ActionPanel>
           }
@@ -329,14 +314,19 @@ export default function ConversationView() {
           icon="◐"
           title="Wizard Active"
           subtitle={`${remainingTurns} turn${remainingTurns > 1 ? "s" : ""} remaining`}
-          accessories={[
-            { text: "Enter: Respond" },
-            { text: `⤒ ${remainingTurns}` },
-          ]}
+          accessories={[{ text: "Enter: Respond" }, { text: `⤒ ${remainingTurns}` }]}
           actions={
             <ActionPanel>
-              <Action title="Provide Details" onAction={() => setShowFollowUpForm(true)} shortcut={{ modifiers: ["cmd"], key: "enter" }} />
-              <Action title="Skip to Generate" onAction={handleSkipWizard} shortcut={{ modifiers: ["cmd", "shift"], key: "enter" }} />
+              <Action
+                title="Provide Details"
+                onAction={() => setShowFollowUpForm(true)}
+                shortcut={{ modifiers: ["cmd", "shift"], key: "d" }}
+              />
+              <Action
+                title="Skip to Generate"
+                onAction={handleSkipWizard}
+                shortcut={{ modifiers: ["cmd", "shift"], key: "g" }}
+              />
             </ActionPanel>
           }
         />
@@ -349,10 +339,7 @@ export default function ConversationView() {
           subtitle="Click to copy and view details"
           actions={
             <ActionPanel>
-              <Action.CopyToClipboard
-                title="Copy Prompt"
-                content={SessionManager.extractFinalPrompt(session) || ""}
-              />
+              <Action.CopyToClipboard title="Copy Prompt" content={SessionManager.extractFinalPrompt(session) || ""} />
             </ActionPanel>
           }
         />

@@ -4,7 +4,7 @@ Tests for NLaC Domain Services.
 Covers:
 - IntentClassifier
 - NLaCBuilder
-- OPOROptimizer
+- OPROOptimizer
 - PromptValidator
 """
 
@@ -19,7 +19,7 @@ from hemdov.domain.dto.nlac_models import (
 )
 from hemdov.domain.services.intent_classifier import IntentClassifier
 from hemdov.domain.services.nlac_builder import NLaCBuilder
-from hemdov.domain.services.oprop_optimizer import OPOROptimizer
+from hemdov.domain.services.oprop_optimizer import OPROOptimizer
 from hemdov.domain.services.prompt_validator import PromptValidator
 
 
@@ -192,12 +192,12 @@ class TestNLaCBuilder:
         assert complex_result.constraints["include_explanation"] is True
 
 
-class TestOPOROptimizer:
-    """Test OPOROptimizer service."""
+class TestOPROOptimizer:
+    """Test OPROOptimizer service."""
 
     @pytest.fixture
     def optimizer(self):
-        return OPOROptimizer(llm_client=None)  # Use simple refinement
+        return OPROOptimizer(llm_client=None)  # Use simple refinement
 
     @pytest.fixture
     def sample_prompt(self):

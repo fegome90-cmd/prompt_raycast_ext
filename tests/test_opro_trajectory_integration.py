@@ -16,7 +16,7 @@ from hemdov.domain.dto.nlac_models import (
     IntentType,
     OPROIteration,
 )
-from hemdov.domain.services.oprop_optimizer import OPOROptimizer
+from hemdov.domain.services.oprop_optimizer import OPROOptimizer
 
 
 class TestOPROTrajectoryIntegration:
@@ -25,7 +25,7 @@ class TestOPROTrajectoryIntegration:
     @pytest.fixture
     def optimizer(self):
         """Create optimizer without LLM (uses simple refinement)."""
-        return OPOROptimizer(llm_client=None)
+        return OPROOptimizer(llm_client=None)
 
     @pytest.fixture
     def complex_prompt(self):
@@ -50,8 +50,8 @@ class TestOPROTrajectoryIntegration:
         response = optimizer.run_loop(complex_prompt)
 
         # Should have completed MAX_ITERATIONS (no early stopping for this prompt)
-        assert response.iteration_count == OPOROptimizer.MAX_ITERATIONS
-        assert len(response.trajectory) == OPOROptimizer.MAX_ITERATIONS
+        assert response.iteration_count == OPROOptimizer.MAX_ITERATIONS
+        assert len(response.trajectory) == OPROOptimizer.MAX_ITERATIONS
 
         # Each iteration should have all required fields
         for i, iteration in enumerate(response.trajectory, 1):
@@ -98,8 +98,8 @@ class TestOPROTrajectoryIntegration:
 
         # Should early stop (iteration < MAX_ITERATIONS)
         assert response.early_stopped is True
-        assert response.iteration_count < OPOROptimizer.MAX_ITERATIONS
-        assert response.final_score >= OPOROptimizer.QUALITY_THRESHOLD
+        assert response.iteration_count < OPROOptimizer.MAX_ITERATIONS
+        assert response.final_score >= OPROOptimizer.QUALITY_THRESHOLD
 
     def test_trajectory_meta_prompt_evolution(self, optimizer, complex_prompt):
         """Meta-prompts should evolve based on previous iterations."""
@@ -228,6 +228,6 @@ class TestOPROTrajectoryIntegration:
 
         # If early stopped, should be shorter
         if response.early_stopped:
-            assert len(response.trajectory) < OPOROptimizer.MAX_ITERATIONS
+            assert len(response.trajectory) < OPROOptimizer.MAX_ITERATIONS
         else:
-            assert len(response.trajectory) == OPOROptimizer.MAX_ITERATIONS
+            assert len(response.trajectory) == OPROOptimizer.MAX_ITERATIONS

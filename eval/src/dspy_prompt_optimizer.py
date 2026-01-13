@@ -4,10 +4,13 @@ Prompt Improver Optimizer
 Following HemDov pattern from dspy_optimizer.py
 """
 
+import logging
 import dspy
 from dspy.teleprompt import BootstrapFewShot
 from eval.src.dspy_prompt_improver import PromptImprover
 from eval.src.prompt_improvement_dataset import load_prompt_improvement_examples
+
+logger = logging.getLogger(__name__)
 
 
 def prompt_improver_metric(example, prediction, trace=None) -> float:

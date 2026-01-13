@@ -179,7 +179,9 @@ export function mergeWithDefaults(rawPrefs: RawPreferences): Record<string, unkn
 
     if (!configPath) {
       // Not a known preference - skip with warning
-      console.warn(`[Config] ⚠️ Skipping unknown preference: ${prefName} (value: ${JSON.stringify(value).substring(0, 50)})`);
+      console.warn(
+        `[Config] ⚠️ Skipping unknown preference: ${prefName} (value: ${JSON.stringify(value).substring(0, 50)})`,
+      );
       continue;
     }
 

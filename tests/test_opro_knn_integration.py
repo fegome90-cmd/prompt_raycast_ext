@@ -5,13 +5,13 @@ Tests few-shot examples in meta-prompts for better optimization.
 """
 from unittest.mock import Mock
 from hemdov.domain.dto.nlac_models import NLaCRequest, PromptObject, IntentType
-from hemdov.domain.services.oprop_optimizer import OPOROptimizer
+from hemdov.domain.services.oprop_optimizer import OPROOptimizer
 from hemdov.domain.services.knn_provider import KNNProvider, FewShotExample
 
 
 def test_opro_without_knn():
     """OPROOptimizer should work without KNNProvider"""
-    optimizer = OPOROptimizer(llm_client=None, knn_provider=None)
+    optimizer = OPROOptimizer(llm_client=None, knn_provider=None)
 
     request = NLaCRequest(
         idea="Optimize this function",
@@ -63,7 +63,7 @@ def test_opro_with_knn_builds_enhanced_meta_prompt():
         ),
     ]
 
-    optimizer = OPOROptimizer(llm_client=None, knn_provider=mock_knn)
+    optimizer = OPROOptimizer(llm_client=None, knn_provider=mock_knn)
 
     # Create a PromptObject with trajectory
     prompt_obj = PromptObject(
@@ -83,3 +83,58 @@ def test_opro_with_knn_builds_enhanced_meta_prompt():
     assert "Reference Examples" in meta_prompt
     assert "Optimize code" in meta_prompt
     assert "Refactor function" in meta_prompt
+
+
+def test_opro_handles_knn_failure_gracefully():
+    """OPRO should handle KNN failures without crashing."""
+    # Create mock KNN that fails
+    mock_knn = Mock(spec=KNNProvider)
+    mock_knn.find_examples.side_effect = ConnectionError("KNN unavailable")
+
+    optimizer = OPROOptimizer(llm_client=None, knn_provider=mock_knn)
+
+    prompt_obj = PromptObject(
+        id="test-3",
+        version="1.0.0",
+        intent_type=IntentType.EXPLAIN,
+        template="Test prompt",
+        strategy_meta={"intent": "explain", "complexity": "moderate"},
+        constraints={},
+        is_active=True,
+        created_at="2026-01-06T00:00:00Z",
+        updated_at="2026-01-06T00:00:00Z",
+    )
+
+    # Should not raise, should complete without few-shot examples
+    result = optimizer.run_loop(prompt_obj)
+
+    assert result is not None
+    assert result.trajectory is not None
+
+
+def test_opro_knn_failure_tracked():
+    """When KNN fails during OPRO, failure should be tracked in response."""
+    # Create mock KNN that fails
+    mock_knn = Mock(spec=KNNProvider)
+    mock_knn.find_examples.side_effect = RuntimeError("KNN catalog empty")
+
+    optimizer = OPROOptimizer(llm_client=None, knn_provider=mock_knn)
+    prompt_obj = PromptObject(
+        id="test-123",
+        version="1.0.0",
+        intent_type=IntentType.GENERATE,
+        template="Improve this prompt",
+        strategy_meta={"intent": "generate", "complexity": "simple"},
+        constraints={},
+        created_at="2025-01-13T00:00:00Z",
+        updated_at="2025-01-13T00:00:00Z"
+    )
+
+    # Act
+    result = optimizer.run_loop(prompt_obj)
+
+    # Assert
+    assert result.knn_failure is not None
+    assert result.knn_failure.get('failed') is True
+    assert "RuntimeError" in result.knn_failure.get('errors', [{}])[0].get('error_type', '')
+

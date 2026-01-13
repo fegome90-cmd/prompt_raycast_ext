@@ -101,7 +101,8 @@ class TestNLaCRequest:
         """Test minimal request in nlac mode."""
         request = NLaCRequest(idea="Debug this", mode="nlac")
         assert request.mode == "nlac"
-        assert isinstance(request.inputs, NLaCInputs)
+        # inputs is optional even in nlac mode
+        assert request.inputs is None
 
     def test_with_context(self):
         """Test request with context."""

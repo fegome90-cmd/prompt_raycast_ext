@@ -68,7 +68,7 @@ export async function improvePromptWithWizard(options: WizardOptions): Promise<{
         confidence: result.confidence,
       });
 
-      const updatedSession = SessionManager.getSession(session.id);
+      const updatedSession = await SessionManager.getSession(session.id);
       if (!updatedSession) {
         throw new Error(`Session ${session.id} was lost from cache`);
       }
@@ -92,7 +92,7 @@ export async function improvePromptWithWizard(options: WizardOptions): Promise<{
     isAmbiguous: true,
   });
 
-  const updatedSession = SessionManager.getSession(session.id);
+  const updatedSession = await SessionManager.getSession(session.id);
   if (!updatedSession) {
     throw new Error(`Session ${session.id} was lost from cache`);
   }
@@ -104,7 +104,7 @@ export async function continueWizard(
   userResponse: string,
   options: Omit<WizardOptions, "rawInput" | "wizardMode" | "maxWizardTurns">,
 ): Promise<{ session: ChatSession; isComplete: boolean; prompt?: string }> {
-  const session = SessionManager.getSession(sessionId);
+  const session = await SessionManager.getSession(sessionId);
   if (!session) throw new Error("Session not found");
 
   // Validate response length
@@ -126,7 +126,7 @@ export async function continueWizard(
       isAmbiguous: true,
     });
 
-    const updatedSession = SessionManager.getSession(session.id);
+    const updatedSession = await SessionManager.getSession(session.id);
     if (!updatedSession) {
       throw new Error(`Session ${session.id} was lost from cache`);
     }
@@ -156,7 +156,7 @@ export async function continueWizard(
 
     await SessionManager.completeWizard(sessionId);
 
-    const finalSession = SessionManager.getSession(sessionId);
+    const finalSession = await SessionManager.getSession(sessionId);
     if (!finalSession) {
       throw new Error(`Session ${sessionId} was lost from cache`);
     }

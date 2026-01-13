@@ -20,7 +20,7 @@ from hemdov.domain.dto.nlac_models import (
     IntentType,
 )
 from hemdov.domain.services.intent_classifier import IntentClassifier
-from hemdov.domain.services.knn_provider import KNNProvider, FewShotExample
+from hemdov.domain.services.knn_provider import KNNProvider, FewShotExample, handle_knn_failure
 from hemdov.domain.services.complexity_analyzer import ComplexityAnalyzer, ComplexityLevel
 
 logger = logging.getLogger(__name__)
@@ -88,7 +88,10 @@ class NLaCBuilder:
         role = self._inject_role(intent_str, complexity)
 
         # Step 5: Fetch KNN examples
+        knn_failed = False
+        knn_error = None
         fewshot_examples: List[FewShotExample] = []
+
         if self.knn_provider:
             # Determine k based on complexity (k=3 for simple/moderate, k=5 for complex)
             k = 5 if complexity == ComplexityLevel.COMPLEX else 3
@@ -101,13 +104,13 @@ class NLaCBuilder:
                     intent=intent_str,
                     complexity=complexity.value,
                     k=k,
-                    has_expected_output=has_expected_output
+                    has_expected_output=has_expected_output,
+                    user_input=request.idea
                 )
                 logger.info(f"Fetched {len(fewshot_examples)} KNN examples for {intent_str}/{complexity.value}")
             except (RuntimeError, KeyError, TypeError, ValueError, ConnectionError, TimeoutError) as e:
-                logger.exception(
-                    f"Failed to fetch KNN examples for {intent_str}/{complexity.value}. "
-                    f"Continuing without few-shot guidance. Error: {type(e).__name__}"
+                knn_failed, knn_error = handle_knn_failure(
+                    logger, "NLaCBuilder.build", e
                 )
                 # Continue with empty examples list
 
@@ -140,6 +143,8 @@ class NLaCBuilder:
             constraints=constraints,
             created_at=datetime.now(UTC).isoformat(),
             updated_at=datetime.now(UTC).isoformat(),
+            knn_failed=knn_failed,
+            knn_error=knn_error,
         )
 
     def _select_strategy(self, complexity: ComplexityLevel, intent: str) -> str:

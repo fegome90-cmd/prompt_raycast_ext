@@ -378,7 +378,9 @@ async function callImprover(args: {
         };
       } catch (e) {
         // Extraction succeeded but validation failed - log for debugging
-        console.warn(`[improvePrompt] ⚠️ Extracted JSON failed validation: ${e instanceof Error ? e.message : String(e)}`);
+        console.warn(
+          `[improvePrompt] ⚠️ Extracted JSON failed validation: ${e instanceof Error ? e.message : String(e)}`,
+        );
       }
     }
 

@@ -19,7 +19,9 @@ export default function Command() {
 
   return (
     <List
-      navigationTitle={`Prompt History${loadingStage !== "idle" && loadingStage !== "success" ? ` — ${STAGE_MESSAGES[loadingStage]}` : ""}`}
+      navigationTitle={`Prompt History${
+        loadingStage !== "idle" && loadingStage !== "success" ? ` — ${STAGE_MESSAGES[loadingStage]}` : ""
+      }`}
       actions={
         <ActionPanel>
           <Action
@@ -39,7 +41,11 @@ export default function Command() {
   );
 }
 
-function PromptHistoryList({ setLoadingStage }: { setLoadingStage: React.Dispatch<React.SetStateAction<LoadingStage>> }) {
+function PromptHistoryList({
+  setLoadingStage,
+}: {
+  setLoadingStage: React.Dispatch<React.SetStateAction<LoadingStage>>;
+}) {
   const [entries, setEntries] = React.useState<PromptEntry[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [loadingStage, setLoadingStageLocal] = React.useState<LoadingStage>("idle");
@@ -67,20 +73,16 @@ function PromptHistoryList({ setLoadingStage }: { setLoadingStage: React.Dispatc
   if (isLoading) {
     return (
       <List.Item.Detail
-        markdown={`## ${STAGE_MESSAGES[loadingStage] || "Loading..."}${loadingStage !== "idle" ? `\n\n_${loadingStage}_` : ""}`}
+        markdown={`## ${STAGE_MESSAGES[loadingStage] || "Loading..."}${
+          loadingStage !== "idle" ? `\n\n_${loadingStage}_` : ""
+        }`}
         isLoading={true}
       />
     );
   }
 
   if (entries.length === 0) {
-    return (
-      <List.EmptyView
-        icon="📋"
-        title="No Prompt History"
-        description="Generate some prompts to see them here"
-      />
-    );
+    return <List.EmptyView icon="📋" title="No Prompt History" description="Generate some prompts to see them here" />;
   }
 
   return (
@@ -115,7 +117,7 @@ function PromptHistoryList({ setLoadingStage }: { setLoadingStage: React.Dispatc
 
                 <Action
                   title="View Details"
-                  shortcut={{ modifiers: ["cmd"], key: "enter" }}
+                  shortcut={{ modifiers: ["cmd", "shift"], key: "v" }}
                   onAction={async () => {
                     const details = buildPromptDetail(entry);
                     // In a real implementation, you'd navigate to a detail view

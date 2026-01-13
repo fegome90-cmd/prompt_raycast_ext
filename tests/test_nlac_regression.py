@@ -17,7 +17,7 @@ from hemdov.domain.dto.nlac_models import (
 )
 from hemdov.domain.services import (
     NLaCBuilder,
-    OPOROptimizer,
+    OPROOptimizer,
     PromptValidator,
 )
 from eval.src.strategies.nlac_strategy import NLaCStrategy

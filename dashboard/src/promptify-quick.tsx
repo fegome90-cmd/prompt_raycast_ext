@@ -27,14 +27,7 @@ const LOG_PREFIX = "[PromptifyQuick]";
 const FALLBACK_PREFIX = "[Fallback]";
 
 // Loading stage type for progressive status updates
-type LoadingStage =
-  | "idle"
-  | "validating"
-  | "connecting"
-  | "analyzing"
-  | "improving"
-  | "success"
-  | "error";
+type LoadingStage = "idle" | "validating" | "connecting" | "analyzing" | "improving" | "success" | "error";
 
 // Stage messages for user-facing status display
 const STAGE_MESSAGES = {
@@ -315,7 +308,11 @@ export default function Command() {
       // ⚡ DO NOT use config.dspy.timeoutMs here - it's a fallback default only
       // ⚡ DO NOT use different values for timeoutMs and dspyTimeoutMs
 
-      console.log(`${LOG_PREFIX} 🌐 Using ${useBackend ? `${executionMode} backend` : "Ollama"} path ${useBackend ? `(dspyBaseUrl: ${dspyBaseUrl})` : `(model: ${model})`}`);
+      console.log(
+        `${LOG_PREFIX} 🌐 Using ${useBackend ? `${executionMode} backend` : "Ollama"} path ${
+          useBackend ? `(dspyBaseUrl: ${dspyBaseUrl})` : `(model: ${model})`
+        }`,
+      );
 
       // Stage 4: Improvement
       setLoadingStage("improving");
@@ -374,7 +371,11 @@ export default function Command() {
 
       // Clear loading stage on success
       setLoadingStage("idle");
-      console.log(`${LOG_PREFIX} ✅ Prompt improved successfully (${finalPrompt.length} chars, source: ${useBackend ? executionMode : "Ollama"})`);
+      console.log(
+        `${LOG_PREFIX} ✅ Prompt improved successfully (${finalPrompt.length} chars, source: ${
+          useBackend ? executionMode : "Ollama"
+        })`,
+      );
 
       setPreview({
         prompt: finalPrompt,

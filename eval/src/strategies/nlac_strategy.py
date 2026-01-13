@@ -14,6 +14,7 @@ Pipeline:
 4. Validate with IFEval (if enabled)
 5. Return dspy.Prediction for compatibility
 """
+import json
 import logging
 import dspy
 from datetime import datetime, UTC
@@ -21,9 +22,10 @@ from typing import Optional
 
 from hemdov.domain.dto.nlac_models import NLaCRequest, PromptObject
 from hemdov.domain.services.nlac_builder import NLaCBuilder
-from hemdov.domain.services.oprop_optimizer import OPOROptimizer
+from hemdov.domain.services.oprop_optimizer import OPROOptimizer
 from hemdov.domain.services.reflexion_service import ReflexionService
 from hemdov.domain.services.knn_provider import KNNProvider
+from hemdov.domain.services.llm_protocol import LLMClient
 
 from .base import PromptImproverStrategy
 
@@ -42,7 +44,7 @@ class NLaCStrategy(PromptImproverStrategy):
 
     def __init__(
         self,
-        llm_client=None,
+        llm_client: Optional[LLMClient] = None,
         enable_cache: bool = True,
         enable_optimization: bool = True,
         enable_validation: bool = False,
@@ -59,7 +61,7 @@ class NLaCStrategy(PromptImproverStrategy):
             knn_provider: Optional KNNProvider for few-shot examples
         """
         self.builder = NLaCBuilder(knn_provider=knn_provider)
-        self.optimizer = OPOROptimizer(llm_client=llm_client, knn_provider=knn_provider)
+        self.optimizer = OPROOptimizer(llm_client=llm_client, knn_provider=knn_provider)
         self.reflexion = ReflexionService(llm_client=llm_client) if llm_client else None
         self._enable_optimization = enable_optimization
         self._enable_validation = enable_validation
@@ -95,7 +97,25 @@ class NLaCStrategy(PromptImproverStrategy):
 
         # Build PromptObject (with KNN examples if available)
         logger.info(f"Building NLaC prompt for: {original_idea[:50]}...")
-        prompt_obj = self.builder.build(request)
+        try:
+            prompt_obj = self.builder.build(request)
+        except (ValueError, FileNotFoundError, json.JSONDecodeError) as e:
+            logger.exception(
+                f"Failed to build PromptObject for request: {original_idea[:50]}. "
+                f"Error: {type(e).__name__}: {e}"
+            )
+            raise ValueError(
+                f"Unable to process request: {e}. "
+                f"Please check your input and try again."
+            ) from e
+        except Exception as e:
+            logger.exception(
+                f"Unexpected error building PromptObject for request: {original_idea[:50]}"
+            )
+            raise RuntimeError(
+                f"An unexpected error occurred while processing your request. "
+                f"Please try again or contact support if the issue persists."
+            ) from e
 
         # Extract intent for routing
         intent = prompt_obj.strategy_meta.get("intent", "").lower()
@@ -120,9 +140,15 @@ class NLaCStrategy(PromptImproverStrategy):
         elif self._enable_optimization:
             # Non-DEBUG uses OPRO with KNN examples
             logger.info("Running OPRO optimization...")
-            opt_response = self.optimizer.run_loop(prompt_obj)
-            prompt_obj.template = opt_response.final_instruction
-            prompt_obj.updated_at = datetime.now(UTC).isoformat()
+            try:
+                opt_response = self.optimizer.run_loop(prompt_obj)
+                prompt_obj.template = opt_response.final_instruction
+                prompt_obj.updated_at = datetime.now(UTC).isoformat()
+            except Exception as e:
+                logger.exception(
+                    f"OPRO optimization failed, using initial template. Error: {type(e).__name__}"
+                )
+                # Continue with initial template instead of failing
 
         # Validation (reserved for future IFEval integration)
         if self._enable_validation:
