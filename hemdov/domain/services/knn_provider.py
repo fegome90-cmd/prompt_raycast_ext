@@ -618,12 +618,22 @@ class KNNProvider:
         return " ".join(query_parts)
 
     def _get_candidate_vectors(self, candidates: List[FewShotExample]) -> np.ndarray:
-        """Get cached or compute candidate vectors."""
-        # Use cached vectors if available and no filtering
-        if self._catalog_vectors is not None and candidates == self.catalog:
+        """Get cached or compute candidate vectors.
+
+        Uses cached vectors if no filtering was applied (candidates is same object as catalog).
+        Re-vectorizes when candidates are a subset of the catalog.
+
+        Returns:
+            Candidate vectors for similarity computation
+        """
+        # Use cached vectors if available and no filtering was applied
+        # Use 'is' for identity comparison (O(1)) instead of '==' (O(n) list equality)
+        if self._catalog_vectors is not None and candidates is self.catalog:
+            logger.debug("Using pre-computed catalog vectors (cache hit)")
             return self._catalog_vectors
 
-        # Otherwise re-vectorize candidates
+        # Re-vectorize candidates (filtering was applied or cache not available)
+        logger.debug(f"Re-vectorizing {len(candidates)} candidates (cache miss)")
         candidate_texts = [ex.input_idea for ex in candidates]
         return self._vectorizer(candidate_texts)
 
@@ -653,13 +663,14 @@ class KNNProvider:
         dot_products = np.dot(candidate_vectors, query_vector)
         query_norm = np.linalg.norm(query_vector)
         candidate_norms = np.linalg.norm(candidate_vectors, axis=1)
-        similarities = dot_products / (query_norm * candidate_norms)
 
-        # Handle division by zero using epsilon threshold
-        result = np.where(
-            (query_norm > self.NORM_ZERO_THRESHOLD) & (candidate_norms > self.NORM_ZERO_THRESHOLD),
-            similarities,
-            0
+        # Handle division by zero using np.divide with 'where' parameter
+        # This avoids computing NaN/Inf values before the check
+        result = np.divide(
+            dot_products,
+            query_norm * candidate_norms,
+            out=np.zeros_like(dot_products),
+            where=(query_norm > self.NORM_ZERO_THRESHOLD) & (candidate_norms > self.NORM_ZERO_THRESHOLD)
         )
 
         # Log when zero-norm vectors are detected (silent failure prevention)
