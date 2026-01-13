@@ -9,6 +9,10 @@ from typing import Optional
 import os
 
 
+# Feature flags for NLaC pipeline (imported but kept separate)
+from hemdov.infrastructure.config.feature_flags import FeatureFlags
+
+
 class Settings(BaseSettings):
     """Global settings for HemDov DSPy integration."""
 

@@ -1,6 +1,13 @@
 """Domain Services."""
 
 from hemdov.domain.services.complexity_analyzer import ComplexityAnalyzer, ComplexityLevel
+from hemdov.domain.services.ifeval_validator import (
+    IFEvalValidator,
+    ValidationResult,
+    action_verbs_constraint,
+    json_format_constraint,
+    min_length_constraint,
+)
 from hemdov.domain.services.intent_classifier import IntentClassifier
 from hemdov.domain.services.knn_provider import KNNProvider, KNNProviderError
 from hemdov.domain.services.llm_protocol import LLMClient
@@ -13,6 +20,7 @@ from hemdov.domain.services.reflexion_service import ReflexionService
 __all__ = [
     "ComplexityAnalyzer",
     "ComplexityLevel",
+    "IFEvalValidator",
     "IntentClassifier",
     "KNNProvider",
     "KNNProviderError",
@@ -22,4 +30,8 @@ __all__ = [
     "PromptCache",
     "PromptValidator",
     "ReflexionService",
+    "ValidationResult",
+    "action_verbs_constraint",
+    "json_format_constraint",
+    "min_length_constraint",
 ]

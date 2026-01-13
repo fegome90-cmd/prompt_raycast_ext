@@ -1,0 +1,8 @@
+{
+  "enable_dspy_embeddings": false,
+  "enable_cache": true,
+  "enable_ifeval": true,
+  "enable_metrics": true,
+  "enable_enhanced_rar": false,
+  "embedding_provider": "ollama"
+}
