@@ -215,13 +215,23 @@ class KNNProvider:
 
         if skipped_count > 0:
             skip_rate = skipped_count / len(examples_data)
-            logger.warning(
-                f"Loaded {len(self.catalog)} examples from ComponentCatalog "
-                f"(skipped {skipped_count} invalid examples, {skip_rate:.1%} skip rate)"
-            )
 
-            # If more than 20% of examples are invalid, this is likely a schema issue
-            if skip_rate > 0.2:
+            # ERROR level for 5% or higher (proactive monitoring)
+            if skip_rate >= self.SKIP_RATE_ERROR_THRESHOLD:
+                logger.error(
+                    f"Catalog quality degradation detected: {skip_rate:.1%} of examples "
+                    f"({skipped_count}/{len(examples_data)}) failed validation. "
+                    f"This may indicate schema drift or data corruption. "
+                    f"Investigate catalog data source."
+                )
+            else:
+                logger.warning(
+                    f"Loaded {len(self.catalog)} examples from ComponentCatalog "
+                    f"(skipped {skipped_count} invalid examples, {skip_rate:.1%} skip rate)"
+                )
+
+            # CRITICAL threshold at 20%
+            if skip_rate > self.SKIP_RATE_CRITICAL_THRESHOLD:
                 raise ValueError(
                     f"Catalog data quality issue: {skip_rate:.1%} of examples ({skipped_count}/{len(examples_data)}) "
                     f"failed validation. This may indicate a schema mismatch or data corruption. "
@@ -265,7 +275,17 @@ class KNNProvider:
 
     # Minimum cosine similarity threshold for relevance filtering
     # Character bigram similarity is less precise than embeddings, so threshold is conservative
-    MIN_SIMILARITY_THRESHOLD = 0.1
+    MIN_SIMILARITY_THRESHOLD: float = 0.1
+
+    # Catalog quality thresholds
+    # At 5% skip rate, log ERROR (proactive monitoring for schema drift)
+    # At 20% skip rate, raise ValueError (critical data quality issue)
+    SKIP_RATE_ERROR_THRESHOLD: float = 0.05   # 5% - log ERROR
+    SKIP_RATE_CRITICAL_THRESHOLD: float = 0.2  # 20% - raise ValueError
+
+    # Vector computation constants
+    # Floating-point epsilon for division safety when computing cosine similarity
+    NORM_ZERO_THRESHOLD: float = 1e-10
 
     def find_examples(
         self,
@@ -334,8 +354,12 @@ class KNNProvider:
             query_norm = np.linalg.norm(query_vector)
             candidate_norms = np.linalg.norm(candidate_vectors, axis=1)
             similarities = dot_products / (query_norm * candidate_norms)
-            # Handle division by zero
-            similarities = np.where((query_norm > 0) & (candidate_norms > 0), similarities, 0)
+            # Handle division by zero using epsilon threshold
+            similarities = np.where(
+                (query_norm > self.NORM_ZERO_THRESHOLD) & (candidate_norms > self.NORM_ZERO_THRESHOLD),
+                similarities,
+                0
+            )
 
             # Filter by minimum similarity threshold (relevance filtering)
             relevant_mask = similarities >= min_similarity

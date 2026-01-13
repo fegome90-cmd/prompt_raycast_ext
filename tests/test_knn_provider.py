@@ -158,6 +158,66 @@ def test_knn_raises_when_skip_rate_high(tmp_path):
         KNNProvider(catalog_path=catalog_path)
 
 
+def test_knn_logs_error_at_5_percent_skip_rate(tmp_path, caplog):
+    """KNNProvider should log ERROR when skip rate >= 5%."""
+    import json
+    import logging
+
+    # Create catalog with 6% skip rate (94 valid, 6 invalid)
+    catalog_path = tmp_path / "catalog_6_percent.json"
+
+    examples = []
+    for i in range(100):
+        if i < 94:
+            examples.append({
+                "inputs": {"original_idea": f"valid {i}"},
+                "outputs": {"improved_prompt": f"prompt {i}"}
+            })
+        else:
+            examples.append({"inputs": {}})  # Invalid
+
+    with open(catalog_path, 'w') as f:
+        json.dump({"examples": examples}, f)
+
+    # Should log ERROR at 6%
+    with caplog.at_level(logging.ERROR):
+        provider = KNNProvider(catalog_path=catalog_path)
+
+    assert any(record.levelno == logging.ERROR for record in caplog.records)
+    assert any("quality degradation" in record.getMessage() for record in caplog.records if record.levelno == logging.ERROR)
+
+
+def test_knn_logs_warning_below_5_percent_skip_rate(tmp_path, caplog):
+    """KNNProvider should log WARNING when skip rate < 5% (no quality degradation ERROR)."""
+    import json
+    import logging
+
+    # Create catalog with 3% skip rate (97 valid, 3 invalid)
+    catalog_path = tmp_path / "catalog_3_percent.json"
+
+    examples = []
+    for i in range(100):
+        if i < 97:
+            examples.append({
+                "inputs": {"original_idea": f"valid {i}"},
+                "outputs": {"improved_prompt": f"prompt {i}"}
+            })
+        else:
+            examples.append({"inputs": {}})  # Invalid
+
+    with open(catalog_path, 'w') as f:
+        json.dump({"examples": examples}, f)
+
+    # Should log WARNING (not ERROR) at 3% for quality degradation
+    with caplog.at_level(logging.WARNING):
+        provider = KNNProvider(catalog_path=catalog_path)
+
+    # Should have WARNING about skip rate
+    assert any("skip rate" in record.getMessage() for record in caplog.records if record.levelno == logging.WARNING)
+    # Should NOT have catalog quality degradation ERROR message
+    assert not any("quality degradation" in record.getMessage() for record in caplog.records if record.levelno == logging.ERROR)
+
+
 def test_find_examples_ignores_empty_user_input():
     """find_examples should ignore empty or whitespace-only user_input."""
     provider = KNNProvider(catalog_path=Path("datasets/exports/unified-fewshot-pool-v2.json"))
