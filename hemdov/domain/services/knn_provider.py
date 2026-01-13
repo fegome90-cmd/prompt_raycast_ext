@@ -5,13 +5,15 @@ Provides semantic search functionality over the unified few-shot pool
 using DSPy's KNNFewShot vector similarity.
 """
 
-import json
 import logging
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 from dataclasses import dataclass, field
 import numpy as np
 import dspy
+
+if TYPE_CHECKING:
+    from hemdov.infrastructure.repositories.catalog_repository import CatalogRepositoryInterface
 
 logger = logging.getLogger(__name__)
 
@@ -102,15 +104,26 @@ class KNNProvider:
     curated examples instead of just templates.
     """
 
-    def __init__(self, catalog_path: Path, k: int = 3):
+    def __init__(
+        self,
+        catalog_path: Optional[Path] = None,
+        catalog_data: Optional[List[dict]] = None,
+        repository: Optional['CatalogRepositoryInterface'] = None,
+        k: int = 3
+    ):
         """
         Initialize KNNProvider with ComponentCatalog.
 
         Args:
-            catalog_path: Path to unified-fewshot-pool-v2.json
+            catalog_path: Path to unified-fewshot-pool-v2.json (legacy, creates repository)
+            catalog_data: Pre-loaded catalog data (skip repository)
+            repository: Catalog repository instance
             k: Default number of examples to retrieve
+
+        **Backward Compatibility:** If repository is None and catalog_path is provided,
+        creates FileSystemCatalogRepository automatically. If catalog_data is provided,
+        uses it directly (useful for testing).
         """
-        self.catalog_path = catalog_path
         self.k = k
         self.catalog: List[FewShotExample] = []
         self._dspy_examples: List[dspy.Example] = []
@@ -118,46 +131,35 @@ class KNNProvider:
         # Cache for pre-computed vectors to avoid repeated vectorization
         self._catalog_vectors: Optional[np.ndarray] = None
 
-        self._load_catalog()
-
-    def _load_catalog(self) -> None:
-        """Load ComponentCatalog from JSON file."""
-        if not self.catalog_path.exists():
-            raise FileNotFoundError(
-                f"ComponentCatalog not found at {self.catalog_path}. "
-                f"KNNProvider cannot initialize without catalog."
-            )
-
-        try:
-            with open(self.catalog_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-        except (FileNotFoundError, PermissionError) as e:
-            raise RuntimeError(
-                f"Failed to open ComponentCatalog at {self.catalog_path}. "
-                f"Error: {type(e).__name__}: {e}"
-            ) from e
-        except json.JSONDecodeError as e:
-            raise ValueError(
-                f"Failed to parse JSON from ComponentCatalog at {self.catalog_path}. "
-                f"Error at line {e.lineno}, column {e.colno}: {e.msg}"
-            ) from e
-        except UnicodeDecodeError as e:
-            raise ValueError(
-                f"Failed to decode ComponentCatalog at {self.catalog_path}. "
-                f"Encoding error at position {e.start}: {e.reason}"
-            ) from e
-
-        # Handle wrapper format: {"examples": [...]}
-        if isinstance(data, dict) and 'examples' in data:
-            examples_data = data['examples']
-        elif isinstance(data, list):
-            examples_data = data
+        # Determine data source with backward compatibility
+        if catalog_data is not None:
+            # Use pre-loaded data (testing path)
+            examples_data = catalog_data
+            self.catalog_path = None
+        elif repository is not None:
+            # Use provided repository
+            examples_data = repository.load_catalog()
+            self.catalog_path = getattr(repository, 'catalog_path', None)
+        elif catalog_path is not None:
+            # Legacy behavior: create repository (backward compatible)
+            from hemdov.infrastructure.repositories.catalog_repository import FileSystemCatalogRepository
+            repo = FileSystemCatalogRepository(catalog_path)
+            examples_data = repo.load_catalog()
+            self.catalog_path = catalog_path
         else:
-            raise ValueError(
-                f"Invalid catalog format at {self.catalog_path}. "
-                f"Expected dict with 'examples' key or list, got {type(data).__name__}"
-            )
+            raise ValueError("Must provide one of: catalog_path, catalog_data, or repository")
 
+        self._load_catalog_from_data(examples_data)
+
+    def _load_catalog_from_data(self, examples_data: List[dict]) -> None:
+        """Process catalog data (pure domain logic, no I/O).
+
+        This method contains only domain logic - no file I/O, no network calls.
+        All data is passed in as parameters.
+
+        Args:
+            examples_data: List of example dictionaries from repository
+        """
         # Convert to FewShotExample
         skipped_count = 0
         for idx, ex in enumerate(examples_data):
@@ -192,7 +194,7 @@ class KNNProvider:
                     role=outputs.get('role', ''),
                     directive=outputs.get('directive', ''),
                     framework=outputs.get('framework', ''),
-                    guardrails=outputs.get('guardrails', ''),
+                    guardrails=outputs.get('guardrails', []),
                 ).with_inputs('original_idea', 'context')
 
                 self._dspy_examples.append(dspy_ex)
@@ -223,12 +225,12 @@ class KNNProvider:
                 raise ValueError(
                     f"Catalog data quality issue: {skip_rate:.1%} of examples ({skipped_count}/{len(examples_data)}) "
                     f"failed validation. This may indicate a schema mismatch or data corruption. "
-                    f"Check logs for details. Path: {self.catalog_path}"
+                    f"Check logs for details."
                 )
 
         if len(self.catalog) == 0:
             raise ValueError(
-                f"KNNProvider cannot initialize: No valid examples found in catalog at {self.catalog_path}. "
+                f"KNNProvider cannot initialize: No valid examples found in catalog. "
                 f"All examples failed validation. Check logs for details."
             )
 
