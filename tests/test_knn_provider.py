@@ -129,3 +129,30 @@ def test_find_examples_returns_empty_when_threshold_not_met():
 
     # Should return empty list, not fallback to top-k below threshold
     assert result == []
+
+
+def test_knn_raises_when_skip_rate_high(tmp_path):
+    """KNNProvider should raise ValueError when >20% of catalog examples fail validation."""
+    import json
+
+    # Create catalog with mostly invalid examples (only 2 valid, 8 invalid = 80% skip rate)
+    catalog_path = tmp_path / "bad_catalog.json"
+
+    bad_examples = []
+    for i in range(10):
+        # Only 2 valid examples, 8 invalid
+        if i < 2:
+            bad_examples.append({
+                "inputs": {"original_idea": f"valid {i}"},
+                "outputs": {"improved_prompt": f"prompt {i}"}
+            })
+        else:
+            # Missing required fields
+            bad_examples.append({"inputs": {}})
+
+    with open(catalog_path, 'w') as f:
+        json.dump({"examples": bad_examples}, f)
+
+    # Should raise due to 80% skip rate
+    with pytest.raises(ValueError, match="80.0%"):
+        KNNProvider(catalog_path=catalog_path)

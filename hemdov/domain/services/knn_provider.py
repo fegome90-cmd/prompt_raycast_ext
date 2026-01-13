@@ -212,10 +212,19 @@ class KNNProvider:
                 continue
 
         if skipped_count > 0:
+            skip_rate = skipped_count / len(examples_data)
             logger.warning(
                 f"Loaded {len(self.catalog)} examples from ComponentCatalog "
-                f"(skipped {skipped_count} invalid examples)"
+                f"(skipped {skipped_count} invalid examples, {skip_rate:.1%} skip rate)"
             )
+
+            # If more than 20% of examples are invalid, this is likely a schema issue
+            if skip_rate > 0.2:
+                raise ValueError(
+                    f"Catalog data quality issue: {skip_rate:.1%} of examples ({skipped_count}/{len(examples_data)}) "
+                    f"failed validation. This may indicate a schema mismatch or data corruption. "
+                    f"Check logs for details. Path: {self.catalog_path}"
+                )
 
         if len(self.catalog) == 0:
             raise ValueError(
