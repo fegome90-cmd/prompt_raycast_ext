@@ -110,3 +110,31 @@ def test_opro_handles_knn_failure_gracefully():
 
     assert result is not None
     assert result.trajectory is not None
+
+
+def test_opro_knn_failure_tracked():
+    """When KNN fails during OPRO, failure should be tracked in response."""
+    # Create mock KNN that fails
+    mock_knn = Mock(spec=KNNProvider)
+    mock_knn.find_examples.side_effect = RuntimeError("KNN catalog empty")
+
+    optimizer = OPROOptimizer(llm_client=None, knn_provider=mock_knn)
+    prompt_obj = PromptObject(
+        id="test-123",
+        version="1.0.0",
+        intent_type=IntentType.GENERATE,
+        template="Improve this prompt",
+        strategy_meta={"intent": "generate", "complexity": "simple"},
+        constraints={},
+        created_at="2025-01-13T00:00:00Z",
+        updated_at="2025-01-13T00:00:00Z"
+    )
+
+    # Act
+    result = optimizer.run_loop(prompt_obj)
+
+    # Assert
+    assert result.knn_failure is not None
+    assert result.knn_failure.get('failed') is True
+    assert "RuntimeError" in result.knn_failure.get('errors', [{}])[0].get('error_type', '')
+

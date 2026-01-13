@@ -266,6 +266,12 @@ class OptimizeResponse(BaseModel):
     backend: str = Field(default="nlac", description="Backend identifier")
     model: Optional[str] = Field(None, description="Model used for optimization")
 
+    # KNN failure tracking
+    knn_failure: Optional[Dict[str, Any]] = Field(
+        None,
+        description="KNN failure metadata if few-shot examples were unavailable"
+    )
+
 
 # ============================================================================
 # Response Models (Extended)

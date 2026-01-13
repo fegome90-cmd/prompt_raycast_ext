@@ -13,7 +13,7 @@ Key features:
 """
 
 import logging
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime, UTC
 
 from hemdov.domain.dto.nlac_models import (
@@ -52,6 +52,7 @@ class OPROOptimizer:
         """
         self.llm_client = llm_client
         self.knn_provider = knn_provider
+        self._knn_failures: List[Dict[str, Any]] = []  # Track failures across iterations
 
     def run_loop(self, prompt_obj: PromptObject) -> OptimizeResponse:
         """
@@ -79,6 +80,7 @@ class OPROOptimizer:
         trajectory: List[OPROIteration] = []
         best_score = 0.0
         best_prompt = prompt_obj
+        self._knn_failures = []  # Reset for each optimization run
 
         logger.info(
             f"Starting OPRO optimization | "
@@ -112,6 +114,17 @@ class OPROOptimizer:
             # Early stopping (quality threshold)
             if score >= self.QUALITY_THRESHOLD:
                 logger.info(f"Early stopping at iteration {i} | score={score:.2f}")
+
+                # Build KNN failure metadata for response
+                knn_failure = None
+                if self._knn_failures:
+                    knn_failure = {
+                        "failed": True,
+                        "failure_count": len(self._knn_failures),
+                        "errors": self._knn_failures,
+                        "last_error": self._knn_failures[-1] if self._knn_failures else None
+                    }
+
                 return self._build_response(
                     prompt_obj_id=prompt_obj.id,
                     final_instruction=best_prompt.template,
@@ -119,6 +132,7 @@ class OPROOptimizer:
                     iteration_count=i,
                     early_stopped=True,
                     trajectory=trajectory,
+                    knn_failure=knn_failure,
                 )
 
             # Store trajectory entry
@@ -133,6 +147,16 @@ class OPROOptimizer:
         # Return best from history
         logger.info(f"Completed {self.MAX_ITERATIONS} iterations | best_score={best_score:.2f}")
 
+        # Build KNN failure metadata for response
+        knn_failure = None
+        if self._knn_failures:
+            knn_failure = {
+                "failed": True,
+                "failure_count": len(self._knn_failures),
+                "errors": self._knn_failures,
+                "last_error": self._knn_failures[-1] if self._knn_failures else None
+            }
+
         return self._build_response(
             prompt_obj_id=prompt_obj.id,
             final_instruction=best_prompt.template,
@@ -140,6 +164,7 @@ class OPROOptimizer:
             iteration_count=self.MAX_ITERATIONS,
             early_stopped=False,
             trajectory=trajectory,
+            knn_failure=knn_failure,
         )
 
     def _generate_variation(self, original: PromptObject, trajectory: List[OPROIteration]) -> PromptObject:
@@ -237,6 +262,15 @@ class OPROOptimizer:
                     user_input=candidate.template  # Use template for semantic matching
                 )
             except (RuntimeError, KeyError, TypeError, ValueError, ConnectionError, TimeoutError) as e:
+                # Track failure with metadata
+                self._knn_failures.append({
+                    "error_type": type(e).__name__,
+                    "error_message": str(e)[:200],
+                    "timestamp": datetime.now(UTC).isoformat(),
+                    "intent": intent_str,
+                    "complexity": complexity_str
+                })
+
                 logger.error(
                     f"KNN failed for OPRO meta-prompt: {type(e).__name__}: {e}. "
                     f"Meta-prompt will proceed without few-shot examples "
@@ -335,6 +369,7 @@ class OPROOptimizer:
         iteration_count: int,
         early_stopped: bool,
         trajectory: List[OPROIteration],
+        knn_failure: Optional[Dict[str, Any]] = None,
     ) -> OptimizeResponse:
         """Build OptimizeResponse from optimization results."""
         return OptimizeResponse(
@@ -348,4 +383,5 @@ class OPROOptimizer:
             total_latency_ms=None,
             backend="nlac-opro",
             model="oprop-optimizer",
+            knn_failure=knn_failure,
         )
