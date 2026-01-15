@@ -43,19 +43,17 @@ class PromptHistory:
 
     def __post_init__(self):
         """Validate business invariants."""
-        # Validate framework is allowed value (with fallback)
-        allowed_frameworks = {
-            "chain-of-thought",
-            "tree-of-thoughts",
-            "decomposition",
-            "role-playing"
-        }
-        if self.framework not in allowed_frameworks:
-            logger.warning(
-                f"Unknown framework '{self.framework}', "
-                f"defaulting to 'chain-of-thought'"
+        # Validate framework is allowed value (NOW RAISES INSTEAD OF DEFAULTING)
+        from hemdov.domain.metrics.dimensions import FrameworkType
+
+        valid_frameworks = {f.value for f in FrameworkType}
+
+        if self.framework not in valid_frameworks:
+            raise ValueError(
+                f"Invalid framework '{self.framework}'. "
+                f"Must be one of: {sorted(valid_frameworks)}. "
+                f"Got: '{self.framework}'"
             )
-            object.__setattr__(self, 'framework', 'chain-of-thought')
 
         # Validate confidence range
         if self.confidence is not None:

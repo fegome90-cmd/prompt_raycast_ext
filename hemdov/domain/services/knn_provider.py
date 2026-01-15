@@ -292,9 +292,14 @@ class KNNProvider:
 
                 self._dspy_examples.append(dspy_ex)
             except KeyError as e:
-                logger.exception(
+                # Enhance error context with expected vs available keys
+                available_keys = set(ex.keys()) if hasattr(ex, 'keys') else set()
+                expected_keys = {'original_idea', 'improved_prompt'}
+                logger.error(
                     f"Skipping example {idx} due to missing key: {e}. "
-                    f"Example data: {repr(str(ex)[:200])}"
+                    f"Expected keys: {expected_keys}. "
+                    f"Available keys: {available_keys}. "
+                    f"Example data preview: {repr(str(ex)[:200])}"
                 )
                 skipped_count += 1
                 continue

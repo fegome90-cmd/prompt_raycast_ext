@@ -111,11 +111,18 @@ class NLaCBuilder:
                     user_input=request.idea
                 )
                 logger.info(f"Fetched {len(fewshot_examples)} KNN examples for {intent_str}/{complexity.value}")
-            except (KNNProviderError, RuntimeError, KeyError, TypeError, ValueError, ConnectionError, TimeoutError) as e:
+            except (KNNProviderError, ConnectionError, TimeoutError) as e:
+                # Expected transient failures - degrade gracefully
                 knn_failed, knn_error = handle_knn_failure(
                     logger, "NLaCBuilder.build", e
                 )
                 # Continue with empty examples list
+            except (RuntimeError, KeyError, TypeError, ValueError) as e:
+                # Code bugs - should propagate to surface the issue
+                logger.exception(
+                    f"Unexpected KNN error (code bug) in NLaCBuilder.build: {type(e).__name__}"
+                )
+                raise
 
         # Step 6: Build template
         if complexity == ComplexityLevel.COMPLEX:

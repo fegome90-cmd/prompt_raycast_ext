@@ -479,6 +479,12 @@ class PromptMetricsCalculator:
         try:
             framework = FrameworkType(result.framework)
         except ValueError:
+            # ADD LOGGING for invalid framework
+            logger.warning(
+                f"Invalid framework '{result.framework}' in prompt {prompt_id}, "
+                f"defaulting to CHAIN_OF_THOUGHT. "
+                f"Valid values: {[f.value for f in FrameworkType]}"
+            )
             framework = FrameworkType.CHAIN_OF_THOUGHT
 
         # Calculate quality metrics
