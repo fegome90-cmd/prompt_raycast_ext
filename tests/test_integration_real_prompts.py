@@ -78,6 +78,15 @@ def mock_llm_client():
         def generate(self, prompt: str) -> str:
             return f"# Improved prompt\n\nBased on: {prompt[:50]}..."
 
+        def generate(self, prompt: str) -> str:
+            """Adapter for ReflexionService compatibility.
+
+            ReflexionService expects .generate(prompt) -> str,
+            but our mock uses DSPy's __call__() -> list[str].
+            """
+            result = self.__call__(prompt=prompt)
+            return result[0] if result else ""
+
     return MockLLMClient()
 
 
