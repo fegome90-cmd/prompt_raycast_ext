@@ -28,6 +28,25 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/metrics", tags=["metrics"])
 
 
+def _calculate_averages(metrics: list) -> dict[str, float]:
+    """Calculate average metrics from list.
+
+    Args:
+        metrics: List of PromptMetric objects
+
+    Returns:
+        Dictionary with quality, performance, and impact averages
+    """
+    if not metrics:
+        return {"quality": 0.0, "performance": 0.0, "impact": 0.0}
+
+    return {
+        "quality": sum(m.quality.composite_score for m in metrics) / len(metrics),
+        "performance": sum(m.performance.performance_score for m in metrics) / len(metrics),
+        "impact": sum(m.impact.impact_score for m in metrics) / len(metrics),
+    }
+
+
 async def get_metrics_repository() -> SQLiteMetricsRepository:
     """
     Get metrics repository instance from container.
