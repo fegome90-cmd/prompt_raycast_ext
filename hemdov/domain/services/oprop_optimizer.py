@@ -261,21 +261,32 @@ class OPROOptimizer:
                     k=2,  # Use 2 examples for meta-prompt (keep it concise)
                     user_input=candidate.template  # Use template for semantic matching
                 )
-            except (KNNProviderError, RuntimeError, KeyError, TypeError, ValueError, ConnectionError, TimeoutError) as e:
-                # Track failure with metadata
+            except (KNNProviderError, ConnectionError, TimeoutError) as e:
+                # Track transient failure with metadata
                 self._knn_failures.append({
                     "error_type": type(e).__name__,
                     "error_message": str(e)[:200],
                     "timestamp": datetime.now(UTC).isoformat(),
                     "intent": intent_str,
-                    "complexity": complexity_str
+                    "complexity": complexity_str,
+                    "is_transient": True
                 })
-
-                # Use utility for consistent error handling
-                handle_knn_failure(
-                    logger, "OPROOptimizer._build_meta_prompt", e
-                )
+                handle_knn_failure(logger, "OPROOptimizer._build_meta_prompt", e)
                 fewshot_examples = []
+            except (RuntimeError, KeyError, TypeError, ValueError) as e:
+                # Track code bug before propagating
+                self._knn_failures.append({
+                    "error_type": type(e).__name__,
+                    "error_message": str(e)[:200],
+                    "timestamp": datetime.now(UTC).isoformat(),
+                    "intent": intent_str,
+                    "complexity": complexity_str,
+                    "is_bug": True
+                })
+                logger.exception(
+                    f"Unexpected KNN error (code bug) in OPROOptimizer: {type(e).__name__}"
+                )
+                raise
 
             if fewshot_examples:
                 examples_section = "\n\n## Reference Examples\nThese examples show good prompt patterns:\n\n"
