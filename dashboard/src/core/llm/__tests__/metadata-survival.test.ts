@@ -46,7 +46,7 @@ describe("T1.2.B4.5 — Metadata survives failure", () => {
 
       expect(err.meta).toBeDefined();
       expect(err.meta?.wrapper).toBeDefined();
-      expect(err.meta?.wrapper?.failureReason).toBe("non-json");
+      expect(err.meta?.wrapper?.failureReason).toBe("json_parse_failed");
     }
   });
 

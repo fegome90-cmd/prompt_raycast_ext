@@ -13,7 +13,7 @@ from fastapi.testclient import TestClient
 from datetime import datetime, UTC, timedelta
 import asyncio
 
-from main import app
+from api.main import app
 from hemdov.domain.metrics.dimensions import (
     QualityMetrics,
     PerformanceMetrics,

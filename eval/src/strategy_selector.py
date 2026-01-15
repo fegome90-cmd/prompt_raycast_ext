@@ -1,4 +1,6 @@
 # eval/src/strategy_selector.py
+import json
+import logging
 from typing import Optional
 from pathlib import Path
 from .complexity_analyzer import ComplexityAnalyzer, ComplexityLevel
@@ -9,6 +11,8 @@ from .strategies.complex_strategy import ComplexStrategy
 from .strategies.nlac_strategy import NLaCStrategy
 from hemdov.domain.services.knn_provider import KNNProvider
 from hemdov.domain.services.llm_protocol import LLMClient
+
+logger = logging.getLogger(__name__)
 
 
 class StrategySelector:
@@ -51,6 +55,12 @@ class StrategySelector:
         Raises:
             RuntimeError: If ComplexStrategy initialization fails
         """
+        # Initialize degradation flags
+        self._degradation_flags = {
+            "knn_disabled": False,
+            "complex_strategy_disabled": False,
+        }
+
         self.analyzer = ComplexityAnalyzer()
         self._use_nlac = use_nlac
 
@@ -64,11 +74,14 @@ class StrategySelector:
                     knn_provider = KNNProvider(catalog_path=catalog_path, k=3)
                     logger = __import__("logging").getLogger(__name__)
                     logger.info(f"KNNProvider initialized with catalog: {catalog_path}")
-                except Exception as e:
+                except (FileNotFoundError, PermissionError) as e:
                     logger = __import__("logging").getLogger(__name__)
-                    logger.warning(
-                        f"KNNProvider initialization failed, continuing without KNN: {e}"
-                    )
+                    logger.warning(f"KNNProvider file error: {type(e).__name__}: {e}")
+                    self._degradation_flags["knn_disabled"] = True
+                except (json.JSONDecodeError, ValueError, KeyError) as e:
+                    logger = __import__("logging").getLogger(__name__)
+                    logger.error(f"KNNProvider catalog parsing error: {type(e).__name__}: {e}")
+                    self._degradation_flags["knn_disabled"] = True
             else:
                 logger = __import__("logging").getLogger(__name__)
                 logger.warning(
@@ -96,13 +109,18 @@ class StrategySelector:
                 k=fewshot_k
             )
             self._complex_available = True
-        except Exception as e:
+        except (FileNotFoundError, PermissionError) as e:
             import logging
             logger = logging.getLogger(__name__)
-            logger.exception(
-                f"ComplexStrategy initialization failed - using ModerateStrategy fallback. "
-                f"Trainset path: {trainset_path}, Error: {type(e).__name__}"
-            )
+            logger.warning(f"ComplexStrategy file unavailable: {type(e).__name__}")
+            self._degradation_flags["complex_strategy_disabled"] = True
+            self.complex_strategy = None
+            self._complex_available = False
+        except (json.JSONDecodeError, ValueError) as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"ComplexStrategy data invalid: {type(e).__name__}")
+            self._degradation_flags["complex_strategy_disabled"] = True
             self.complex_strategy = None
             self._complex_available = False
 
@@ -167,3 +185,12 @@ class StrategySelector:
             ComplexityLevel (SIMPLE, MODERATE, or COMPLEX)
         """
         return self.analyzer.analyze(original_idea, context)
+
+    def get_degradation_flags(self) -> dict:
+        """
+        Get current degradation flags for monitoring.
+
+        Returns:
+            dict: Copy of degradation flags
+        """
+        return self._degradation_flags.copy()

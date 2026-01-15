@@ -47,3 +47,10 @@ data/
 # Local Claude plugin
 .claude/
 .hypothesis/
+
+# Generated files and temporary directories (reorganization)
+.logs/
+.backup/
+coverage.json
+.backend.log
+.backend.pid

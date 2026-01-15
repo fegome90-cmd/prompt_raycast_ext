@@ -36,16 +36,10 @@ async def get_metrics_repository() -> SQLiteMetricsRepository:
         SQLiteMetricsRepository instance
 
     Raises:
-        RuntimeError: If repository not initialized
+        ValueError: If repository not registered in container
     """
-    try:
-        repo = container.get(SQLiteMetricsRepository)
-        return repo
-    except ValueError:
-        raise HTTPException(
-            status_code=500,
-            detail="Metrics repository not initialized. Please check server configuration."
-        )
+    repo = container.get(SQLiteMetricsRepository)
+    return repo
 
 
 @router.get("/summary")
@@ -95,9 +89,22 @@ async def get_metrics_summary(
             "grade_distribution": grade_dist,
         }
 
-    except Exception as e:
-        logger.error(f"Failed to get metrics summary: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+    # For calculation errors - log and re-raise
+    except (AttributeError, TypeError, ZeroDivisionError) as e:
+        logger.error(f"Metrics calculation error in get_metrics_summary: {type(e).__name__}: {e}", exc_info=True)
+        raise  # Global handler will convert to 500
+
+    # For data errors - log and re-raise
+    except (ValueError, KeyError) as e:
+        logger.warning(f"Metrics data issue in get_metrics_summary: {type(e).__name__}: {e}")
+        raise  # Global handler will convert to 400
+
+    # For connection errors - log and re-raise
+    except (ConnectionError, OSError, TimeoutError) as e:
+        logger.error(f"Repository error in get_metrics_summary: {type(e).__name__}: {e}", exc_info=True)
+        raise  # Global handler will convert to 503
+
+    # All other exceptions propagate (KeyboardInterrupt, SystemExit, etc.)
 
 
 @router.get("/trends")
@@ -162,9 +169,22 @@ async def get_trends(
             "recommendations": trends.recommendations,
         }
 
-    except Exception as e:
-        logger.error(f"Failed to get trends: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+    # For calculation errors - log and re-raise
+    except (AttributeError, TypeError, ZeroDivisionError) as e:
+        logger.error(f"Metrics calculation error in get_trends: {type(e).__name__}: {e}", exc_info=True)
+        raise  # Global handler will convert to 500
+
+    # For data errors - log and re-raise
+    except (ValueError, KeyError) as e:
+        logger.warning(f"Metrics data issue in get_trends: {type(e).__name__}: {e}")
+        raise  # Global handler will convert to 400
+
+    # For connection errors - log and re-raise
+    except (ConnectionError, OSError, TimeoutError) as e:
+        logger.error(f"Repository error in get_trends: {type(e).__name__}: {e}", exc_info=True)
+        raise  # Global handler will convert to 503
+
+    # All other exceptions propagate (KeyboardInterrupt, SystemExit, etc.)
 
 
 @router.post("/compare")
@@ -312,6 +332,19 @@ async def compare_metrics(
 
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error(f"Failed to compare metrics: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+    # For calculation errors - log and re-raise
+    except (AttributeError, TypeError, ZeroDivisionError) as e:
+        logger.error(f"Metrics calculation error in compare_metrics: {type(e).__name__}: {e}", exc_info=True)
+        raise  # Global handler will convert to 500
+
+    # For data errors - log and re-raise
+    except (ValueError, KeyError) as e:
+        logger.warning(f"Metrics data issue in compare_metrics: {type(e).__name__}: {e}")
+        raise  # Global handler will convert to 400
+
+    # For connection errors - log and re-raise
+    except (ConnectionError, OSError, TimeoutError) as e:
+        logger.error(f"Repository error in compare_metrics: {type(e).__name__}: {e}", exc_info=True)
+        raise  # Global handler will convert to 503
+
+    # All other exceptions propagate (KeyboardInterrupt, SystemExit, etc.)

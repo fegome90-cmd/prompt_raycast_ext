@@ -6,6 +6,7 @@ Based on HemDov DSPy module patterns (BaselineExecutor, MultiStepExecutor).
 
 import dspy
 from hemdov.domain.dspy_modules.prompt_improver import PromptImproverSignature
+from hemdov.domain.dspy_modules.augmenter_sig import PromptAugmenterSignature
 
 
 class PromptImprover(dspy.Module):
@@ -33,6 +34,52 @@ class PromptImprover(dspy.Module):
             dspy.Prediction with improved_prompt, role, directive, framework, guardrails, reasoning
         """
         return self.improver(original_idea=original_idea, context=context)
+
+
+class ContextAwarePromptImprover(dspy.Module):
+    """
+    Advanced DSPy module that integrates general context rules.
+    Used for Gemini 3.0 Flash optimized context injection.
+    """
+
+    def __init__(self):
+        super().__init__()
+        # Step 1: Improve the prompt using standard signature
+        self.improver = dspy.ChainOfThought(PromptImproverSignature)
+        # Step 2: Augment with general context rules
+        self.augmenter = dspy.ChainOfThought(PromptAugmenterSignature)
+
+    def forward(
+        self, original_idea: str, context: str = "", general_context: str = ""
+    ) -> dspy.Prediction:
+        """
+        Two-step improvement process:
+        1. Standard optimization.
+        2. Context/Rule alignment.
+        """
+        # First step: Basic improvement
+        basic_improvement = self.improver(original_idea=original_idea, context=context)
+
+        # Second step: Rule alignment
+        if not general_context:
+            return basic_improvement
+
+        final_improvement = self.augmenter(
+            original_idea=basic_improvement.improved_prompt,
+            general_context=general_context,
+        )
+
+        # Merge results: Keep structural metadata from first step, but content from second
+        return dspy.Prediction(
+            improved_prompt=final_improvement.improved_prompt,
+            role=basic_improvement.role,
+            directive=basic_improvement.directive,
+            framework=basic_improvement.framework,
+            guardrails=basic_improvement.guardrails,
+            reasoning=basic_improvement.reasoning,
+            confidence=final_improvement.confidence,
+            rule_compliance_report=final_improvement.rule_compliance_report,
+        )
 
 
 # Alternative: Zero-shot version (faster)
