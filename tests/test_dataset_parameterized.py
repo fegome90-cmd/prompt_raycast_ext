@@ -13,9 +13,16 @@ Run with:
 import sys
 from pathlib import Path
 
-# Add project root to Python path
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
+# Add project root to Python path with error handling
+try:
+    project_root = Path(__file__).parent.parent.resolve()
+    if not project_root.exists():
+        raise FileNotFoundError(f"Project root not found: {project_root}")
+    project_root_str = str(project_root)
+    if project_root_str not in sys.path:
+        sys.path.insert(0, project_root_str)
+except (OSError, PermissionError) as e:
+    raise RuntimeError(f"Failed to configure Python path for test imports: {e}") from e
 
 import pytest
 from unittest.mock import patch, MagicMock, AsyncMock
