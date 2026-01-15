@@ -8,8 +8,8 @@ SHELL := /bin/bash
 
 # Configuration
 PYTHON := .venv/bin/python
-BACKEND_PID := .backend.pid
-BACKEND_LOG := .backend.log
+BACKEND_PID := .tmp/backend.pid
+BACKEND_LOG := .logs/backend.log
 BACKEND_PORT := 8000
 RAYCAST_DIR := dashboard
 RAYCAST_PID := .raycast-dev.pid
@@ -83,7 +83,7 @@ env: ## Create .env from .env.example
 
 backend: ## Start DSPy backend server (foreground)
 	@printf "\033[34m→ Starting DSPy backend on port $(BACKEND_PORT)...\033[0m\n"
-	@$(PYTHON) main.py
+	@$(PYTHON) api/main.py
 
 dev: ## Start backend in background (for development)
 	@printf "\033[34m→ Starting DSPy backend in background...\033[0m\n"
@@ -94,7 +94,7 @@ dev: ## Start backend in background (for development)
 			exit 1; \
 		fi; \
 	fi
-	@nohup $(PYTHON) main.py > $(BACKEND_LOG) 2>&1 & echo $$! > $(BACKEND_PID)
+	@nohup $(PYTHON) api/main.py > $(BACKEND_LOG) 2>&1 & echo $$! > $(BACKEND_PID)
 	@printf "\033[32m✓ Backend started in background\033[0m\n"
 	@printf "\033[34m→ Logs: tail -f $(BACKEND_LOG)\033[0m\n"
 	@sleep 2

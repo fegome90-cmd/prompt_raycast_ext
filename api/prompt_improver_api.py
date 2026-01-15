@@ -14,8 +14,18 @@ import asyncio
 import uuid
 import hashlib
 from typing import Optional, Dict, Any
+from enum import Enum
 
 from eval.src.dspy_prompt_improver import PromptImprover
+
+
+class DegradationFlag(str, Enum):
+    """Well-defined degradation flags to prevent typos."""
+    METRICS_FAILED = "metrics_failed"
+    KNN_DISABLED = "knn_disabled"
+    COMPLEX_STRATEGY_DISABLED = "complex_strategy_disabled"
+
+
 from eval.src.strategy_selector import StrategySelector
 from hemdov.interfaces import container
 from hemdov.infrastructure.config import Settings
@@ -131,6 +141,12 @@ class ImprovePromptResponse(BaseModel):
     strategy: str = Field(default="simple", description="Strategy used for improvement")
     intent: str = Field(default="generate", description="Intent classification (debug, refactor, generate, explain)")
     strategy_meta: Dict[str, Any] = Field(default_factory=dict, description="Additional strategy metadata")
+    # Degradation and warning fields
+    metrics_warning: str | None = Field(default=None, description="Warning message if metrics calculation failed")
+    degradation_flags: Dict[str, bool] = Field(
+        default_factory=dict,
+        description="Degradation flags. Valid keys: metrics_failed, knn_disabled, complex_strategy_disabled"
+    )
 
 
 # Initialize modules (lazy loading)
@@ -277,6 +293,9 @@ async def improve_prompt(request: ImprovePromptRequest):
         # Calculate latency
         latency_ms = int((time.time() - start_time) * 1000)
 
+        # Track metrics warnings for response metadata
+        metrics_warnings = []
+
         # Calculate comprehensive metrics
         try:
             # Extract model and provider from settings
@@ -334,18 +353,30 @@ async def improve_prompt(request: ImprovePromptRequest):
                         # For now, just log that we would save it
                         logger.debug("Metrics calculated successfully (persistence to be implemented)")
                 except (ConnectionError, OSError) as e:
-                    logger.error(f"Failed to save metrics due to connection/error: {e}")
-                except Exception as e:
-                    logger.error(f"Failed to save metrics: {type(e).__name__}: {e}", exc_info=True)
+                    metrics_warnings.append(f"Metrics persistence failed: {type(e).__name__}")
+                    logger.error(f"Failed to save metrics: {type(e).__name__}: {e}")
+                except (AttributeError, KeyError) as e:
+                    metrics_warnings.append(f"Metrics data issue: {type(e).__name__}")
+                    logger.warning(f"Metrics data structure issue: {type(e).__name__}: {e}")
         except (ValueError, TypeError, AttributeError) as e:
             # Expected errors from metrics calculation (invalid data types, missing attributes)
+            metrics_warnings.append(f"Metrics calculation skipped: {type(e).__name__}")
             logger.warning(
                 f"Metrics calculation skipped due to data issue: {type(e).__name__}: {e}"
             )
-        except Exception as e:
-            # Unexpected errors - log with full context but don't fail the request
+        except (ConnectionError, OSError, IOError) as e:
+            # Connection/IO errors during metrics calculation
+            metrics_warnings.append(f"Metrics calculation failed: {type(e).__name__}")
             logger.error(
-                f"Unexpected error in metrics calculation: {type(e).__name__}: {e} | "
+                f"Metrics calculation failed: {type(e).__name__}: {e} | "
+                f"strategy={strategy.name} | model={model}",
+                exc_info=True
+            )
+        except (RuntimeError, MemoryError) as e:
+            # Unexpected but recoverable errors
+            metrics_warnings.append(f"Metrics calculation failed: {type(e).__name__}")
+            logger.error(
+                f"Metrics calculation failed: {type(e).__name__}: {e} | "
                 f"strategy={strategy.name} | model={model}",
                 exc_info=True
             )
@@ -373,6 +404,13 @@ async def improve_prompt(request: ImprovePromptRequest):
                 "mode": request.mode,
                 "strategy": strategy.name,
             },
+            metrics_warning=metrics_warnings[0] if metrics_warnings else None,
+            degradation_flags={
+                "metrics_failed": len(metrics_warnings) > 0,
+                "knn_disabled": selector.get_degradation_flags().get("knn_disabled", False),
+                "complex_strategy_disabled":
+                    selector.get_degradation_flags().get("complex_strategy_disabled", False),
+            },
         )
 
         # Save history asynchronously (non-blocking)
@@ -396,9 +434,17 @@ async def improve_prompt(request: ImprovePromptRequest):
             status_code=504,  # Gateway Timeout
             detail="Prompt improvement took too long. Please try with a shorter prompt."
         )
-    except Exception as e:
+    except (ConnectionError, OSError) as e:
+        logger.error(f"Connection/IO error during prompt improvement: {type(e).__name__}: {e}")
         raise HTTPException(
-            status_code=500, detail=f"Prompt improvement failed: {str(e)}"
+            status_code=503,  # Service Unavailable
+            detail="Service temporarily unavailable. Please try again."
+        )
+    except (ValueError, TypeError, AttributeError) as e:
+        logger.error(f"Invalid input or data error: {type(e).__name__}: {e}")
+        raise HTTPException(
+            status_code=400,  # Bad Request
+            detail=f"Invalid request: {type(e).__name__}"
         )
 
 
@@ -537,10 +583,8 @@ async def evaluate_quality(request: EvaluateQualityRequest):
             f"template_id={request.template_id} | "
             f"message={str(e)}"
         )
-        raise HTTPException(
-            status_code=500,
-            detail="Quality gate evaluation failed. Please try again later."
-        )
+        raise  # Global handler will convert to 500
+
     except KeyError as e:
         # Missing keys in output data - include the specific key name
         missing_key = str(e) if e else "unknown"
@@ -550,27 +594,18 @@ async def evaluate_quality(request: EvaluateQualityRequest):
             f"missing_key={missing_key} | "
             f"output_length={len(request.output)}"
         )
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid output format: missing required key '{missing_key}'"
-        )
-    except Exception as e:
-        # Unexpected errors - log with full context, hide internals from client
-        # Note: ValidationError from Pydantic is handled before reaching this code
+        raise  # Global handler will convert to 400
+
+    except (RuntimeError, MemoryError, AttributeError) as e:
+        # Internal quality gate errors
         logger.error(
-            f"Unexpected error in quality gate evaluation: {type(e).__name__} | "
-            f"template_id={request.template_id} | "
-            f"output_length={len(request.output)} | "
-            f"error={str(e)}",
+            f"Internal quality gate error: {type(e).__name__}: {e} | "
+            f"template_id={request.template_id}",
             exc_info=True
         )
-        # Generate error ID for tracking (timestamp + template_id)
-        error_id = f"QE-{int(time.time())}-{request.template_id}"
-        logger.error(f"Error ID for tracking: {error_id}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Internal evaluation error. Reference ID: {error_id}"
-        )
+        raise  # Global handler will convert to 500
+
+    # Let all other exceptions propagate (KeyboardInterrupt, SystemExit, etc.)
 
 
 async def _save_history_async(
@@ -637,10 +672,15 @@ async def _save_history_async(
         success = True
         logger.info(f"Saved prompt history to database (latency: {latency_ms}ms)")
 
-    except Exception as e:
+    except (ConnectionError, OSError, TimeoutError) as e:
         # Record failure on circuit breaker
         await _circuit_breaker.record_failure()
-        logger.error(f"Failed to save prompt history: {e}", exc_info=True)
+        logger.error(f"Database error saving history: {type(e).__name__}: {e}")
+    except (ValueError, KeyError, TypeError) as e:
+        # Record failure on circuit breaker
+        await _circuit_breaker.record_failure()
+        logger.warning(f"Data error saving history: {type(e).__name__}: {e}")
+    # Let unexpected errors propagate - don't silently swallow them
 
     finally:
         # Record success OUTSIDE try-except to prevent paradox

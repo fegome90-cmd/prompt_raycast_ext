@@ -119,7 +119,7 @@ export default function Command() {
         await Clipboard.copy(response.improved_prompt);
         console.log(`${LOG_PREFIX} 📋 Copied to clipboard`);
 
-        // Log TTV (fire-and-forget)
+        // Log TTV (fire-and-forget, but log failures)
         logTtvMeasurement({
           t0,
           t_copy,
@@ -127,8 +127,9 @@ export default function Command() {
           source: input.source,
           output_length: response.improved_prompt.length,
           error: null,
-        }).catch(() => {
-          // Silent failure - don't block main flow
+        }).catch((error) => {
+          // Log with context - don't silently fail
+          console.warn(`${LOG_PREFIX} ⚠️ Failed to log TTV measurement:`, error);
         });
 
         // Stage 5: Success

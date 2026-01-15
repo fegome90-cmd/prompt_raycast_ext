@@ -22,6 +22,7 @@ from hemdov.infrastructure.adapters.litellm_dspy_adapter_prompt import (
 )
 from api.prompt_improver_api import router as prompt_improver_router
 from api.metrics_api import router as metrics_router
+from api.exception_utils import create_exception_handlers
 import dspy
 
 # Global LM instance for DSPy
@@ -113,6 +114,11 @@ app.add_middleware(
 # Include routers
 app.include_router(prompt_improver_router)
 app.include_router(metrics_router)
+
+# Register global exception handlers
+exception_handlers = create_exception_handlers()
+for exc_type, handler in exception_handlers.items():
+    app.add_exception_handler(exc_type, handler)
 
 
 # Health check endpoint

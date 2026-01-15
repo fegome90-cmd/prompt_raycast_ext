@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { callOllamaChat } from "./ollamaChat";
 import { improvePromptWithDSPy, createDSPyClient } from "./dspyPromptImprover";
+import { extractFirstJsonObject } from "./jsonExtractor";
 
 export type ImprovePromptOptions = {
   baseUrl: string;
@@ -213,13 +214,7 @@ export async function improvePromptWithOllama(args: {
     if (attempt1.metadata.usedExtraction || attempt1.metadata.usedRepair) {
       return {
         ...attempt1.data,
-        _metadata: {
-          usedExtraction: attempt1.metadata.usedExtraction,
-          usedRepair: attempt1.metadata.usedRepair,
-          attempt: attempt1.metadata.attempt,
-          latencyMs: attempt1.metadata.latencyMs,
-          backend: "ollama",
-        },
+        _metadata: buildOllamaMetadata(attempt1.metadata),
       };
     }
 
@@ -227,13 +222,7 @@ export async function improvePromptWithOllama(args: {
     if (!issues1.length) {
       return {
         ...attempt1.data,
-        _metadata: {
-          usedExtraction: attempt1.metadata.usedExtraction,
-          usedRepair: attempt1.metadata.usedRepair,
-          attempt: attempt1.metadata.attempt,
-          latencyMs: attempt1.metadata.latencyMs,
-          backend: "ollama",
-        },
+        _metadata: buildOllamaMetadata(attempt1.metadata),
       };
     }
 
@@ -253,13 +242,12 @@ export async function improvePromptWithOllama(args: {
 
     return {
       ...attempt2.data,
-      _metadata: {
+      _metadata: buildOllamaMetadata({
         usedExtraction: attempt2.metadata.usedExtraction,
         usedRepair: true, // Second attempt is always a repair
         attempt: 2, // Second attempt
         latencyMs: attempt2.metadata.latencyMs,
-        backend: "ollama",
-      },
+      }),
     };
   } catch (e) {
     // Check if error is already ImprovePromptError with metadata
@@ -358,9 +346,11 @@ async function callImprover(args: {
 
   // Try to parse as JSON
   let parsed: z.infer<typeof improvePromptSchemaZod>;
+  let rawJson: unknown;
+
   try {
-    parsed = improvePromptSchemaZod.parse(JSON.parse(response));
-  } catch (e) {
+    rawJson = JSON.parse(response);
+  } catch (parseError) {
     // JSON parse failed - try extraction
     const extracted = extractJsonFromResponse(response);
     if (extracted) {
@@ -376,25 +366,47 @@ async function callImprover(args: {
             latencyMs,
           },
         };
-      } catch (e) {
-        // Extraction succeeded but validation failed - log for debugging
+      } catch (validationError) {
         console.warn(
-          `[improvePrompt] ⚠️ Extracted JSON failed validation: ${e instanceof Error ? e.message : String(e)}`,
+          `[improvePrompt] Extracted JSON failed validation: ${validationError instanceof Error ? validationError.message : String(validationError)}`,
         );
       }
     }
 
-    // Both failed - throw error
-    throw new ImprovePromptError(`Failed to generate valid response: could not parse JSON output`, e, {
-      wrapper: {
-        attempt: 1,
-        usedRepair: false,
-        usedExtraction: false,
-        failureReason: "non-json",
-        latencyMs,
-        validationError: String(e),
-      },
-    });
+    throw new ImprovePromptError(
+      `Failed to generate valid response: could not parse JSON output`,
+      parseError,
+      {
+        wrapper: {
+          attempt: 1,
+          usedRepair: false,
+          usedExtraction: false,
+          failureReason: "json_parse_failed",
+          latencyMs,
+          validationError: parseError instanceof Error ? parseError.message : String(parseError),
+        },
+      }
+    );
+  }
+
+  // At this point, rawJson is valid JSON - validate against schema
+  try {
+    parsed = improvePromptSchemaZod.parse(rawJson);
+  } catch (validationError) {
+    throw new ImprovePromptError(
+      `Failed to generate valid response: JSON structure invalid`,
+      validationError,
+      {
+        wrapper: {
+          attempt: 1,
+          usedRepair: false,
+          usedExtraction: false,
+          failureReason: "schema_validation_failed",
+          latencyMs,
+          validationError: validationError instanceof Error ? validationError.message : String(validationError),
+        },
+      }
+    );
   }
 
   return {
@@ -411,17 +423,38 @@ async function callImprover(args: {
 
 /**
  * Extract JSON from response that might have extra text
+ * Uses robust extraction from jsonExtractor.ts
  */
 function extractJsonFromResponse(response: string): unknown | null {
-  // Try to find JSON object in the response
-  const jsonMatch = response.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) return null;
+  const result = extractFirstJsonObject(response);
+  if (!result) return null;
 
   try {
-    return JSON.parse(jsonMatch[0]);
-  } catch {
+    return JSON.parse(result.json);
+  } catch (e) {
+    const errorInfo = {
+      errorType: e instanceof Error ? e.constructor.name : typeof e,
+      errorMessage: e instanceof Error ? e.message : String(e),
+      jsonPreview: result.json?.substring(0, 100) || 'no match',
+    };
+    console.error(`[extractJson] JSON.parse failed:`, errorInfo);
     return null;
   }
+}
+
+/**
+ * Helper to build Ollama metadata with consistent structure
+ */
+function buildOllamaMetadata(metadata: {
+  usedExtraction: boolean;
+  usedRepair: boolean;
+  attempt: 1 | 2;
+  latencyMs: number;
+}) {
+  return {
+    ...metadata,
+    backend: "ollama" as const,
+  };
 }
 
 /**
@@ -583,15 +616,15 @@ function normalizeImproverOutput(
   const improved = kept.join("\n").trim();
   const mergedQuestions = dedupePreserveOrder([...output.clarifying_questions, ...extractedQuestions]).slice(0, 3);
 
-  // Ensure arrays are never null - convert to empty arrays if needed
-  const safeQuestions = Array.isArray(output.clarifying_questions) ? output.clarifying_questions : [];
-  const safeAssumptions = Array.isArray(output.assumptions) ? output.assumptions : [];
+  // Zod schema already guarantees these are arrays - no safety checks needed
+  const clarifyingQuestions = output.clarifying_questions;
+  const assumptions = output.assumptions;
 
   return {
     ...output,
     improved_prompt: improved.length ? improved : output.improved_prompt.trim(),
-    clarifying_questions: mergedQuestions.length > 0 ? mergedQuestions : safeQuestions,
-    assumptions: safeAssumptions,
+    clarifying_questions: mergedQuestions.length > 0 ? mergedQuestions : clarifyingQuestions,
+    assumptions,
   };
 }
 

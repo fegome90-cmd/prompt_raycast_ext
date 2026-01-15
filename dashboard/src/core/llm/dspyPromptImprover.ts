@@ -5,12 +5,14 @@
  * enhanced prompt improvement capabilities following HemDov patterns.
  */
 
+import { z } from "zod";
 import { fetchWithTimeout } from "./fetchWrapper";
 
 export interface DSPyPromptImproverRequest {
   idea: string;
   context?: string;
-  mode?: "legacy" | "nlac"; // Backend execution mode
+  /** @deprecated Mode is now hard-coded to "legacy" (CoT-based). Other modes not exposed until quality-validated. */
+  mode?: "legacy" | "nlac";
 }
 
 export interface DSPyPromptImproverResponse {
@@ -27,6 +29,20 @@ export interface DSPyBackendConfig {
   baseUrl: string;
   timeoutMs: number;
 }
+
+/**
+ * Zod schema for validating DSPy backend responses.
+ * Prevents silent failures when backend returns malformed or unexpected data.
+ */
+const DSPyResponseSchema = z.object({
+  improved_prompt: z.string().min(1, "improved_prompt cannot be empty"),
+  role: z.string(),
+  directive: z.string(),
+  framework: z.string(),
+  guardrails: z.array(z.string()),
+  reasoning: z.string().optional(),
+  confidence: z.number().optional(),
+});
 
 /**
  * Client for DSPy Prompt Improver backend API
@@ -62,11 +78,18 @@ export class DSPyPromptImproverClient {
   async improvePrompt(request: DSPyPromptImproverRequest): Promise<DSPyPromptImproverResponse> {
     const url = `${this.config.baseUrl}/api/v1/improve-prompt`;
     console.log(`[DSPy improvePrompt] 🌐 Calling POST ${url}`);
+
+    // 🔒 HARD-CODED to "legacy" mode (CoT-based approach)
+    // Rationale: CoT has been validated to produce consistent high-quality results.
+    // Other modes (nlac) are not exposed until they demonstrate comparable quality.
+    // See: .claude/commands/improve-prompt.md for details.
+    const mode = "legacy";
+
     console.log(`[DSPy improvePrompt] 📤 Request payload:`, {
       idea_length: request.idea.length,
       idea_preview: request.idea.substring(0, 100),
       context_length: request.context?.length || 0,
-      mode: request.mode || "legacy",
+      mode,
       timeoutMs: this.config.timeoutMs,
     });
 
@@ -79,7 +102,7 @@ export class DSPyPromptImproverClient {
       body: JSON.stringify({
         idea: request.idea,
         context: request.context || "",
-        mode: request.mode || "legacy",
+        mode,
       }),
       timeout: this.config.timeoutMs,
       operation: "DSPy improvePrompt (/api/v1/improve-prompt)",
@@ -91,15 +114,44 @@ export class DSPyPromptImproverClient {
     );
 
     if (!response.ok) {
-      const errorText = await response.text().catch(() => "");
-      console.error(`[DSPy improvePrompt] ❌ Error response:`, errorText);
-      throw new Error(`DSPy backend error: ${response.status} ${response.statusText}`);
+      let errorDetails = `${response.status} ${response.statusText}`;
+      try {
+        const errorText = await response.text();
+        if (errorText) {
+          errorDetails += ` | Body: ${errorText.substring(0, 200)}`;
+        }
+      } catch (readError) {
+        console.warn(`[DSPy improvePrompt] Failed to read error response body:`, readError);
+      }
+      console.error(`[DSPy improvePrompt] ❌ Backend error:`, errorDetails);
+
+      // Include actionable info based on status code
+      let userMessage = "DSPy backend error";
+      if (response.status === 504) {
+        userMessage = "Request timed out. Try a shorter prompt or use 'legacy' mode for faster results.";
+      } else if (response.status >= 500) {
+        userMessage = "Backend error. Check that the server is running with 'make dev'";
+      } else if (response.status === 400) {
+        userMessage = "Invalid request. Check that your prompt is at least 5 characters.";
+      }
+
+      throw new Error(`${userMessage} (${errorDetails})`);
     }
 
-    const data = await response.json();
-    console.log(`[DSPy improvePrompt] ✅ Success - improved_prompt length: ${data.improved_prompt?.length || 0}`);
+    const rawData = await response.json();
 
-    return data as DSPyPromptImproverResponse;
+    // Validate response structure with Zod to catch schema mismatches
+    try {
+      const validatedData = DSPyResponseSchema.parse(rawData);
+      console.log(`[DSPy improvePrompt] ✅ Success - improved_prompt length: ${validatedData.improved_prompt.length}`);
+      return validatedData;
+    } catch (zodError) {
+      console.error(`[DSPy improvePrompt] ❌ Schema validation failed:`, zodError);
+      console.error(`[DSPy improvePrompt] 📄 Raw response:`, JSON.stringify(rawData, null, 2));
+      throw new Error(
+        `Backend returned invalid response structure. ${zodError instanceof z.ZodError ? zodError.issues.map((i) => i.message).join(", ") : ""}`,
+      );
+    }
   }
 
   /**

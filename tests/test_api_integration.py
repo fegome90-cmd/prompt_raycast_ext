@@ -81,7 +81,7 @@ Selected this role for expertise in software architecture and the framework for 
 dspy.settings.configure(lm=MockLM())
 
 # Now import main - DSPy is already configured
-from main import app
+from api.main import app
 
 
 @pytest.fixture
