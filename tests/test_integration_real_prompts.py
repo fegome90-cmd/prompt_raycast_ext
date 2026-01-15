@@ -72,17 +72,25 @@ def validator():
 
 
 @pytest.fixture
-def opro_optimizer(llm_client):
-    """OPRO optimizer with LLM."""
-    return OPROOptimizer(llm_client=llm_client, knn_provider=None)
+def mock_llm_client():
+    """Mock LLM client para testing sin llamadas API."""
+    class MockLLMClient:
+        def generate(self, prompt: str) -> str:
+            return f"# Improved prompt\n\nBased on: {prompt[:50]}..."
+
+    return MockLLMClient()
 
 
 @pytest.fixture
-def reflexion_service(llm_client):
-    """Reflexion service for DEBUG intent."""
-    # For testing, use None as LLM client to avoid API mismatch
-    # The service will use fallback code generation without LLM
-    return ReflexionService(executor=None, llm_client=None)
+def opro_optimizer(mock_llm_client):
+    """OPRO optimizer with mock LLM client."""
+    return OPROOptimizer(llm_client=mock_llm_client, knn_provider=None)
+
+
+@pytest.fixture
+def reflexion_service(mock_llm_client):
+    """Reflexion service with mock LLM client."""
+    return ReflexionService(executor=None, llm_client=mock_llm_client)
 
 
 @pytest.fixture
