@@ -116,48 +116,6 @@ def _classify_intent(idea: str, context: str) -> str:
         return "GENERATE"
 
 
-def _normalize_guardrails(guardrails: str | list[str]) -> list[str]:
-    """Convert guardrails to normalized list format.
-
-    Args:
-        guardrails: Either a string with newlines or a list of strings
-
-    Returns:
-        Normalized list of guardrail strings with whitespace trimmed
-    """
-    if isinstance(guardrails, str):
-        return [g.strip() for g in guardrails.split('\n') if g.strip()]
-    return guardrails
-
-
-def _extract_confidence(result: Any) -> float | None:
-    """Extract confidence score from DSPy result.
-
-    Args:
-        result: DSPy result object or dict with confidence attribute
-
-    Returns:
-        Confidence score as float, or None if unavailable
-    """
-    if hasattr(result, 'confidence'):
-        conf = result.confidence
-        if conf is not None:
-            try:
-                return float(conf)
-            except (ValueError, TypeError):
-                return None
-        return None
-    if isinstance(result, dict) and 'confidence' in result:
-        conf = result['confidence']
-        if conf is not None:
-            try:
-                return float(conf)
-            except (ValueError, TypeError):
-                return None
-        return None
-    return None
-
-
 def _generate_stable_prompt_id(idea: str, context: str, mode: str) -> str:
     """
     Generate stable prompt ID from request hash.
