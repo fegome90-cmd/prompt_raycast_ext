@@ -82,7 +82,7 @@ class MockLM(dspy.BaseLM):
         guardrails = [
             "Ensure code follows best practices",
             "Include error handling",
-            "Add clear documentation"
+            "Add clear documentation",
         ]
 
         structured = f"""Improved Prompt: You are a {role} with extensive experience in building robust, scalable applications.
@@ -114,7 +114,7 @@ Selected this role for technical expertise and the framework for systematic prob
         if args:
             prompt = args[0]
         else:
-            prompt = kwargs.get('prompt', '')
+            prompt = kwargs.get("prompt", "")
         return self.basic_request(prompt, **kwargs)
 
 
@@ -122,7 +122,7 @@ Selected this role for technical expertise and the framework for systematic prob
 dspy.settings.configure(lm=MockLM())
 
 # Import main after DSPy is configured
-from main import app
+from api.main import app
 
 
 def load_integration_test_cases():
@@ -151,8 +151,8 @@ def load_integration_test_cases():
                 "assertions": {
                     "min_length": case.assertions.min_length,
                     "contains_keywords": case.assertions.contains_keywords,
-                    "not_contains_keywords": case.assertions.not_contains_keywords
-                }
+                    "not_contains_keywords": case.assertions.not_contains_keywords,
+                },
             }
             for case in cases
         ]
@@ -190,7 +190,7 @@ class TestIntegrationDataset:
         3. Improved prompt meets assertions from dataset
         """
         # Mock the StrategySelector to return a mock strategy
-        with patch('api.prompt_improver_api.get_strategy_selector') as mock_get_selector:
+        with patch("api.prompt_improver_api.get_strategy_selector") as mock_get_selector:
             # Create mock strategy
             mock_strategy = MagicMock()
             mock_strategy.name = "NLaCStrategy"
@@ -204,7 +204,7 @@ class TestIntegrationDataset:
             mock_result.guardrails = [
                 "Ensure code follows best practices",
                 "Include error handling",
-                "Add clear documentation"
+                "Add clear documentation",
             ]
             mock_result.reasoning = "Selected for technical expertise"
             mock_result.confidence = 0.87
@@ -220,7 +220,7 @@ class TestIntegrationDataset:
             mock_get_selector.return_value = mock_selector
 
             # Mock repository
-            with patch('api.prompt_improver_api.get_repository', return_value=AsyncMock()):
+            with patch("api.prompt_improver_api.get_repository", return_value=AsyncMock()):
                 # Make request
                 response = client.post(
                     "/api/v1/improve-prompt",
@@ -265,8 +265,7 @@ class TestIntegrationDataset:
                 # Assert contains_keywords
                 for keyword in assertions["contains_keywords"]:
                     assert keyword.lower() in prompt.lower(), (
-                        f"Test case {test_case['test_id']}: "
-                        f"Keyword '{keyword}' not found in prompt"
+                        f"Test case {test_case['test_id']}: Keyword '{keyword}' not found in prompt"
                     )
 
                 # Assert not_contains_keywords (if present)
@@ -294,18 +293,22 @@ class TestIntegrationDataset:
         ]
 
         if test_case.get("context"):
-            parts.extend([
-                "**[CONTEXT]**",
-                test_case["context"],
-                "",
-            ])
+            parts.extend(
+                [
+                    "**[CONTEXT]**",
+                    test_case["context"],
+                    "",
+                ]
+            )
 
-        parts.extend([
-            "**[EXECUTION FRAMEWORK]**",
-            "chain-of-thought",
-            "",
-            "**[CONSTRAINTS & GUARDRAILS]**",
-        ])
+        parts.extend(
+            [
+                "**[EXECUTION FRAMEWORK]**",
+                "chain-of-thought",
+                "",
+                "**[CONSTRAINTS & GUARDRAILS]**",
+            ]
+        )
 
         # Add guardrails that include required keywords
         for keyword in keywords:
@@ -362,8 +365,7 @@ class TestDatasetLoader:
         expected_intents = ["generate", "debug", "refactor", "explain"]
         found_intents = intents.intersection(expected_intents)
         assert len(found_intents) >= 2, (
-            f"Dataset should include at least 2 different intent types. "
-            f"Found: {found_intents}"
+            f"Dataset should include at least 2 different intent types. Found: {found_intents}"
         )
 
     def test_dataset_has_varied_complexity(self):
@@ -401,15 +403,13 @@ class TestIntegrationDatasetQuality:
 
         # Should have at least one keyword to check
         assert len(assertions["contains_keywords"]) >= 1, (
-            f"Test case {test_case['test_id']}: "
-            "Should have at least one keyword to check"
+            f"Test case {test_case['test_id']}: Should have at least one keyword to check"
         )
 
         # Keywords should be lowercase or mixed case (not empty)
         for keyword in assertions["contains_keywords"]:
             assert len(keyword) >= 2, (
-                f"Test case {test_case['test_id']}: "
-                f"Keyword '{keyword}' is too short"
+                f"Test case {test_case['test_id']}: Keyword '{keyword}' is too short"
             )
 
     def test_all_test_cases_have_unique_ids(self):
