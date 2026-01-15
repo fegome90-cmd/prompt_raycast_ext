@@ -23,7 +23,16 @@ class KeywordBasedClassifier:
 
         Returns:
             Tuple of (priority, category)
+
+        Raises:
+            ValueError: If filename is empty, None, or not a string
         """
+        if not isinstance(filename, str):
+            raise ValueError(f"filename must be a string, got {type(filename).__name__}")
+
+        if not filename or not filename.strip():
+            raise ValueError("filename cannot be empty or whitespace-only")
+
         basename = filename.lower()
         for rule in self.rules:
             if any(kw in basename for kw in rule.keywords):

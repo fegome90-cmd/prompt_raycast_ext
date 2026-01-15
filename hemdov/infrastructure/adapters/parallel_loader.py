@@ -71,6 +71,20 @@ class ParallelFileLoader(ContextLoader):
                 priority=1,
                 category="error",
             )
+        except IsADirectoryError:
+            logger.error(f"Path is a directory, not a file: {file_path}")
+            return ContextItem(
+                source=file_path,
+                content=f"ERROR: Path is a directory - {file_path}",
+                priority=1,
+                category="error",
+            )
+        except OSError as e:
+            # Catch disk full, quota exceeded, etc.
+            logger.error(f"OS error reading {file_path}: {e}")
+            return ContextItem(
+                source=file_path, content=f"ERROR: OS error - {e}", priority=1, category="error"
+            )
 
     def load_all(self, file_paths: list[str]) -> list[ContextItem]:
         """
