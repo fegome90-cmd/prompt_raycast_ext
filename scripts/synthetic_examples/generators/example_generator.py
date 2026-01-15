@@ -1,5 +1,5 @@
-from typing import List, Dict, Optional
 import random
+
 from scripts.legacy_curation.models import Component, Domain
 
 
@@ -37,14 +37,14 @@ class ExampleGenerator:
         "restructure",
     ]
 
-    def __init__(self, seed: Optional[int] = None):
+    def __init__(self, seed: int | None = None):
         """Initialize generator with optional seed for reproducibility."""
         if seed is not None:
             random.seed(seed)
 
     def generate_single_example(
-        self, component: Component, variation: Optional[str] = None
-    ) -> Dict:
+        self, component: Component, variation: str | None = None
+    ) -> dict:
         """
         Generate a single synthetic example from a component.
 
@@ -100,7 +100,7 @@ class ExampleGenerator:
         # Post-process to ensure minimum length
         if len(example) < 50 and variation:
             # If variation applied but still too short, add more context
-            example += f" Provide detailed explanations, step-by-step reasoning, and practical examples."
+            example += " Provide detailed explanations, step-by-step reasoning, and practical examples."
 
         # Ensure example ends with proper punctuation
         if not example.endswith((".", "!", "?")):
@@ -122,10 +122,10 @@ class ExampleGenerator:
 
     def generate_batch(
         self,
-        components: List[Component],
+        components: list[Component],
         examples_per_component: int = 3,
-        variation: Optional[str] = None,
-    ) -> List[Dict]:
+        variation: str | None = None,
+    ) -> list[dict]:
         """
         Generate multiple examples per component.
 

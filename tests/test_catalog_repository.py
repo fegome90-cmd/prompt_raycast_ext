@@ -1,11 +1,10 @@
 """Tests for CatalogRepository - TDD approach."""
-import json
 import os
+
 import pytest
-from pathlib import Path
+
 from hemdov.infrastructure.repositories.catalog_repository import (
     FileSystemCatalogRepository,
-    CatalogRepositoryInterface
 )
 
 

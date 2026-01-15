@@ -5,8 +5,8 @@ Parallel adapter to avoid impacting the HemDov production adapter.
 Compatible with DSPy v3 call signatures.
 """
 
-from typing import Any, Optional
 import os
+from typing import Any
 
 import dspy
 import litellm
@@ -18,8 +18,8 @@ class PromptImproverLiteLLMAdapter(dspy.LM):
     def __init__(
         self,
         model: str,
-        api_base: Optional[str] = None,
-        api_key: Optional[str] = None,
+        api_base: str | None = None,
+        api_key: str | None = None,
         temperature: float = 0.3,
         max_tokens: int = 2000,
         **kwargs,
@@ -40,8 +40,8 @@ class PromptImproverLiteLLMAdapter(dspy.LM):
 
     def __call__(
         self,
-        prompt: Optional[str] = None,
-        messages: Optional[list[dict[str, Any]]] = None,
+        prompt: str | None = None,
+        messages: list[dict[str, Any]] | None = None,
         **kwargs,
     ) -> list[str]:
         if messages is None:
@@ -91,7 +91,7 @@ def create_ollama_adapter(
 
 
 def create_gemini_adapter(
-    model: str = "gemini-pro", api_key: Optional[str] = None, **kwargs
+    model: str = "gemini-pro", api_key: str | None = None, **kwargs
 ) -> PromptImproverLiteLLMAdapter:
     """Create Gemini adapter."""
     return PromptImproverLiteLLMAdapter(
@@ -102,7 +102,7 @@ def create_gemini_adapter(
 
 
 def create_deepseek_adapter(
-    model: str = "deepseek-chat", api_key: Optional[str] = None, **kwargs
+    model: str = "deepseek-chat", api_key: str | None = None, **kwargs
 ) -> PromptImproverLiteLLMAdapter:
     """Create DeepSeek adapter."""
     return PromptImproverLiteLLMAdapter(
@@ -113,7 +113,7 @@ def create_deepseek_adapter(
 
 
 def create_openai_adapter(
-    model: str = "gpt-4o", api_key: Optional[str] = None, **kwargs
+    model: str = "gpt-4o", api_key: str | None = None, **kwargs
 ) -> PromptImproverLiteLLMAdapter:
     """Create OpenAI adapter."""
     return PromptImproverLiteLLMAdapter(
@@ -125,8 +125,8 @@ def create_openai_adapter(
 
 def create_anthropic_adapter(
     model: str = "claude-3-5-sonnet-20241022",
-    api_key: Optional[str] = None,
-    base_url: Optional[str] = None,
+    api_key: str | None = None,
+    base_url: str | None = None,
     **kwargs,
 ) -> PromptImproverLiteLLMAdapter:
     """Create Anthropic adapter.

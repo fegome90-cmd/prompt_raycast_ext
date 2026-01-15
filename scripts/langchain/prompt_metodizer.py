@@ -13,7 +13,6 @@ Key improvements over FormatConverter:
 """
 
 import re
-from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
 
 
@@ -32,7 +31,7 @@ class FrameworkDetection:
     """Framework detection result."""
     name: str
     confidence: float
-    evidence: List[str]
+    evidence: list[str]
 
 
 class PromptMetodizer:
@@ -180,7 +179,7 @@ class PromptMetodizer:
         ]
     }
 
-    def metodize_prompt(self, handle: str, template: str, tags: List[str] = None) -> Dict:
+    def metodize_prompt(self, handle: str, template: str, tags: list[str] = None) -> dict:
         """Convert LangChain prompt to DSPy Architect format.
 
         Performs intelligent analysis of the prompt template to extract:
@@ -396,7 +395,7 @@ class PromptMetodizer:
 
         return ""
 
-    def _detect_framework(self, template: str, tags: List[str]) -> List[FrameworkDetection]:
+    def _detect_framework(self, template: str, tags: list[str]) -> list[FrameworkDetection]:
         """Detect reasoning framework with confidence scoring.
 
         Checks multiple frameworks and returns sorted list by confidence.
@@ -646,7 +645,7 @@ class PromptMetodizer:
             overall_quality=overall_quality
         )
 
-    def _extract_patterns(self, template: str, framework: FrameworkDetection) -> List[str]:
+    def _extract_patterns(self, template: str, framework: FrameworkDetection) -> list[str]:
         """Extract specific patterns detected in template.
 
         Args:

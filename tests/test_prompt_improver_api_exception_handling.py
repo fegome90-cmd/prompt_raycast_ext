@@ -7,10 +7,11 @@ Tests cover:
 - Degradation flags in response
 """
 
-import pytest
 import asyncio
+from unittest.mock import Mock, patch
+
+import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import Mock, patch, AsyncMock
 
 # Import the FastAPI app
 from api.main import app

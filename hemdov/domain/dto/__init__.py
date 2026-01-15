@@ -2,13 +2,13 @@
 
 from hemdov.domain.dto.nlac_models import (
     IntentType,
-    TestType,
     NLaCInputs,
     NLaCRequest,
-    PromptObject,
+    NLaCResponse,
     OPROIteration,
     OptimizeResponse,
-    NLaCResponse,
+    PromptObject,
+    TestType,
 )
 
 __all__ = [

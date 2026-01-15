@@ -4,9 +4,10 @@ Tests for OPROOptimizer with KNNProvider integration.
 Tests few-shot examples in meta-prompts for better optimization.
 """
 from unittest.mock import Mock
-from hemdov.domain.dto.nlac_models import NLaCRequest, PromptObject, IntentType
+
+from hemdov.domain.dto.nlac_models import IntentType, NLaCRequest, PromptObject
+from hemdov.domain.services.knn_provider import FewShotExample, KNNProvider
 from hemdov.domain.services.oprop_optimizer import OPROOptimizer
-from hemdov.domain.services.knn_provider import KNNProvider, FewShotExample
 
 
 def test_opro_without_knn():

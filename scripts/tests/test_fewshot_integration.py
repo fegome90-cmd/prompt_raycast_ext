@@ -6,26 +6,22 @@ Tests the integration between:
 3. Feature flag (USE_KNN_FEWSHOT)
 """
 
+import json
 import os
 import sys
-import json
-import pytest
 from pathlib import Path
+
+import pytest
 
 # Add project root to path
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 # Import after adding to path
-from eval.src.dspy_prompt_improver_fewshot import (
-    PromptImproverWithFewShot,
-    load_trainset,
-    create_fewshot_improver,
-)
 from scripts.phase3_dspy.fewshot_optimizer import (
-    load_unified_pool,
     compile_fewshot_with_pool,
     get_feature_flag,
+    load_unified_pool,
 )
 
 
@@ -47,7 +43,7 @@ class TestUnifiedPoolExists:
         if not pool_path.exists():
             pytest.skip("Unified pool not found")
 
-        with open(pool_path, 'r', encoding='utf-8') as f:
+        with open(pool_path, encoding='utf-8') as f:
             data = json.load(f)
 
         # Check top-level structure
@@ -128,7 +124,6 @@ class TestFewshotOptimizer:
 
     def test_create_fewshot_improver_with_unified_pool(self, pool_path, tmp_path):
         """Test creating few-shot improver with unified pool."""
-        import dspy
 
         # Create improver using compile_fewshot_with_pool
         output_path = tmp_path / "compiled.json"
@@ -158,7 +153,9 @@ class TestFewshotOptimizer:
 
             # Try to configure DSPy with available LM
             if settings.LLM_PROVIDER == "anthropic" and settings.ANTHROPIC_API_KEY:
-                from hemdov.infrastructure.adapters.litellm_dspy_adapter_prompt import create_anthropic_adapter
+                from hemdov.infrastructure.adapters.litellm_dspy_adapter_prompt import (
+                    create_anthropic_adapter,
+                )
                 lm = create_anthropic_adapter(
                     model=settings.LLM_MODEL,
                     api_key=settings.ANTHROPIC_API_KEY,
@@ -270,7 +267,7 @@ class TestCompiledMetadata:
         if not metadata_path.exists():
             pytest.skip("Compiled metadata not found")
 
-        with open(metadata_path, 'r') as f:
+        with open(metadata_path) as f:
             metadata = json.load(f)
 
         # Check structure

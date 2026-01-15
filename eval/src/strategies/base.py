@@ -1,7 +1,8 @@
 # eval/src/strategies/base.py
-from abc import ABC, abstractmethod
-import dspy
 import logging
+from abc import ABC, abstractmethod
+
+import dspy
 
 logger = logging.getLogger(__name__)
 

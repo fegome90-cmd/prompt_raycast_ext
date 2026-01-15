@@ -1,8 +1,8 @@
 """Unified DSPy + Few-Shot optimization pipeline."""
-from typing import Dict
-from scripts.phase3_dspy.optimizer import DSPOptimizer, DatasetLoader
+
 from scripts.data.fewshot.example_pool import ExamplePool
 from scripts.data.fewshot.selector import SimilaritySelector
+from scripts.phase3_dspy.optimizer import DatasetLoader, DSPOptimizer
 
 
 class UnifiedPipeline:
@@ -14,7 +14,7 @@ class UnifiedPipeline:
         self.selector = SimilaritySelector()
         self.dataset_loader = DatasetLoader()
 
-    def run(self) -> Dict:
+    def run(self) -> dict:
         """Run complete optimization pipeline.
 
         Returns:

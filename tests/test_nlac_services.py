@@ -8,14 +8,16 @@ Covers:
 - PromptValidator
 """
 
+from datetime import UTC, datetime
+
 import pytest
-from datetime import datetime, UTC
+
 from hemdov.domain.dto.nlac_models import (
-    NLaCRequest,
-    PromptObject,
     IntentType,
     NLaCInputs,
+    NLaCRequest,
     OPROIteration,
+    PromptObject,
 )
 from hemdov.domain.services.intent_classifier import IntentClassifier
 from hemdov.domain.services.nlac_builder import NLaCBuilder

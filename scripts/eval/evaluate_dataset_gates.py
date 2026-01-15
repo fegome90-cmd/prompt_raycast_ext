@@ -10,9 +10,9 @@ Analyzes gate effectiveness across real outputs to identify:
 import json
 import logging
 import sys
-from pathlib import Path
-from typing import Dict, List, Any
 from collections import defaultdict
+from pathlib import Path
+from typing import Any
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from api.quality_gates import evaluate_output, DEFAULT_TEMPLATES, GateSeverity
+from api.quality_gates import DEFAULT_TEMPLATES, GateSeverity, evaluate_output
 
 
 def evaluate_dataset(
@@ -29,7 +29,7 @@ def evaluate_dataset(
     output_field: str = "outputs.improved_prompt",
     template_id: str = "example_md",
     limit: int = None
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Evaluate quality gates on dataset entries.
 
@@ -51,7 +51,7 @@ def evaluate_dataset(
 
     # Load dataset with error handling
     try:
-        with open(dataset_path, 'r') as f:
+        with open(dataset_path) as f:
             dataset = json.load(f)
     except FileNotFoundError:
         logger.error(f"Dataset file not found: {dataset_path}")
@@ -127,7 +127,7 @@ def evaluate_dataset(
     return results
 
 
-def _get_nested_value(data: Dict, path: str) -> Any:
+def _get_nested_value(data: dict, path: str) -> Any:
     """Get value from dict using dot notation (e.g., 'outputs.improved_prompt')."""
     keys = path.split('.')
     value = data
@@ -139,7 +139,7 @@ def _get_nested_value(data: Dict, path: str) -> Any:
     return value
 
 
-def _calculate_statistics(results: Dict) -> Dict[str, Any]:
+def _calculate_statistics(results: dict) -> dict[str, Any]:
     """Calculate statistics from evaluation results."""
     total = results["total_evaluated"]
     if total == 0:
@@ -188,7 +188,7 @@ if __name__ == "__main__":
     try:
         with open(output_path, 'w') as f:
             json.dump(results, f, indent=2)
-    except IOError as e:
+    except OSError as e:
         logger.error(f"Failed to write results to {output_path}: {e}")
         raise SystemExit(1)
 

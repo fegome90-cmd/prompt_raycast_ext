@@ -2,10 +2,10 @@
 """Add NLaC-specific examples to the few-shot catalog."""
 
 import json
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 
 # Read existing catalog
-with open('/Users/felipe_gonzalez/Developer/raycast_ext/datasets/exports/unified-fewshot-pool-v2.json', 'r', encoding='utf-8') as f:
+with open('/Users/felipe_gonzalez/Developer/raycast_ext/datasets/exports/unified-fewshot-pool-v2.json', encoding='utf-8') as f:
     catalog = json.load(f)
 
 # New examples relevant to prompt systems and NLaC

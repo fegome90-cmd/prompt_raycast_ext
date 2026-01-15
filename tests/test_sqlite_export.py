@@ -1,11 +1,11 @@
 """Tests for SQLite to DSPy export functionality."""
 
-import pytest
 import json
-from pathlib import Path
 import tempfile
+from pathlib import Path
+
 import aiosqlite
-from datetime import datetime, UTC
+import pytest
 
 
 @pytest.fixture
@@ -85,8 +85,8 @@ def test_export_script_exists():
 
 def test_export_format(temp_db_with_data, tmp_path):
     """Test that export produces correct DSPy format."""
-    import sys
     import asyncio
+    import sys
 
     # Import the export function
     sys.path.insert(0, str(Path(__file__).parent.parent / "scripts" / "data"))
@@ -109,7 +109,7 @@ def test_export_format(temp_db_with_data, tmp_path):
 
     # Verify content (ordered by created_at DESC, so idea 2 comes first)
     assert "test idea 2" in examples[0]["input"]
-    assert "improved 2" == examples[0]["output"]
+    assert examples[0]["output"] == "improved 2"
     assert examples[0]["metadata"]["role"] == "role2"
 
     # Second example should have context in input
@@ -119,8 +119,8 @@ def test_export_format(temp_db_with_data, tmp_path):
 
 def test_export_writes_file(temp_db_with_data, tmp_path):
     """Test that export writes JSON file."""
-    import sys
     import asyncio
+    import sys
 
     sys.path.insert(0, str(Path(__file__).parent.parent / "scripts" / "data"))
     from export_sqlite_to_dspy import export_sqlite_to_dspy
@@ -136,7 +136,7 @@ def test_export_writes_file(temp_db_with_data, tmp_path):
     # Verify file exists and is valid JSON
     assert output_path.exists()
 
-    with open(output_path, 'r') as f:
+    with open(output_path) as f:
         data = json.load(f)
 
     assert isinstance(data, list)
@@ -145,8 +145,8 @@ def test_export_writes_file(temp_db_with_data, tmp_path):
 
 def test_export_with_limit(temp_db_with_data, tmp_path):
     """Test that limit parameter works."""
-    import sys
     import asyncio
+    import sys
 
     sys.path.insert(0, str(Path(__file__).parent.parent / "scripts" / "data"))
     from export_sqlite_to_dspy import export_sqlite_to_dspy
@@ -164,8 +164,8 @@ def test_export_with_limit(temp_db_with_data, tmp_path):
 
 def test_metadata_preservation(temp_db_with_data, tmp_path):
     """Test that metadata is properly preserved."""
-    import sys
     import asyncio
+    import sys
 
     sys.path.insert(0, str(Path(__file__).parent.parent / "scripts" / "data"))
     from export_sqlite_to_dspy import export_sqlite_to_dspy
@@ -193,9 +193,9 @@ def test_metadata_preservation(temp_db_with_data, tmp_path):
 
 def test_empty_database(tmp_path):
     """Test behavior with empty database."""
-    import tempfile
     import asyncio
     import sys
+    import tempfile
 
     # Create empty database
     db = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
@@ -246,8 +246,8 @@ def test_empty_database(tmp_path):
 
 def test_combined_input_with_context(temp_db_with_data, tmp_path):
     """Test that context is properly combined with original_idea."""
-    import sys
     import asyncio
+    import sys
 
     sys.path.insert(0, str(Path(__file__).parent.parent / "scripts" / "data"))
     from export_sqlite_to_dspy import export_sqlite_to_dspy
@@ -267,8 +267,8 @@ def test_combined_input_with_context(temp_db_with_data, tmp_path):
 
 def test_input_output_only_for_dspy(temp_db_with_data, tmp_path):
     """Test that format is compatible with DSPy KNNFewShot."""
-    import sys
     import asyncio
+    import sys
 
     sys.path.insert(0, str(Path(__file__).parent.parent / "scripts" / "data"))
     from export_sqlite_to_dspy import export_sqlite_to_dspy

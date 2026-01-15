@@ -6,10 +6,9 @@ Provides consistent error mapping and logging across API endpoints.
 
 import json
 import logging
-from typing import Callable, Type, Tuple, Any
-from fastapi import HTTPException, Request
-from fastapi.responses import JSONResponse
 
+from fastapi import Request
+from fastapi.responses import JSONResponse
 
 logger = logging.getLogger(__name__)
 
@@ -17,18 +16,18 @@ logger = logging.getLogger(__name__)
 class ExceptionMapping:
     """Maps exception types to HTTP status codes and error messages."""
 
-    CALCULATION_ERRORS: Tuple[Type[Exception], ...] = (
+    CALCULATION_ERRORS: tuple[type[Exception], ...] = (
         AttributeError,
         TypeError,
         ZeroDivisionError,
     )
 
-    DATA_ERRORS: Tuple[Type[Exception], ...] = (
+    DATA_ERRORS: tuple[type[Exception], ...] = (
         ValueError,
         KeyError,
     )
 
-    CONNECTION_ERRORS: Tuple[Type[Exception], ...] = (
+    CONNECTION_ERRORS: tuple[type[Exception], ...] = (
         ConnectionError,
         OSError,
         TimeoutError,

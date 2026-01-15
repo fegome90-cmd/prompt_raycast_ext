@@ -8,11 +8,11 @@ from pathlib import Path
 project_dir = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_dir))
 
-from scripts.synthetic_examples.infrastructure import load_component_catalog
-from scripts.synthetic_examples.generators.example_generator import ExampleGenerator
-from scripts.synthetic_examples.dataset_builder import DSPyDatasetBuilder
-from scripts.synthetic_examples.validator import ExampleValidator
 from scripts.synthetic_examples.config import DEFAULT_OUTPUT_DIR
+from scripts.synthetic_examples.dataset_builder import DSPyDatasetBuilder
+from scripts.synthetic_examples.generators.example_generator import ExampleGenerator
+from scripts.synthetic_examples.infrastructure import load_component_catalog
+from scripts.synthetic_examples.validator import ExampleValidator
 
 
 def test_full_pipeline_e2e():
@@ -98,7 +98,7 @@ def test_full_pipeline_e2e():
 
     # Verify output format
     print("\nStep 6: Verifying output format...")
-    with open(dataset_path, 'r') as f:
+    with open(dataset_path) as f:
         dataset = json.load(f)
 
     assert 'dataset_name' in dataset, "Dataset should have dataset_name"

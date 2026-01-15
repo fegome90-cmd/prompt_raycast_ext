@@ -11,9 +11,11 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
+from unittest.mock import MagicMock, patch
+
 import dspy
 import pytest
-from unittest.mock import patch, MagicMock
+
 from eval.src.dspy_prompt_improver import PromptImprover
 from eval.src.prompt_improvement_dataset import load_prompt_improvement_examples
 
@@ -92,7 +94,6 @@ class TestPromptImprover:
         """GREEN: Should compile with BootstrapFewShot."""
         # Setup
         from eval.src.dspy_prompt_improver import PromptImprover
-        from eval.src.dspy_prompt_optimizer import compile_prompt_improver
 
         improver = PromptImprover()
         trainset = load_prompt_improvement_examples()

@@ -8,13 +8,14 @@ Tests the full optimization loop including:
 - Score progression validation
 """
 
+from datetime import UTC, datetime
+
 import pytest
-from datetime import datetime, UTC
 
 from hemdov.domain.dto.nlac_models import (
-    PromptObject,
     IntentType,
     OPROIteration,
+    PromptObject,
 )
 from hemdov.domain.services.oprop_optimizer import OPROOptimizer
 

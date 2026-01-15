@@ -8,22 +8,21 @@ Validates all NLaC domain models with comprehensive coverage of:
 - JSON serialization/deserialization
 """
 
-import pytest
+from datetime import UTC, datetime
 from uuid import uuid4
-from datetime import datetime, UTC
+
+import pytest
 from pydantic import ValidationError
 
 from hemdov.domain.dto.nlac_models import (
     IntentType,
-    TestType,
     NLaCInputs,
     NLaCRequest,
-    PromptObject,
+    NLaCResponse,
     OPROIteration,
     OptimizeResponse,
-    NLaCResponse,
+    PromptObject,
 )
-
 
 # ============================================================================
 # NLaCInputs Tests

@@ -7,9 +7,10 @@ Tests cover:
 - KeyboardInterrupt NOT caught
 """
 
-import pytest
-from pathlib import Path
 from unittest.mock import Mock, patch
+
+import pytest
+
 from eval.src.strategy_selector import StrategySelector
 
 

@@ -1,10 +1,12 @@
 """Test NLaCBuilder handles specific exceptions correctly."""
 
-import pytest
 from unittest.mock import Mock
-from hemdov.domain.services.nlac_builder import NLaCBuilder
+
+import pytest
+
 from hemdov.domain.dto.nlac_models import NLaCRequest
 from hemdov.domain.services.complexity_analyzer import ComplexityLevel
+from hemdov.domain.services.nlac_builder import NLaCBuilder
 
 
 def test_builder_handles_runtime_error_from_knn():

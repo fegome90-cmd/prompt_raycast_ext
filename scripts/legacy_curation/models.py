@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -16,8 +16,8 @@ class Domain(str, Enum):
 class FileMetadata(BaseModel):
     """Metadata extracted from legacy prompt files"""
 
-    version: Optional[str] = None
-    date: Optional[str] = None
+    version: str | None = None
+    date: str | None = None
     tags: list[str] = Field(default_factory=list)
 
 
@@ -52,10 +52,10 @@ class FileManifest(BaseModel):
     @staticmethod
     def _initial_domain_counts() -> dict[Domain, int]:
         """Initialize all domain counts to 0"""
-        return {domain: 0 for domain in Domain}
+        return dict.fromkeys(Domain, 0)
 
     total_by_domain: dict[Domain, int] = Field(
-        default_factory=lambda: {domain: 0 for domain in Domain}
+        default_factory=lambda: dict.fromkeys(Domain, 0)
     )
 
 

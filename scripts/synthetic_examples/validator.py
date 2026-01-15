@@ -1,8 +1,6 @@
 """Quality validation for synthetic examples."""
 
-from typing import List, Dict, Tuple
 import re
-
 
 TASK_TYPES = [
     "role_definition",
@@ -31,7 +29,7 @@ class ExampleValidator:
         """Initialize validator with default thresholds."""
         pass
 
-    def validate_single_example(self, example: Dict) -> Dict:
+    def validate_single_example(self, example: dict) -> dict:
         """Validate a single example.
 
         Args:
@@ -106,8 +104,8 @@ class ExampleValidator:
         }
 
     def validate_batch(
-        self, examples: List[Dict], min_quality_score: float = 0.5
-    ) -> Tuple[List[Dict], Dict]:
+        self, examples: list[dict], min_quality_score: float = 0.5
+    ) -> tuple[list[dict], dict]:
         """Validate a batch of examples.
 
         Args:
@@ -145,7 +143,7 @@ class ExampleValidator:
 
         return valid_examples, stats
 
-    def _validate_metadata(self, metadata: Dict) -> List[Dict]:
+    def _validate_metadata(self, metadata: dict) -> list[dict]:
         """Validate metadata fields.
 
         Args:
@@ -206,7 +204,7 @@ class ExampleValidator:
 
         return errors
 
-    def _check_patterns(self, question: str) -> List[Dict]:
+    def _check_patterns(self, question: str) -> list[dict]:
         """Check question against quality patterns.
 
         Args:
@@ -286,7 +284,7 @@ class ExampleValidator:
         return errors
 
     def _calculate_quality_score(
-        self, example: Dict, errors: List[Dict], warnings: List[Dict]
+        self, example: dict, errors: list[dict], warnings: list[dict]
     ) -> float:
         """Calculate quality score for an example.
 

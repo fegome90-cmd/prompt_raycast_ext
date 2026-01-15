@@ -1,5 +1,4 @@
 """Tests for DSPy optimizer infrastructure."""
-import json
 from pathlib import Path
 
 

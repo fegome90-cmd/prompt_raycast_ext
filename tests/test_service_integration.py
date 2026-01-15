@@ -9,15 +9,12 @@ Tests cover:
 - Error propagation across services
 """
 
-import pytest
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
-from hemdov.domain.dto.nlac_models import (
-    NLaCRequest,
-    PromptObject,
-    IntentType,
-    NLaCInputs
-)
+
+import pytest
+
+from hemdov.domain.dto.nlac_models import IntentType, NLaCInputs, NLaCRequest, PromptObject
 from hemdov.domain.services.intent_classifier import IntentClassifier
 from hemdov.domain.services.prompt_cache import PromptCache
 from hemdov.domain.services.prompt_validator import PromptValidator

@@ -12,28 +12,28 @@ Core Dimensions:
 - Improvement: Delta between versions, Convergence speed
 """
 
+from .analyzers import (
+    ComparisonReport,
+    MetricsAnalyzer,
+    TrendAnalysis,
+)
+from .dimensions import (
+    ImpactMetrics,
+    ImprovementMetrics,
+    PerformanceMetrics,
+    PromptMetrics,
+    QualityMetrics,
+)
 from .evaluators import (
     PromptMetricsCalculator,
     get_calculator,
 )
-from .dimensions import (
-    QualityMetrics,
-    PerformanceMetrics,
-    ImpactMetrics,
-    ImprovementMetrics,
-    PromptMetrics,
-)
-from .analyzers import (
-    MetricsAnalyzer,
-    TrendAnalysis,
-    ComparisonReport,
-)
 from .registry import (
-    MetricsRegistry,
     MetricDefinition,
+    MetricGrade,
+    MetricsRegistry,
     MetricThreshold,
     get_registry,
-    MetricGrade,
 )
 
 __all__ = [

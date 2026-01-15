@@ -1,8 +1,9 @@
 # eval/src/strategies/complex_strategy.py
 import logging
-import dspy
 from pathlib import Path
-from typing import Optional
+
+import dspy
+
 from .base import PromptImproverStrategy
 
 logger = logging.getLogger(__name__)
@@ -19,8 +20,8 @@ class ComplexStrategy(PromptImproverStrategy):
     def __init__(
         self,
         max_length: int = 5000,
-        trainset_path: Optional[str] = None,
-        compiled_path: Optional[str] = None,
+        trainset_path: str | None = None,
+        compiled_path: str | None = None,
         k: int = 3
     ):
         """

@@ -1,6 +1,5 @@
 """Configuration module for synthetic examples."""
 
-from pathlib import Path
 
 # Component catalog location
 DEFAULT_CATALOG_PATH = "/Users/felipe_gonzalez/Developer/raycast_ext/datasets/exports/ComponentCatalog.json"

@@ -4,15 +4,17 @@ Tests for metrics data structures (dimensions.py).
 Tests frozen dataclasses, validation, and composite score calculations.
 """
 
+from datetime import UTC, datetime
+
 import pytest
-from datetime import datetime, UTC
+
 from hemdov.domain.metrics.dimensions import (
-    QualityMetrics,
-    PerformanceMetrics,
+    FrameworkType,
     ImpactMetrics,
     ImprovementMetrics,
+    PerformanceMetrics,
     PromptMetrics,
-    FrameworkType,
+    QualityMetrics,
 )
 
 

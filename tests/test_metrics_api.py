@@ -8,18 +8,19 @@ Test coverage for:
 - POST /api/v1/metrics/compare - A/B testing comparison
 """
 
+import asyncio
+from datetime import UTC, datetime, timedelta
+
 import pytest
 from fastapi.testclient import TestClient
-from datetime import datetime, UTC, timedelta
-import asyncio
 
 from api.main import app
 from hemdov.domain.metrics.dimensions import (
-    QualityMetrics,
-    PerformanceMetrics,
-    ImpactMetrics,
-    PromptMetrics,
     FrameworkType,
+    ImpactMetrics,
+    PerformanceMetrics,
+    PromptMetrics,
+    QualityMetrics,
 )
 from hemdov.infrastructure.persistence.metrics_repository import (
     SQLiteMetricsRepository,
@@ -29,9 +30,6 @@ from hemdov.infrastructure.persistence.metrics_repository import (
 @pytest.fixture
 def test_client():
     """Create test client with in-memory database."""
-    from hemdov.infrastructure.persistence.metrics_repository import (
-        SQLiteMetricsRepository,
-    )
     from hemdov.interfaces import container
 
     # Override repository with in-memory DB
@@ -56,9 +54,6 @@ def test_client():
 def test_get_metrics_summary(test_client):
     """Test GET /api/v1/metrics/summary endpoint."""
     # First, get the repository from container and insert test data
-    from hemdov.infrastructure.persistence.metrics_repository import (
-        SQLiteMetricsRepository,
-    )
     from hemdov.interfaces import container
 
     repo = container.get(SQLiteMetricsRepository)
@@ -129,9 +124,6 @@ def test_get_metrics_summary_empty(test_client):
 
 def test_get_trends(test_client):
     """Test GET /api/v1/metrics/trends endpoint."""
-    from hemdov.infrastructure.persistence.metrics_repository import (
-        SQLiteMetricsRepository,
-    )
     from hemdov.interfaces import container
 
     repo = container.get(SQLiteMetricsRepository)
@@ -196,9 +188,6 @@ def test_get_trends(test_client):
 
 def test_compare_metrics(test_client):
     """Test POST /api/v1/metrics/compare endpoint for A/B testing."""
-    from hemdov.infrastructure.persistence.metrics_repository import (
-        SQLiteMetricsRepository,
-    )
     from hemdov.interfaces import container
 
     repo = container.get(SQLiteMetricsRepository)

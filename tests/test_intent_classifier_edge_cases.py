@@ -10,7 +10,8 @@ Tests cover:
 """
 
 import pytest
-from hemdov.domain.dto.nlac_models import NLaCRequest, IntentType, NLaCInputs
+
+from hemdov.domain.dto.nlac_models import IntentType, NLaCInputs, NLaCRequest
 from hemdov.domain.services.intent_classifier import IntentClassifier
 
 

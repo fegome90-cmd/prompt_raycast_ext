@@ -25,10 +25,11 @@ Design Decisions:
 
 import logging
 import os
-from typing import List, Optional, TYPE_CHECKING
 from dataclasses import dataclass, field
-import numpy as np
+from typing import TYPE_CHECKING, Optional
+
 import dspy
+import numpy as np
 
 if TYPE_CHECKING:
     from hemdov.infrastructure.repositories.catalog_repository import CatalogRepositoryInterface
@@ -56,7 +57,7 @@ class FixedVocabularyVectorizer:
     to work with different DSPy versions.
     """
 
-    def __init__(self, vocabulary: Optional[List[str]] = None):
+    def __init__(self, vocabulary: list[str] | None = None):
         """Initialize with optional vocabulary.
 
         Args:
@@ -64,7 +65,7 @@ class FixedVocabularyVectorizer:
         """
         self.vocabulary = vocabulary or []
 
-    def fit(self, texts: List[str]) -> 'FixedVocabularyVectorizer':
+    def fit(self, texts: list[str]) -> 'FixedVocabularyVectorizer':
         """Build vocabulary from texts."""
         ngrams = set()
         for text in texts:
@@ -75,7 +76,7 @@ class FixedVocabularyVectorizer:
         self.vocabulary = list(ngrams)
         return self
 
-    def transform(self, texts: List[str]) -> np.ndarray:
+    def transform(self, texts: list[str]) -> np.ndarray:
         """Transform texts to feature vectors."""
         vectors = []
         for text in texts:
@@ -95,11 +96,11 @@ class FixedVocabularyVectorizer:
 
         return np.array(vectors)
 
-    def fit_transform(self, texts: List[str]) -> np.ndarray:
+    def fit_transform(self, texts: list[str]) -> np.ndarray:
         """Fit and transform."""
         return self.fit(texts).transform(texts)
 
-    def __call__(self, texts: List[str]) -> np.ndarray:
+    def __call__(self, texts: list[str]) -> np.ndarray:
         """Make vectorizer callable.
 
         This allows it to work with DSPy's KNNFewShot.
@@ -119,8 +120,8 @@ class FewShotExample:
     role: str
     directive: str
     framework: str
-    guardrails: List[str]
-    expected_output: Optional[str] = None  # CRITICAL for REFACTOR (MultiAIGCD Scenario III)
+    guardrails: list[str]
+    expected_output: str | None = None  # CRITICAL for REFACTOR (MultiAIGCD Scenario III)
     metadata: dict[str, object] = field(default_factory=dict)
 
 
@@ -131,7 +132,7 @@ class FindExamplesResult:
     Provides similarity metadata when no examples match threshold,
     allowing callers to understand why no examples were returned.
     """
-    examples: List[FewShotExample]
+    examples: list[FewShotExample]
     highest_similarity: float
     threshold_used: float
     total_candidates: int
@@ -180,8 +181,8 @@ class KNNProvider:
 
     def __init__(
         self,
-        catalog_path: Optional[str | os.PathLike[str]] = None,
-        catalog_data: Optional[List[dict]] = None,
+        catalog_path: str | os.PathLike[str] | None = None,
+        catalog_data: list[dict] | None = None,
         repository: Optional['CatalogRepositoryInterface'] = None,
         k: int = 3
     ):
@@ -210,11 +211,11 @@ class KNNProvider:
         uses it directly (useful for testing).
         """
         self.k = k
-        self.catalog: List[FewShotExample] = []
-        self._dspy_examples: List[dspy.Example] = []
-        self._vectorizer: Optional[FixedVocabularyVectorizer] = None
+        self.catalog: list[FewShotExample] = []
+        self._dspy_examples: list[dspy.Example] = []
+        self._vectorizer: FixedVocabularyVectorizer | None = None
         # Cache for pre-computed vectors to avoid repeated vectorization
-        self._catalog_vectors: Optional[np.ndarray] = None
+        self._catalog_vectors: np.ndarray | None = None
 
         # Determine data source with backward compatibility
         if catalog_data is not None:
@@ -229,7 +230,10 @@ class KNNProvider:
             # Legacy behavior: create repository (backward compatible)
             # Import Path locally to avoid domain layer coupling
             from pathlib import Path
-            from hemdov.infrastructure.repositories.catalog_repository import FileSystemCatalogRepository
+
+            from hemdov.infrastructure.repositories.catalog_repository import (
+                FileSystemCatalogRepository,
+            )
             # Convert str/os.PathLike to Path for repository
             path_obj = Path(catalog_path) if not isinstance(catalog_path, Path) else catalog_path
             repo = FileSystemCatalogRepository(path_obj)
@@ -240,7 +244,7 @@ class KNNProvider:
 
         self._load_catalog_from_data(examples_data)
 
-    def _load_catalog_from_data(self, examples_data: List[dict]) -> None:
+    def _load_catalog_from_data(self, examples_data: list[dict]) -> None:
         """Process catalog data (pure domain logic, no I/O).
 
         This method contains only domain logic - no file I/O, no network calls.
@@ -334,8 +338,8 @@ class KNNProvider:
 
         if len(self.catalog) == 0:
             raise ValueError(
-                f"KNNProvider cannot initialize: No valid examples found in catalog. "
-                f"All examples failed validation. Check logs for details."
+                "KNNProvider cannot initialize: No valid examples found in catalog. "
+                "All examples failed validation. Check logs for details."
             )
 
         logger.info(f"Loaded {len(self.catalog)} examples from ComponentCatalog")
@@ -395,12 +399,12 @@ class KNNProvider:
         self,
         intent: str,
         complexity: str,
-        k: Optional[int] = None,
+        k: int | None = None,
         has_expected_output: bool = False,
-        user_input: Optional[str] = None,
-        min_similarity: Optional[float] = None,
+        user_input: str | None = None,
+        min_similarity: float | None = None,
         return_metadata: bool = False,
-    ) -> List[FewShotExample] | FindExamplesResult:
+    ) -> list[FewShotExample] | FindExamplesResult:
         """
         Unified implementation for finding similar examples.
 
@@ -506,11 +510,11 @@ class KNNProvider:
         self,
         intent: str,
         complexity: str,
-        k: Optional[int] = None,
+        k: int | None = None,
         has_expected_output: bool = False,
-        user_input: Optional[str] = None,
-        min_similarity: Optional[float] = None
-    ) -> List[FewShotExample]:
+        user_input: str | None = None,
+        min_similarity: float | None = None
+    ) -> list[FewShotExample]:
         """
         Find k similar examples using semantic search.
 
@@ -551,10 +555,10 @@ class KNNProvider:
         self,
         intent: str,
         complexity: str,
-        k: Optional[int] = None,
+        k: int | None = None,
         has_expected_output: bool = False,
-        user_input: Optional[str] = None,
-        min_similarity: Optional[float] = None
+        user_input: str | None = None,
+        min_similarity: float | None = None
     ) -> FindExamplesResult:
         """
         Find k similar examples using semantic search with metadata.
@@ -596,7 +600,7 @@ class KNNProvider:
         assert isinstance(result, FindExamplesResult)
         return result
 
-    def _filter_candidates_by_expected_output(self, has_expected_output: bool) -> List[FewShotExample]:
+    def _filter_candidates_by_expected_output(self, has_expected_output: bool) -> list[FewShotExample]:
         """Filter catalog by expected_output flag."""
         if not has_expected_output:
             return self.catalog
@@ -606,7 +610,7 @@ class KNNProvider:
             logger.warning("No examples found (filtered by expected_output)")
         return filtered
 
-    def _build_query_text(self, intent: str, complexity: str, user_input: Optional[str]) -> str:
+    def _build_query_text(self, intent: str, complexity: str, user_input: str | None) -> str:
         """Build search query from intent, complexity, and optional user input.
 
         Args:
@@ -635,7 +639,7 @@ class KNNProvider:
             query_parts.append(user_input.strip())
         return " ".join(query_parts)
 
-    def _get_candidate_vectors(self, candidates: List[FewShotExample]) -> np.ndarray:
+    def _get_candidate_vectors(self, candidates: list[FewShotExample]) -> np.ndarray:
         """Get cached or compute candidate vectors.
 
         Uses cached vectors if no filtering was applied (candidates is same object as catalog).
@@ -668,13 +672,13 @@ class KNNProvider:
         # Validate inputs for NaN/inf
         if not np.all(np.isfinite(candidate_vectors)):
             raise KNNProviderError(
-                f"Candidate vectors contain NaN or infinite values. "
-                f"This may indicate corrupted data or invalid vectorization."
+                "Candidate vectors contain NaN or infinite values. "
+                "This may indicate corrupted data or invalid vectorization."
             )
         if not np.all(np.isfinite(query_vector)):
             raise KNNProviderError(
-                f"Query vector contains NaN or infinite values. "
-                f"This may indicate corrupted input data."
+                "Query vector contains NaN or infinite values. "
+                "This may indicate corrupted input data."
             )
 
         # Cosine similarity = (A . B) / (|A| * |B|)
@@ -705,11 +709,11 @@ class KNNProvider:
 
     def _filter_and_rank_by_similarity(
         self,
-        candidates: List[FewShotExample],
+        candidates: list[FewShotExample],
         similarities: np.ndarray,
         k: int,
         min_similarity: float
-    ) -> tuple[List[FewShotExample], float, int, bool]:
+    ) -> tuple[list[FewShotExample], float, int, bool]:
         """
         Filter by threshold and return top-k examples with metadata.
 

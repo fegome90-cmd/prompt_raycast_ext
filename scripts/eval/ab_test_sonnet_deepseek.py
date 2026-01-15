@@ -10,28 +10,25 @@ Usage:
     python scripts/eval/ab_test_sonnet_deepseek.py [--subset N]
 """
 
-import os
-import sys
-import json
-import time
-import subprocess
 import argparse
-from pathlib import Path
-from typing import Dict, List
+import json
+import subprocess
+import sys
+import time
 from datetime import datetime
+from pathlib import Path
 
 # Add parent dir to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import requests
 
-
 # ============================================================================
 # Data Models
 # ============================================================================
 
 class TestCase:
-    def __init__(self, id: str, input: str, asserts: Dict = None):
+    def __init__(self, id: str, input: str, asserts: dict = None):
         self.id = id
         self.input = input
         self.asserts = asserts or {}
@@ -91,7 +88,7 @@ def switch_provider(provider: str, model: str) -> bool:
     env_path = Path(__file__).parent.parent.parent / ".env"
 
     # Read current .env
-    with open(env_path, 'r') as f:
+    with open(env_path) as f:
         lines = f.readlines()
 
     # Update provider and model
@@ -134,7 +131,7 @@ def switch_provider(provider: str, model: str) -> bool:
 # API Client
 # ============================================================================
 
-def improve_prompt(idea: str, context: str = "") -> Dict:
+def improve_prompt(idea: str, context: str = "") -> dict:
     """Call DSPy backend to improve prompt."""
     payload = {"idea": idea, "context": context}
 
@@ -162,7 +159,7 @@ def improve_prompt(idea: str, context: str = "") -> Dict:
 # Quality Evaluation
 # ============================================================================
 
-def evaluate_quality(result: Dict, test_case: TestCase) -> Dict[str, bool]:
+def evaluate_quality(result: dict, test_case: TestCase) -> dict[str, bool]:
     """Evaluate quality gates for a result."""
     gates = {
         "json_valid": True,
@@ -199,7 +196,7 @@ def evaluate_quality(result: Dict, test_case: TestCase) -> Dict[str, bool]:
 # Main Test Runner
 # ============================================================================
 
-def run_ab_test(subset: int = 5) -> Dict[str, List[ImprovementResult]]:
+def run_ab_test(subset: int = 5) -> dict[str, list[ImprovementResult]]:
     """Run A/B test between Sonnet 4.5 and DeepSeek."""
     results = {"sonnet": [], "deepseek": []}
     test_cases = TEST_CASES[:subset]
@@ -289,7 +286,7 @@ def run_ab_test(subset: int = 5) -> Dict[str, List[ImprovementResult]]:
 # Summary & Reporting
 # ============================================================================
 
-def print_summary(results: Dict[str, List[ImprovementResult]]):
+def print_summary(results: dict[str, list[ImprovementResult]]):
     """Print A/B test summary."""
     print("\n" + "="*60)
     print("A/B TEST SUMMARY")
@@ -325,7 +322,7 @@ def print_summary(results: Dict[str, List[ImprovementResult]]):
         print(f"  Latency: Sonnet {sonnet_lat:.0f}ms vs DeepSeek {deepseek_lat:.0f}ms")
 
 
-def save_results(results: Dict[str, List[ImprovementResult]]):
+def save_results(results: dict[str, list[ImprovementResult]]):
     """Save results to JSON file."""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_path = Path(__file__).parent / f"ab_test_sonnet_deepseek_{timestamp}.json"

@@ -1,9 +1,15 @@
 """Tests for dataset gate evaluation script."""
-import pytest
-import json
 import tempfile
 from pathlib import Path
-from scripts.eval.evaluate_dataset_gates import evaluate_dataset, _calculate_statistics, _get_nested_value
+
+import pytest
+
+from scripts.eval.evaluate_dataset_gates import (
+    _calculate_statistics,
+    _get_nested_value,
+    evaluate_dataset,
+)
+
 
 def test_evaluator_exists():
     """Test evaluator script can be imported."""

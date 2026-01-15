@@ -1,7 +1,9 @@
 """Tests for circuit breaker."""
-import pytest
 import time
-from unittest.mock import Mock, patch, AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from api.circuit_breaker import CircuitBreaker
 
 

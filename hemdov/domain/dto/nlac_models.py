@@ -5,10 +5,10 @@ Pydantic models for the NLaC feature - treating prompts as structured
 executable objects rather than plain strings.
 """
 
-from pydantic import BaseModel, Field, field_validator
-from typing import Optional, Literal, Dict, Any, NotRequired, TypedDict
 from enum import Enum
+from typing import Any, Literal, NotRequired, TypedDict
 
+from pydantic import BaseModel, Field, field_validator
 
 # ============================================================================
 # Enums
@@ -88,23 +88,23 @@ class NLaCInputs(BaseModel):
     All fields are optional to maintain backward compatibility with
     simple text-based prompts.
     """
-    code_snippet: Optional[str] = Field(
+    code_snippet: str | None = Field(
         None,
         description="Code snippet for debugging/refactoring"
     )
-    error_log: Optional[str] = Field(
+    error_log: str | None = Field(
         None,
         description="Error message or stack trace"
     )
-    target_language: Optional[str] = Field(
+    target_language: str | None = Field(
         None,
         description="Target programming language"
     )
-    target_framework: Optional[str] = Field(
+    target_framework: str | None = Field(
         None,
         description="Target framework (e.g., React, FastAPI)"
     )
-    context_files: Optional[list[str]] = Field(
+    context_files: list[str] | None = Field(
         default_factory=list,
         description="Related file paths for context"
     )
@@ -133,7 +133,7 @@ class NLaCRequest(BaseModel):
         max_length=5000,
         description="Additional context or requirements (max 5000 chars)"
     )
-    inputs: Optional[NLaCInputs] = Field(
+    inputs: NLaCInputs | None = Field(
         default=None,
         description="Structured inputs for intent classification"
     )
@@ -196,13 +196,13 @@ class PromptObject(BaseModel):
     template: str = Field(..., description="Prompt template with placeholders")
 
     # Strategy metadata (should conform to StrategyMetadata TypedDict)
-    strategy_meta: Dict[str, Any] = Field(
+    strategy_meta: dict[str, Any] = Field(
         default_factory=dict,
         description="Strategy used, complexity, routing decisions. Expected to conform to StrategyMetadata TypedDict."
     )
 
     # Constraints (should conform to PromptConstraints TypedDict)
-    constraints: Dict[str, Any] = Field(
+    constraints: dict[str, Any] = Field(
         default_factory=dict,
         description="Constraints like max_tokens, format requirements, etc. Expected to conform to PromptConstraints TypedDict."
     )
@@ -214,7 +214,7 @@ class PromptObject(BaseModel):
 
     # KNN failure tracking (for monitoring and debugging)
     knn_failed: bool = Field(default=False, description="Whether KNN provider failed to fetch examples")
-    knn_error: Optional[str] = Field(None, description="Error message if KNN failed")
+    knn_error: str | None = Field(None, description="Error message if KNN failed")
 
     @field_validator("template")
     @classmethod
@@ -239,7 +239,7 @@ class OPROIteration(BaseModel):
     meta_prompt_used: str = Field(..., description="Meta-prompt template used")
     generated_instruction: str = Field(..., description="Generated instruction")
     score: float = Field(..., ge=0.0, le=1.0, description="Quality score (0-1)")
-    feedback: Optional[str] = Field(None, description="Feedback for next iteration")
+    feedback: str | None = Field(None, description="Feedback for next iteration")
 
 
 class OptimizeResponse(BaseModel):
@@ -259,15 +259,15 @@ class OptimizeResponse(BaseModel):
     )
 
     # Optional improved prompt (full rendered result)
-    improved_prompt: Optional[str] = Field(None, description="Rendered improved prompt")
+    improved_prompt: str | None = Field(None, description="Rendered improved prompt")
 
     # Timing and metadata
-    total_latency_ms: Optional[int] = Field(None, description="Total optimization time")
+    total_latency_ms: int | None = Field(None, description="Total optimization time")
     backend: str = Field(default="nlac", description="Backend identifier")
-    model: Optional[str] = Field(None, description="Model used for optimization")
+    model: str | None = Field(None, description="Model used for optimization")
 
     # KNN failure tracking
-    knn_failure: Optional[Dict[str, Any]] = Field(
+    knn_failure: dict[str, Any] | None = Field(
         None,
         description="KNN failure metadata if few-shot examples were unavailable"
     )
@@ -289,20 +289,20 @@ class NLaCResponse(BaseModel):
     directive: str
     framework: str
     guardrails: list[str]
-    reasoning: Optional[str] = None
-    confidence: Optional[float] = None
+    reasoning: str | None = None
+    confidence: float | None = None
     backend: str = "nlac"
 
     # NLaC-specific fields
-    prompt_object: Optional[PromptObject] = Field(
+    prompt_object: PromptObject | None = Field(
         None,
         description="Structured PromptObject (only in nlac mode)"
     )
-    optimization_result: Optional[OptimizeResponse] = Field(
+    optimization_result: OptimizeResponse | None = Field(
         None,
         description="OPRO optimization result (if enable_optimization=True)"
     )
-    intent_type: Optional[IntentType] = Field(
+    intent_type: IntentType | None = Field(
         None,
         description="Classified intent (only in nlac mode)"
     )
@@ -312,7 +312,7 @@ class NLaCResponse(BaseModel):
     )
 
     # KNN failure tracking
-    knn_failure: Optional[Dict[str, Any]] = Field(
+    knn_failure: dict[str, Any] | None = Field(
         None,
         description="KNN failure metadata if few-shot examples were unavailable"
     )

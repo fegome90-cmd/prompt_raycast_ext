@@ -3,8 +3,7 @@ Tests for ReflexionService service.
 
 Tests iterative refinement loop for DEBUG scenario (MultiAIGCD Scenario II).
 """
-import pytest
-from hemdov.domain.services.reflexion_service import ReflexionService, ReflexionResult
+from hemdov.domain.services.reflexion_service import ReflexionService
 
 
 class MockLLMClient:

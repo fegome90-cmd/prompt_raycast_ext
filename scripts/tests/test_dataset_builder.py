@@ -1,15 +1,17 @@
 """Tests for DSPyDatasetBuilder."""
 
-import pytest
 import json
 import tempfile
 from pathlib import Path
+
+import pytest
+
+from scripts.legacy_curation.models import Domain
 from scripts.synthetic_examples.dataset_builder import (
-    DSPyDatasetBuilder,
     DATASET_SCHEMA,
     TASK_TYPES,
+    DSPyDatasetBuilder,
 )
-from scripts.legacy_curation.models import Domain
 
 
 def test_dspy_schema_invalid_format():
@@ -159,7 +161,7 @@ def test_build_dataset_creates_valid_file():
         assert result_path == str(output_path)
         assert output_path.exists()
 
-        with open(output_path, "r") as f:
+        with open(output_path) as f:
             dataset = json.load(f)
 
         assert "examples" in dataset
@@ -219,7 +221,7 @@ def test_build_dataset_with_split():
         output_path = Path(tmpdir) / "train_dataset.json"
         builder.build_dataset(str(output_path), split="train")
 
-        with open(output_path, "r") as f:
+        with open(output_path) as f:
             dataset = json.load(f)
 
         assert "split" in dataset

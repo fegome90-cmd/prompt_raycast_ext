@@ -5,8 +5,9 @@ Based on HemDov DSPy module patterns (BaselineExecutor, MultiStepExecutor).
 """
 
 import dspy
-from hemdov.domain.dspy_modules.prompt_improver import PromptImproverSignature
+
 from hemdov.domain.dspy_modules.augmenter_sig import PromptAugmenterSignature
+from hemdov.domain.dspy_modules.prompt_improver import PromptImproverSignature
 
 
 class PromptImprover(dspy.Module):

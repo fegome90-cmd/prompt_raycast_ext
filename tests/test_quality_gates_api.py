@@ -10,11 +10,11 @@ Tests cover:
 """
 
 import pytest
-from fastapi.testclient import TestClient
 from fastapi import FastAPI
-from api.prompt_improver_api import router, EvaluateQualityRequest
-from api.quality_gates import DEFAULT_TEMPLATES
+from fastapi.testclient import TestClient
 
+from api.prompt_improver_api import router
+from api.quality_gates import DEFAULT_TEMPLATES
 
 # ============================================================================
 # Fixtures

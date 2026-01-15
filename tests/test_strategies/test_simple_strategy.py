@@ -1,6 +1,8 @@
 # tests/test_strategies/test_simple_strategy.py
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
+
 import dspy
+
 from eval.src.strategies.simple_strategy import SimpleStrategy
 
 

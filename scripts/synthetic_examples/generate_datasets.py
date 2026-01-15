@@ -10,11 +10,11 @@ sys.path.insert(0, str(project_dir))
 
 import json
 
-from scripts.synthetic_examples.infrastructure import load_component_catalog
-from scripts.synthetic_examples.generators.example_generator import ExampleGenerator
-from scripts.synthetic_examples.dataset_builder import DSPyDatasetBuilder
-from scripts.synthetic_examples.validator import ExampleValidator
 from scripts.synthetic_examples.config import DEFAULT_OUTPUT_DIR
+from scripts.synthetic_examples.dataset_builder import DSPyDatasetBuilder
+from scripts.synthetic_examples.generators.example_generator import ExampleGenerator
+from scripts.synthetic_examples.infrastructure import load_component_catalog
+from scripts.synthetic_examples.validator import ExampleValidator
 
 
 def generate_synthetic_datasets():

@@ -14,9 +14,8 @@ Design principles:
 import json
 import re
 from dataclasses import dataclass, field
-from typing import Dict, Any, List, Optional, Literal
 from enum import Enum
-
+from typing import Any
 
 # ============================================================================
 # Configuration
@@ -59,7 +58,7 @@ class GateConfig:
     """Per-gate configuration with severity overrides"""
     gate_id: str
     default_severity: GateSeverity
-    severity_overrides: Dict[str, GateSeverity] = field(default_factory=dict)  # template_id -> severity
+    severity_overrides: dict[str, GateSeverity] = field(default_factory=dict)  # template_id -> severity
 
     def get_severity(self, template_id: str) -> GateSeverity:
         """Get severity for a specific template"""
@@ -136,10 +135,10 @@ class GateResult:
     gate_id: str
     gate_version: str
     status: GateSeverity
-    score: Optional[float] = None  # Optional numeric score
-    details: Dict[str, Any] = field(default_factory=dict)
+    score: float | None = None  # Optional numeric score
+    details: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization"""
         return {
             "gate_id": self.gate_id,
@@ -155,9 +154,9 @@ class GateReport:
     """Complete gate evaluation report"""
     template_id: str
     output_length: int
-    v0_1_gates: Dict[str, GateResult] = field(default_factory=dict)
-    v0_2_gates: Dict[str, GateResult] = field(default_factory=dict)
-    summary: Dict[str, Any] = field(default_factory=dict)
+    v0_1_gates: dict[str, GateResult] = field(default_factory=dict)
+    v0_2_gates: dict[str, GateResult] = field(default_factory=dict)
+    summary: dict[str, Any] = field(default_factory=dict)
 
     @property
     def v0_1_pass(self) -> bool:
@@ -188,7 +187,7 @@ class GateReport:
         """Check if output passes all gates (v0.1 must PASS, v0.2 must not FAIL)"""
         return self.v0_1_pass and self.v0_2_fail_count == 0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization"""
         return {
             "template_id": self.template_id,
@@ -230,14 +229,14 @@ class TemplateSpec:
     id: str
     name: str
     requires_json: bool
-    markdown_sections: List[str]
+    markdown_sections: list[str]
     type: str  # "json", "procedure", "checklist", "example"
-    required_keys: List[str] = field(default_factory=list)
+    required_keys: list[str] = field(default_factory=list)
     actionable: bool = False
-    coverage_keywords: List[str] = field(default_factory=list)
+    coverage_keywords: list[str] = field(default_factory=list)
 
     @classmethod
-    def from_dict(cls, template_id: str, data: Dict[str, Any]) -> "TemplateSpec":
+    def from_dict(cls, template_id: str, data: dict[str, Any]) -> "TemplateSpec":
         """Create from templates.json dict"""
         return cls(
             id=template_id,
@@ -252,7 +251,7 @@ class TemplateSpec:
 
 
 # Default templates (fallback if templates.json not loaded)
-DEFAULT_TEMPLATES: Dict[str, Dict[str, Any]] = {
+DEFAULT_TEMPLATES: dict[str, dict[str, Any]] = {
     "json": {
         "id": "json",
         "name": "JSON Output",
@@ -779,8 +778,8 @@ def gate_e1_non_trivial_code(output: str, template: TemplateSpec, thresholds: Ga
 def evaluate_output(
     output_text: str,
     template_id: str,
-    template_spec: Optional[Dict[str, Any]] = None,
-    thresholds: Optional[GateThresholds] = None
+    template_spec: dict[str, Any] | None = None,
+    thresholds: GateThresholds | None = None
 ) -> GateReport:
     """
     Evaluate output against v0.1 + v0.2 gates.

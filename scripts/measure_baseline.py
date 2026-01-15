@@ -200,7 +200,7 @@ class BaselineMeasurer:
         # KNN Latency
         if "error" not in self.results.get("knn_latency", {}):
             knn = self.results["knn_latency"]
-            print(f"\n  KNN Latency (100 iterations):")
+            print("\n  KNN Latency (100 iterations):")
             print(f"    P50:  {knn['p50']:.2f}ms")
             print(f"    P95:  {knn['p95']:.2f}ms")
             print(f"    P99:  {knn['p99']:.2f}ms")
@@ -211,7 +211,7 @@ class BaselineMeasurer:
         # Exception Coverage
         if "error" not in self.results.get("exception_coverage", {}):
             exc = self.results["exception_coverage"]
-            print(f"\n  Exception Coverage:")
+            print("\n  Exception Coverage:")
             print(f"    Coverage: {exc['coverage']}")
             print(f"    Specific: {exc['specific']}")
             print(f"    Generic:  {exc['generic']}")
@@ -219,7 +219,7 @@ class BaselineMeasurer:
         # Catalog Stats
         if "error" not in self.results.get("catalog_stats", {}):
             cat = self.results["catalog_stats"]
-            print(f"\n  Catalog Statistics:")
+            print("\n  Catalog Statistics:")
             print(f"    Total Examples: {cat['total_examples']}")
             print(f"    Intents: {cat['intents']}")
             print(f"    Complexities: {cat['complexities']}")

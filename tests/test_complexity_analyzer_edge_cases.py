@@ -9,6 +9,7 @@ Tests for:
 - Technical term score capping
 """
 import pytest
+
 from eval.src.complexity_analyzer import ComplexityAnalyzer, ComplexityLevel
 
 

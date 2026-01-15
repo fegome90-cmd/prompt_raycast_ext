@@ -5,8 +5,9 @@ Following TDD approach: tests are written first, then implementation.
 """
 import json
 import os
-import pytest
 from pathlib import Path
+
+import pytest
 
 # Get the project root directory
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -116,7 +117,7 @@ class TestDeduplicatedDataset:
 
         assert deduped_path.exists(), "Deduplicated dataset should exist"
 
-        with open(deduped_path, 'r') as f:
+        with open(deduped_path) as f:
             data = json.load(f)
 
         # Check structure
@@ -142,7 +143,7 @@ class TestDeduplicatedDataset:
         """Verify that deduplicated examples have valid DSPy structure."""
         deduped_path = PROJECT_ROOT / "datasets/exports/merged-trainset-deduped.json"
 
-        with open(deduped_path, 'r') as f:
+        with open(deduped_path) as f:
             data = json.load(f)
 
         for i, item in enumerate(data):
@@ -182,8 +183,8 @@ class TestValidationScriptFunctions:
 
     def test_analyze_duplicates(self):
         """Test analyze_duplicates function."""
-        import sys
         import json
+        import sys
         sys.path.insert(0, str(PROJECT_ROOT / "scripts/data"))
         from validate_datasets import analyze_duplicates
 

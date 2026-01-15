@@ -6,24 +6,24 @@ with the Raycast TypeScript frontend.
 """
 
 import logging
-
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
+import dspy
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from api.exception_utils import create_exception_handlers
+from api.metrics_api import router as metrics_router
+from api.prompt_improver_api import router as prompt_improver_router
+from hemdov.infrastructure.adapters.litellm_dspy_adapter_prompt import (
+    create_anthropic_adapter,
+    create_deepseek_adapter,
+    create_gemini_adapter,
+    create_ollama_adapter,
+    create_openai_adapter,
+)
 from hemdov.infrastructure.config import settings
 from hemdov.interfaces import container
-from hemdov.infrastructure.adapters.litellm_dspy_adapter_prompt import (
-    create_ollama_adapter,
-    create_gemini_adapter,
-    create_deepseek_adapter,
-    create_openai_adapter,
-    create_anthropic_adapter,
-)
-from api.prompt_improver_api import router as prompt_improver_router
-from api.metrics_api import router as metrics_router
-from api.exception_utils import create_exception_handlers
-import dspy
 
 # Global LM instance for DSPy
 lm = None
@@ -192,12 +192,12 @@ if __name__ == "__main__":
             )
 
     logger.info("Starting DSPy Prompt Improver API...")
-    logger.info(f"✓ Configuration loaded from .env")
+    logger.info("✓ Configuration loaded from .env")
     logger.info(f"✓ API_PORT: {settings.API_PORT} (validated)")
     logger.info(f"Server: http://{settings.API_HOST}:{settings.API_PORT}")
     logger.info(f"LLM: {settings.LLM_PROVIDER}/{settings.LLM_MODEL}")
     if settings.LLM_PROVIDER.lower() in ["deepseek", "gemini", "openai", "anthropic"]:
-        logger.info(f"✓ Cloud provider configured - API validation passed")
+        logger.info("✓ Cloud provider configured - API validation passed")
 
     uvicorn.run(
         "main:app",

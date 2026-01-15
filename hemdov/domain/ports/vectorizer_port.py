@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Vectorizer port for domain layer - hexagonal architecture."""
 from typing import Protocol
+
 import numpy as np
-from typing import List
 
 
 class VectorizerPort(Protocol):
@@ -29,7 +29,7 @@ class VectorizerPort(Protocol):
         """
         ...
 
-    def __call__(self, texts: List[str]) -> np.ndarray:
+    def __call__(self, texts: list[str]) -> np.ndarray:
         """Vectorize texts.
 
         Args:

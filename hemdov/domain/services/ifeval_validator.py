@@ -15,7 +15,7 @@ not mock/random data like v2.0.
 import json
 import logging
 from dataclasses import dataclass
-from typing import Callable, Protocol
+from typing import Protocol
 
 logger = logging.getLogger(__name__)
 

@@ -35,7 +35,7 @@ def main():
         return 1
 
     print(f"\n📂 Loading candidates from {candidates_file.name}...")
-    with open(candidates_file, 'r') as f:
+    with open(candidates_file) as f:
         data = json.load(f)
 
     candidates = data.get('candidates', [])
@@ -62,16 +62,16 @@ def main():
 
             # Verify it's actually clean
             if clean_template.startswith('input_variables='):
-                print(f"   ❌ FAILED: Template is still dirty!")
+                print("   ❌ FAILED: Template is still dirty!")
                 continue
 
             # Update the candidate
             candidate['template'] = clean_template
             fixed_count += 1
-            print(f"   ✅ Fixed!")
+            print("   ✅ Fixed!")
 
-    print(f"\n" + "=" * 70)
-    print(f"SUMMARY:")
+    print("\n" + "=" * 70)
+    print("SUMMARY:")
     print(f"  Total candidates: {len(candidates)}")
     print(f"  Dirty templates found: {dirty_count}")
     print(f"  Successfully fixed: {fixed_count}")
@@ -86,7 +86,7 @@ def main():
             json.dump(data, f, indent=2, ensure_ascii=False)
 
         print(f"✅ Fixed version saved to: {output_file}")
-        print(f"\n📝 To replace the original file:")
+        print("\n📝 To replace the original file:")
         print(f"   mv {output_file} {candidates_file}")
 
     return 0

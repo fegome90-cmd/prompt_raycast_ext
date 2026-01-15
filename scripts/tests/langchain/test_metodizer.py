@@ -21,7 +21,7 @@ import sys
 # Add parent directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../.."))
 
-from scripts.langchain.prompt_metodizer import PromptMetodizer, FrameworkDetection
+from scripts.langchain.prompt_metodizer import FrameworkDetection, PromptMetodizer
 
 
 def test_metodize_react_agent():
@@ -308,13 +308,13 @@ def test_framework_detection_confidence():
         assert detections3[0].confidence < 0.7
         print(f"  ✓ Low confidence detection: {detections3[0].confidence:.2f}")
     else:
-        print(f"  ✓ No framework detected (as expected)")
+        print("  ✓ No framework detected (as expected)")
 
     # No framework
     template4 = "Just answer the question directly."
     detections4 = metodizer._detect_framework(template4, [])
     assert len(detections4) == 0
-    print(f"  ✓ No framework detected for simple prompt")
+    print("  ✓ No framework detected for simple prompt")
 
     print("✓ Framework detection confidence scoring works")
 
@@ -340,11 +340,11 @@ Keep it under 100 words."""
     # Check for specific categories
     guardrails_lower = guardrails.lower()
     assert "negative" in guardrails_lower or "format" in guardrails_lower or "constraint" in guardrails_lower
-    print(f"  ✓ Categories detected")
+    print("  ✓ Categories detected")
 
     # Check measurability
     if "100 words" in guardrails_lower or "three sentences" in guardrails_lower:
-        print(f"  ✓ Measurable constraints detected")
+        print("  ✓ Measurable constraints detected")
 
     print("✓ Guardrail categorization works")
 
@@ -444,11 +444,11 @@ Answer questions using {context} and {tools}."""
 
     # Check for variable detection
     assert any("Variables:" in p for p in patterns)
-    print(f"  ✓ Variables detected")
+    print("  ✓ Variables detected")
 
     # Check for framework patterns
     assert any("loop" in p.lower() or "pattern" in p.lower() for p in patterns)
-    print(f"  ✓ Framework patterns detected")
+    print("  ✓ Framework patterns detected")
 
     print("✓ Pattern extraction works")
 

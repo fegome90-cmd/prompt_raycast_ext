@@ -1,7 +1,9 @@
 # tests/test_strategies/test_complex_strategy.py
 from unittest.mock import Mock, patch
+
 import dspy
 import pytest
+
 from eval.src.strategies.complex_strategy import ComplexStrategy
 
 

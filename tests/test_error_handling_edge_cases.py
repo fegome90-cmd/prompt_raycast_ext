@@ -6,16 +6,16 @@ Tests cover:
 - ReflexionService: executor failures, edge cases
 - NLaCStrategy: validation edge cases
 """
-import pytest
-from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch
 import tempfile
+from pathlib import Path
+from unittest.mock import Mock, patch
 
-from hemdov.domain.services.knn_provider import KNNProvider
-from hemdov.domain.services.reflexion_service import ReflexionService
-from hemdov.domain.services.oprop_optimizer import OPROOptimizer
+import pytest
+
 from eval.src.strategies.nlac_strategy import NLaCStrategy
-
+from hemdov.domain.services.knn_provider import KNNProvider
+from hemdov.domain.services.oprop_optimizer import OPROOptimizer
+from hemdov.domain.services.reflexion_service import ReflexionService
 
 # ============================================================================
 # KNNProvider Error Handling Tests
@@ -78,7 +78,6 @@ class TestOPROOptimizerEdgeCases:
         """OPROOptimizer should raise ValueError when prompt_obj is None."""
         optimizer = OPROOptimizer(llm_client=None)
 
-        from hemdov.domain.dto.nlac_models import PromptObject, IntentType
         with pytest.raises(ValueError, match="prompt_obj cannot be None"):
             optimizer.run_loop(prompt_obj=None)
 
@@ -253,7 +252,7 @@ class TestNLaCStrategyIntegration:
 
     def test_nlac_strategy_routes_debug_to_reflexion(self):
         """DEBUG intent should route to ReflexionService."""
-        from unittest.mock import Mock, patch
+        from unittest.mock import patch
 
         class MockLLM:
             def generate(self, prompt: str, **kwargs):
@@ -285,7 +284,6 @@ class TestNLaCStrategyIntegration:
 
     def test_nlac_strategy_routes_generate_to_opro(self):
         """GENERATE intent should route to OPROOptimizer when optimization enabled."""
-        from unittest.mock import Mock
 
         class MockLLM:
             def generate(self, prompt: str, **kwargs):

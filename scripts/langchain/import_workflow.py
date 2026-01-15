@@ -13,13 +13,14 @@ Usage:
 import argparse
 import json
 import sys
-from pathlib import Path
-from typing import Dict, List, Any, Set
-from hashlib import sha256
 from datetime import datetime
+from hashlib import sha256
+from pathlib import Path
+from typing import Any
 
 # Load environment variables from .env FIRST
 from dotenv import load_dotenv
+
 # Look for .env in project root (3 levels up from scripts/langchain/)
 project_root = Path(__file__).parent.parent.parent
 load_dotenv(project_root / ".env")
@@ -28,12 +29,12 @@ load_dotenv(project_root / ".env")
 sys.path.insert(0, str(Path(__file__).parent))
 
 # Import LangChain components
-from fetch_prompts import LangChainHubFetcher
 from convert_to_dspy_format import FormatConverter
+from fetch_prompts import LangChainHubFetcher
 
 
 # Inline merge functions to avoid import issues
-def compute_io_hash(example: Dict[str, Any]) -> str:
+def compute_io_hash(example: dict[str, Any]) -> str:
     """Compute hash of (input, output) pair for deduplication."""
     # Handle both nested (inputs.original_idea) and flat (input) schemas
     if 'inputs' in example:
@@ -50,7 +51,7 @@ def compute_io_hash(example: Dict[str, Any]) -> str:
     return sha256(combined.encode()).hexdigest()
 
 
-def normalize_example(example: Dict[str, Any]) -> Dict[str, Any]:
+def normalize_example(example: dict[str, Any]) -> dict[str, Any]:
     """Normalize example to nested schema {inputs, outputs, metadata}."""
     # Already has nested structure
     if 'inputs' in example and 'outputs' in example:
@@ -67,7 +68,7 @@ def normalize_example(example: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def merge_datasets(datasets: Dict[str, List[Dict[str, Any]]]) -> List[Dict[str, Any]]:
+def merge_datasets(datasets: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:
     """Merge multiple datasets with cross-source deduplication."""
     all_examples = []
 
@@ -88,7 +89,7 @@ def merge_datasets(datasets: Dict[str, List[Dict[str, Any]]]) -> List[Dict[str, 
     print(f"\n  Total examples before deduplication: {len(all_examples)}")
 
     # Deduplicate by I/O hash
-    seen_hashes: Set[str] = set()
+    seen_hashes: set[str] = set()
     deduped = []
     duplicates_removed = 0
 
@@ -109,7 +110,7 @@ def merge_datasets(datasets: Dict[str, List[Dict[str, Any]]]) -> List[Dict[str, 
     return deduped
 
 
-def generate_statistics(pool: List[Dict[str, Any]]) -> Dict[str, Any]:
+def generate_statistics(pool: list[dict[str, Any]]) -> dict[str, Any]:
     """Generate statistics about the unified pool."""
     stats = {
         'total_examples': len(pool),
@@ -135,7 +136,7 @@ class ExampleValidator:
         """Initialize validator."""
         pass
 
-    def validate_single_example(self, example: Dict) -> Dict:
+    def validate_single_example(self, example: dict) -> dict:
         """Validate a single example.
 
         Args:
@@ -182,7 +183,7 @@ class ExampleValidator:
         }
 
     def _calculate_quality_score(
-        self, example: Dict, errors: List[Dict], warnings: List[Dict]
+        self, example: dict, errors: list[dict], warnings: list[dict]
     ) -> float:
         """Calculate quality score for an example.
 
@@ -314,7 +315,7 @@ class ImportWorkflow:
 
         print(f"\n📋 Loading whitelist from {self.config_path.name}...")
         try:
-            with open(self.config_path, 'r') as f:
+            with open(self.config_path) as f:
                 config = json.load(f)
             handles = config.get('handles', [])
         except json.JSONDecodeError as e:
@@ -364,7 +365,7 @@ class ImportWorkflow:
         with open(self.candidates_file, 'w', encoding='utf-8') as f:
             json.dump(output_data, f, indent=2, ensure_ascii=False)
 
-        print(f"\n✅ Fetch mode complete!")
+        print("\n✅ Fetch mode complete!")
         print(f"   Total fetched: {output_data['metadata']['total_fetched']}")
         print(f"   Output: {self.candidates_file}")
 
@@ -397,7 +398,7 @@ class ImportWorkflow:
         # Load candidates
         print(f"\n📂 Loading candidates from {source_file.name}...")
         try:
-            with open(source_file, 'r') as f:
+            with open(source_file) as f:
                 data = json.load(f)
             candidates = data.get('candidates', [])
         except json.JSONDecodeError as e:
@@ -453,7 +454,7 @@ class ImportWorkflow:
             min_score = min(scores) if scores else 0.0
             max_score = max(scores) if scores else 0.0
 
-            print(f"\n📊 Validation Results:")
+            print("\n📊 Validation Results:")
             print(f"   Total candidates: {len(candidates)}")
             print(f"   Passed (≥0.5): {len(validated_candidates)}")
             print(f"   Failed: {len(candidates) - len(validated_candidates)}")
@@ -478,7 +479,7 @@ class ImportWorkflow:
         with open(self.validated_file, 'w', encoding='utf-8') as f:
             json.dump(validated_data, f, indent=2, ensure_ascii=False)
 
-        print(f"\n✅ Validate mode complete!")
+        print("\n✅ Validate mode complete!")
         print(f"   Validated: {validated_data['metadata']['total_validated']}")
         print(f"   Passed: {validated_data['metadata']['total_passed']}")
         print(f"   Output: {self.validated_file}")
@@ -503,7 +504,7 @@ class ImportWorkflow:
 
         print(f"\n📂 Loading validated candidates from {self.validated_file.name}...")
         try:
-            with open(self.validated_file, 'r') as f:
+            with open(self.validated_file) as f:
                 validated_data = json.load(f)
             validated_candidates = validated_data.get('candidates', [])
         except json.JSONDecodeError as e:
@@ -538,7 +539,7 @@ class ImportWorkflow:
         else:
             print(f"\n📂 Loading existing unified pool from {self.unified_pool.name}...")
             try:
-                with open(self.unified_pool, 'r') as f:
+                with open(self.unified_pool) as f:
                     pool_data = json.load(f)
                 existing_examples = pool_data.get('examples', [])
                 existing_count = len(existing_examples)
@@ -562,11 +563,11 @@ class ImportWorkflow:
         print("\n📊 Generating statistics...")
         stats = generate_statistics(merged_examples)
 
-        print(f"\n  By source:")
+        print("\n  By source:")
         for source, count in sorted(stats['by_source'].items()):
             print(f"    {source}: {count}")
 
-        print(f"\n  By framework:")
+        print("\n  By framework:")
         for framework, count in sorted(stats['by_framework'].items(), key=lambda x: -x[1])[:5]:
             print(f"    {framework}: {count}")
 
@@ -585,7 +586,7 @@ class ImportWorkflow:
                 'examples': merged_examples
             }, f, indent=2, ensure_ascii=False)
 
-        print(f"\n✅ Merge mode complete!")
+        print("\n✅ Merge mode complete!")
         print(f"   Examples added: {len(validated_examples)}")
         print(f"   Total examples: {len(merged_examples)}")
         print(f"   Output: {self.updated_pool}")

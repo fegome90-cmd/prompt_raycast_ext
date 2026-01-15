@@ -2,9 +2,9 @@
 
 import json
 import logging
-from pathlib import Path
-from typing import List, Dict, Any
 from abc import ABC, abstractmethod
+from pathlib import Path
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +13,7 @@ class CatalogRepositoryInterface(ABC):
     """Interface for catalog data loading."""
 
     @abstractmethod
-    def load_catalog(self) -> List[Dict[str, Any]]:
+    def load_catalog(self) -> list[dict[str, Any]]:
         """Load catalog data from storage.
 
         Returns:
@@ -41,7 +41,7 @@ class FileSystemCatalogRepository(CatalogRepositoryInterface):
         """
         self.catalog_path = catalog_path
 
-    def load_catalog(self) -> List[Dict[str, Any]]:
+    def load_catalog(self) -> list[dict[str, Any]]:
         """Load catalog data from JSON file.
 
         Returns:
@@ -59,7 +59,7 @@ class FileSystemCatalogRepository(CatalogRepositoryInterface):
             )
 
         try:
-            with open(self.catalog_path, 'r', encoding='utf-8') as f:
+            with open(self.catalog_path, encoding='utf-8') as f:
                 data = json.load(f)
         except json.JSONDecodeError as e:
             raise ValueError(

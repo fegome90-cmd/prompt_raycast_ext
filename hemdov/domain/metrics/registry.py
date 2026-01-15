@@ -9,8 +9,8 @@ alerting rules, and metric metadata.
 import logging
 import threading
 from dataclasses import dataclass
-from typing import Dict, List, Optional
 from enum import Enum
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +83,7 @@ class MetricDefinition:
     higher_is_better: bool = True
 
 
-METRIC_DEFINITIONS: Dict[str, MetricDefinition] = {
+METRIC_DEFINITIONS: dict[str, MetricDefinition] = {
     "quality.coherence": MetricDefinition(
         name="Coherence",
         description="Logical flow and structure of the prompt",
@@ -170,7 +170,7 @@ class MetricsRegistry:
             logger.warning(f"Unknown metric '{metric_name}', using 'overall' threshold")
         return self.thresholds.get(base_metric, DEFAULT_THRESHOLDS["overall"])
 
-    def get_definition(self, metric_name: str) -> Optional[MetricDefinition]:
+    def get_definition(self, metric_name: str) -> MetricDefinition | None:
         """Get metadata for a metric."""
         return self.definitions.get(metric_name)
 

@@ -4,10 +4,10 @@
 This module provides feature flags for controlling the rollout of NLaC Pipeline v3.0 features.
 Flags can be set via environment variables or JSON configuration file.
 """
+import json
 from dataclasses import dataclass
 from os import getenv
 from pathlib import Path
-import json
 from typing import Self
 
 
@@ -119,4 +119,4 @@ if __name__ == "__main__":
 
     # Save to file
     FeatureFlags.save()
-    print(f"\n✅ Feature flags saved to config/feature_flags.json")
+    print("\n✅ Feature flags saved to config/feature_flags.json")

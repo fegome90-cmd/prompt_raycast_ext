@@ -1,7 +1,6 @@
 """Tests for ExampleValidator."""
 
-import pytest
-from scripts.synthetic_examples.validator import ExampleValidator, TASK_TYPES
+from scripts.synthetic_examples.validator import TASK_TYPES, ExampleValidator
 
 
 def test_validate_example_missing_question():

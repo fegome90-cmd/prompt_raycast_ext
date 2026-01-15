@@ -16,16 +16,16 @@ Pipeline:
 """
 import json
 import logging
+from datetime import UTC, datetime
+
 import dspy
-from datetime import datetime, UTC
-from typing import Optional
 
 from hemdov.domain.dto.nlac_models import NLaCRequest, PromptObject
+from hemdov.domain.services.knn_provider import KNNProvider
+from hemdov.domain.services.llm_protocol import LLMClient
 from hemdov.domain.services.nlac_builder import NLaCBuilder
 from hemdov.domain.services.oprop_optimizer import OPROOptimizer
 from hemdov.domain.services.reflexion_service import ReflexionService
-from hemdov.domain.services.knn_provider import KNNProvider
-from hemdov.domain.services.llm_protocol import LLMClient
 
 from .base import PromptImproverStrategy
 
@@ -44,11 +44,11 @@ class NLaCStrategy(PromptImproverStrategy):
 
     def __init__(
         self,
-        llm_client: Optional[LLMClient] = None,
+        llm_client: LLMClient | None = None,
         enable_cache: bool = True,
         enable_optimization: bool = True,
         enable_validation: bool = False,
-        knn_provider: Optional[KNNProvider] = None,
+        knn_provider: KNNProvider | None = None,
     ):
         """
         Initialize NLaC strategy with all services.
@@ -113,8 +113,8 @@ class NLaCStrategy(PromptImproverStrategy):
                 f"Unexpected error building PromptObject for request: {original_idea[:50]}"
             )
             raise RuntimeError(
-                f"An unexpected error occurred while processing your request. "
-                f"Please try again or contact support if the issue persists."
+                "An unexpected error occurred while processing your request. "
+                "Please try again or contact support if the issue persists."
             ) from e
 
         # Extract intent for routing
@@ -135,7 +135,7 @@ class NLaCStrategy(PromptImproverStrategy):
                 prompt_obj.template = refined_result.code
                 logger.info(f"Reflexion converged in {refined_result.iteration_count} iterations")
             else:
-                logger.warning(f"Reflexion did not converge, using initial template")
+                logger.warning("Reflexion did not converge, using initial template")
 
         elif self._enable_optimization:
             # Non-DEBUG uses OPRO with KNN examples

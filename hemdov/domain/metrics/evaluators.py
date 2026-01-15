@@ -12,21 +12,19 @@ Key Principles:
 - Actionable: Each metric drives a specific improvement
 """
 
-import re
 import logging
+import re
 import uuid
-from datetime import datetime, UTC
-from typing import Optional, List, Dict, Any
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from .dimensions import (
-    QualityMetrics,
-    PerformanceMetrics,
-    ImpactMetrics,
-    PromptMetrics,
     FrameworkType,
+    ImpactMetrics,
+    PerformanceMetrics,
+    PromptMetrics,
+    QualityMetrics,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -164,7 +162,7 @@ class QualityEvaluator:
         original_idea: str,
         improved_prompt: str,
         framework: str,
-        guardrails: List[str],
+        guardrails: list[str],
     ) -> QualityMetrics:
         """
         Calculate quality metrics from prompt data.
@@ -260,7 +258,7 @@ class QualityEvaluator:
         return min(1.0, relevance)
 
     @classmethod
-    def _calculate_completeness(cls, prompt: str, framework: str, guardrails: List[str]) -> float:
+    def _calculate_completeness(cls, prompt: str, framework: str, guardrails: list[str]) -> float:
         """Assess presence of required sections."""
         score = 0.0
 
@@ -337,13 +335,13 @@ class PromptImprovementResult:
     role: str
     directive: str
     framework: str
-    guardrails: List[str]
-    reasoning: Optional[str] = None
-    confidence: Optional[float] = None
-    latency_ms: Optional[int] = None
-    backend: Optional[str] = None
-    provider: Optional[str] = None
-    model: Optional[str] = None
+    guardrails: list[str]
+    reasoning: str | None = None
+    confidence: float | None = None
+    latency_ms: int | None = None
+    backend: str | None = None
+    provider: str | None = None
+    model: str | None = None
 
 
 class PerformanceEvaluator:
@@ -404,7 +402,7 @@ class ImpactData:
     """User interaction data for impact evaluation."""
     copy_count: int = 0
     regeneration_count: int = 0
-    feedback_score: Optional[int] = None
+    feedback_score: int | None = None
     reuse_count: int = 0
 
 
@@ -455,8 +453,8 @@ class PromptMetricsCalculator:
         self,
         original_idea: str,
         result: PromptImprovementResult,
-        impact_data: Optional[ImpactData] = None,
-        prompt_id: Optional[str] = None,
+        impact_data: ImpactData | None = None,
+        prompt_id: str | None = None,
     ) -> PromptMetrics:
         """
         Calculate comprehensive metrics for a prompt improvement.
@@ -529,13 +527,13 @@ class PromptMetricsCalculator:
         role: str,
         directive: str,
         framework: str,
-        guardrails: List[str],
+        guardrails: list[str],
         backend: str,
         model: str,
         provider: str,
-        latency_ms: Optional[int] = None,
-        confidence: Optional[float] = None,
-        impact_data: Optional[ImpactData] = None,
+        latency_ms: int | None = None,
+        confidence: float | None = None,
+        impact_data: ImpactData | None = None,
     ) -> PromptMetrics:
         """
         Calculate metrics from PromptHistory entity fields.
@@ -585,7 +583,7 @@ class PromptMetricsCalculator:
 
 
 # Singleton instance for easy access
-_calculator_instance: Optional[PromptMetricsCalculator] = None
+_calculator_instance: PromptMetricsCalculator | None = None
 
 
 def get_calculator() -> PromptMetricsCalculator:

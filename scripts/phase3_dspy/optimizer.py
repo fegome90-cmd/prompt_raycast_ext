@@ -1,14 +1,14 @@
 """DSPy optimizer for prompt optimization."""
-from pathlib import Path
 import json
-from typing import List, Dict
+from pathlib import Path
+
 import dspy
 
 
 class DatasetLoader:
     """Load Phase 2 datasets for DSPy optimization."""
 
-    def load_datasets(self) -> tuple[List[Dict], List[Dict], List[Dict]]:
+    def load_datasets(self) -> tuple[list[dict], list[dict], list[dict]]:
         """Load train/val/test datasets from Phase 2.
 
         Returns:
@@ -56,7 +56,7 @@ class DSPOptimizer:
         self.best_loss = float('inf')
         self.best_prompt = None
 
-    def optimize(self, train: List[Dict], val: List[Dict]) -> Dict:
+    def optimize(self, train: list[dict], val: list[dict]) -> dict:
         """Optimize prompt using train/val sets.
 
         Args:

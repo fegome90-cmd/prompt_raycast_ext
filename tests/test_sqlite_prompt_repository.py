@@ -6,12 +6,14 @@ Tests cover CRUD operations, validation, quality score calculation,
 and repository lifecycle management.
 """
 
+from datetime import UTC, datetime, timedelta
+
 import pytest
 import pytest_asyncio
-from datetime import datetime, UTC, timedelta
-from hemdov.infrastructure.persistence.sqlite_prompt_repository import SQLitePromptRepository
-from hemdov.infrastructure.config import Settings
+
 from hemdov.domain.entities.prompt_history import PromptHistory
+from hemdov.infrastructure.config import Settings
+from hemdov.infrastructure.persistence.sqlite_prompt_repository import SQLitePromptRepository
 
 
 @pytest.fixture
@@ -463,7 +465,6 @@ async def test_get_statistics(repository: SQLitePromptRepository):
 @pytest.mark.asyncio
 async def test_find_by_id_with_corrupted_guardrails_json(repository: SQLitePromptRepository):
     """Test reading record with malformed JSON returns safe default."""
-    import aiosqlite
 
     # Get the repository's connection to ensure table exists
     conn = await repository._get_connection()
@@ -564,9 +565,8 @@ async def test_init_handles_connection_failure_gracefully():
         repo,
         '_configure_connection',
         new=AsyncMock(side_effect=RuntimeError("Simulated configure failure"))
-    ):
-        with pytest.raises(RuntimeError, match="Simulated configure failure"):
-            await repo._get_connection()
+    ), pytest.raises(RuntimeError, match="Simulated configure failure"):
+        await repo._get_connection()
 
     # Connection should be None after failure (no leak)
     # Currently this FAILS because connection is not cleaned up

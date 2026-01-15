@@ -7,9 +7,10 @@ Tests cover:
 - Unexpected errors propagate (not caught)
 """
 
+from unittest.mock import AsyncMock, Mock, patch
+
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import Mock, patch, AsyncMock
 
 # Import the FastAPI app
 from api.main import app
@@ -89,7 +90,7 @@ class TestTrendsExceptionHandling:
         with patch('api.metrics_api.container.get') as mock_get:
             mock_repo = Mock()
             # Use AsyncMock for async methods
-            mock_repo.get_all = AsyncMock(side_effect=TimeoutError("Query timeout"))
+            mock_repo.get_by_date_range = AsyncMock(side_effect=TimeoutError("Query timeout"))
             mock_get.return_value = mock_repo
 
             response = client.get("/api/v1/metrics/trends")
@@ -102,16 +103,16 @@ class TestTrendsExceptionHandling:
         with patch('api.metrics_api.MetricsAnalyzer') as mock_analyzer, \
              patch('api.metrics_api.container.get') as mock_get:
             mock_repo = Mock()
-            # Return valid metrics to get past get_all
+            # Return valid metrics to get past get_by_date_range
             mock_metric = Mock()
             mock_metric.quality.composite_score = 0.8
             mock_metric.performance.performance_score = 0.7
             mock_metric.impact.impact_score = 0.9
             mock_metric.grade = "A"
-            from datetime import datetime, UTC
+            from datetime import UTC, datetime
             mock_metric.measured_at = datetime.now(UTC)
             # Use AsyncMock for async methods
-            mock_repo.get_all = AsyncMock(return_value=[mock_metric, mock_metric])
+            mock_repo.get_by_date_range = AsyncMock(return_value=[mock_metric, mock_metric])
             mock_get.return_value = mock_repo
 
             # Mock MetricsAnalyzer to fail

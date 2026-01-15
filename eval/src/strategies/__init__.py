@@ -9,9 +9,9 @@ Exports three strategies based on input complexity:
 """
 
 from .base import PromptImproverStrategy
-from .simple_strategy import SimpleStrategy
-from .moderate_strategy import ModerateStrategy
 from .complex_strategy import ComplexStrategy
+from .moderate_strategy import ModerateStrategy
+from .simple_strategy import SimpleStrategy
 
 __all__ = [
     "PromptImproverStrategy",

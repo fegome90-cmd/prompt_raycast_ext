@@ -11,7 +11,7 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Any
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
@@ -21,12 +21,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from api.quality_gates import GateThresholds
 
-
 HIGH_FAIL_RATE_THRESHOLD = 0.50  # 50% fail rate = potentially too strict
 HIGH_WARN_RATE_THRESHOLD = 0.70  # 70% warn rate = potentially noisy
 
 
-def analyze_thresholds(results: Dict[str, Any]) -> Dict[str, Any]:
+def analyze_thresholds(results: dict[str, Any]) -> dict[str, Any]:
     """
     Analyze gate results to identify threshold tuning opportunities.
 
@@ -84,7 +83,7 @@ def analyze_thresholds(results: Dict[str, Any]) -> Dict[str, Any]:
     return recommendations
 
 
-def _get_gate_metric_keys(metric_type: str) -> List[str]:
+def _get_gate_metric_keys(metric_type: str) -> list[str]:
     """Get all gate statistic keys for a metric type."""
     # Common gate IDs in v0.2
     gate_ids = ["A1_filler", "A4_repetition", "J1_empty", "P1_steps", "C1_specific", "E1_code"]
@@ -128,7 +127,7 @@ def _get_threshold_recommendation(gate_name: str, direction: str) -> str:
     return f"Adjust threshold for {gate_name} ({direction})"
 
 
-def _get_current_threshold(gate_name: str) -> Dict[str, float]:
+def _get_current_threshold(gate_name: str) -> dict[str, float]:
     """Get current threshold values for a gate."""
     thresholds = GateThresholds()
 
@@ -153,7 +152,7 @@ if __name__ == "__main__":
 
     # Load results with error handling
     try:
-        with open(args.results, 'r') as f:
+        with open(args.results) as f:
             results = json.load(f)
     except FileNotFoundError:
         logger.error(f"Results file not found: {args.results}")
@@ -172,7 +171,7 @@ if __name__ == "__main__":
     try:
         with open(output_path, 'w') as f:
             json.dump(recommendations, f, indent=2)
-    except IOError as e:
+    except OSError as e:
         logger.error(f"Failed to write recommendations: {e}")
         raise SystemExit(1)
 

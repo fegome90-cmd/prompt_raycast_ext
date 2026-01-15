@@ -5,16 +5,16 @@ Exposes the DSPy PromptImprover module via REST API.
 Supports both zero-shot and few-shot modes.
 """
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field, field_validator, ValidationError
-import dspy
-import time
-import logging
 import asyncio
-import uuid
 import hashlib
-from typing import Optional, Dict, Any
+import logging
+import time
+import uuid
 from enum import Enum
+from typing import Any
+
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field, field_validator
 
 from eval.src.dspy_prompt_improver import PromptImprover
 
@@ -26,18 +26,18 @@ class DegradationFlag(str, Enum):
     COMPLEX_STRATEGY_DISABLED = "complex_strategy_disabled"
 
 
-from eval.src.strategy_selector import StrategySelector
-from hemdov.interfaces import container
-from hemdov.infrastructure.config import Settings
-from hemdov.domain.entities.prompt_history import PromptHistory
-from hemdov.domain.repositories.prompt_repository import PromptRepository
-from hemdov.infrastructure.persistence.sqlite_prompt_repository import SQLitePromptRepository
 from api.circuit_breaker import CircuitBreaker
+from api.quality_gates import GateReport, evaluate_output, get_template_summary
+from eval.src.strategy_selector import StrategySelector
+from hemdov.domain.entities.prompt_history import PromptHistory
 from hemdov.domain.metrics.evaluators import (
-    PromptMetricsCalculator,
     ImpactData,
+    PromptMetricsCalculator,
 )
-from api.quality_gates import evaluate_output, GateReport, get_template_summary
+from hemdov.domain.repositories.prompt_repository import PromptRepository
+from hemdov.infrastructure.config import Settings
+from hemdov.infrastructure.persistence.sqlite_prompt_repository import SQLitePromptRepository
+from hemdov.interfaces import container
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +45,49 @@ logger = logging.getLogger(__name__)
 class QualityGateEvaluationError(Exception):
     """Raised when gate evaluation fails."""
     pass
+
+
+# Helper functions for code quality
+def _normalize_guardrails(guardrails: str | list[str]) -> list[str]:
+    """Convert guardrails to normalized list format.
+
+    Args:
+        guardrails: Either newline-separated string or list of strings
+
+    Returns:
+        List of guardrail strings with whitespace trimmed
+    """
+    if isinstance(guardrails, str):
+        return [g.strip() for g in guardrails.split('\n') if g.strip()]
+    return guardrails
+
+
+def _extract_confidence(result: Any) -> float | None:
+    """Extract confidence score from DSPy result.
+
+    Args:
+        result: DSPy output (may have .confidence attribute or dict access)
+
+    Returns:
+        Confidence as float 0-1, or None if not available
+    """
+    if hasattr(result, 'confidence'):
+        conf = result.confidence
+        if conf is not None:
+            try:
+                return float(conf)
+            except (ValueError, TypeError):
+                return None
+        return None
+    if isinstance(result, dict) and 'confidence' in result:
+        conf = result['confidence']
+        if conf is not None:
+            try:
+                return float(conf)
+            except (ValueError, TypeError):
+                return None
+        return None
+    return None
 
 
 router = APIRouter(prefix="/api/v1", tags=["prompts"])
@@ -87,7 +130,7 @@ def _generate_stable_prompt_id(idea: str, context: str, mode: str) -> str:
 _metrics_calculator = PromptMetricsCalculator()
 
 # Repository getter with circuit breaker
-async def get_repository(settings: Settings) -> Optional[PromptRepository]:
+async def get_repository(settings: Settings) -> PromptRepository | None:
     """Get repository instance with circuit breaker protection."""
     if not settings.SQLITE_ENABLED:
         return None
@@ -140,13 +183,23 @@ class ImprovePromptResponse(BaseModel):
     prompt_id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique prompt identifier")
     strategy: str = Field(default="simple", description="Strategy used for improvement")
     intent: str = Field(default="generate", description="Intent classification (debug, refactor, generate, explain)")
-    strategy_meta: Dict[str, Any] = Field(default_factory=dict, description="Additional strategy metadata")
+    strategy_meta: dict[str, Any] = Field(default_factory=dict, description="Additional strategy metadata")
     # Degradation and warning fields
     metrics_warning: str | None = Field(default=None, description="Warning message if metrics calculation failed")
-    degradation_flags: Dict[str, bool] = Field(
+    degradation_flags: dict[str, bool] = Field(
         default_factory=dict,
-        description="Degradation flags. Valid keys: metrics_failed, knn_disabled, complex_strategy_disabled"
+        description="Degradation flags indicating optional feature failures"
     )
+
+    @field_validator("degradation_flags")
+    @classmethod
+    def validate_degradation_flags(cls, v: dict[str, bool]) -> dict[str, bool]:
+        """Validate that degradation_flags only contains valid keys."""
+        valid_keys = {flag.value for flag in DegradationFlag}
+        invalid_keys = set(v.keys()) - valid_keys
+        if invalid_keys:
+            raise ValueError(f"Invalid degradation flags: {invalid_keys}. Valid keys: {valid_keys}")
+        return v
 
 
 # Initialize modules (lazy loading)
@@ -173,8 +226,7 @@ def get_fewshot_improver(settings: Settings):
     if _fewshot_improver is None:
         from eval.src.dspy_prompt_improver_fewshot import (
             PromptImproverWithFewShot,
-            load_trainset,
-            create_fewshot_improver
+            create_fewshot_improver,
         )
 
         if settings.DSPY_FEWSHOT_TRAINSET_PATH:
@@ -303,14 +355,10 @@ async def improve_prompt(request: ImprovePromptRequest):
             provider = settings.LLM_PROVIDER
 
             # Convert guardrails to list if it's a string
-            guardrails_list = (
-                result.guardrails.split("\n")
-                if isinstance(result.guardrails, str)
-                else result.guardrails
-            )
+            guardrails_list = _normalize_guardrails(result.guardrails)
 
             # Extract confidence
-            confidence_value = getattr(result, "confidence", None)
+            confidence_value = _extract_confidence(result)
 
             # Calculate metrics using calculate_from_history with timing
             metrics_start = time.time()
@@ -364,7 +412,7 @@ async def improve_prompt(request: ImprovePromptRequest):
             logger.warning(
                 f"Metrics calculation skipped due to data issue: {type(e).__name__}: {e}"
             )
-        except (ConnectionError, OSError, IOError) as e:
+        except (ConnectionError, OSError) as e:
             # Connection/IO errors during metrics calculation
             metrics_warnings.append(f"Metrics calculation failed: {type(e).__name__}")
             logger.error(
@@ -390,11 +438,9 @@ async def improve_prompt(request: ImprovePromptRequest):
             role=result.role,
             directive=result.directive,
             framework=result.framework,
-            guardrails=result.guardrails.split("\n")
-            if isinstance(result.guardrails, str)
-            else result.guardrails,
+            guardrails=_normalize_guardrails(result.guardrails),
             reasoning=getattr(result, "reasoning", None),
-            confidence=getattr(result, "confidence", None),
+            confidence=_extract_confidence(result),
             backend=strategy.name,  # Use strategy name instead of backend
             prompt_id=_generate_stable_prompt_id(request.idea, request.context, request.mode),
             strategy=strategy.name,
@@ -406,10 +452,13 @@ async def improve_prompt(request: ImprovePromptRequest):
             },
             metrics_warning=metrics_warnings[0] if metrics_warnings else None,
             degradation_flags={
-                "metrics_failed": len(metrics_warnings) > 0,
-                "knn_disabled": selector.get_degradation_flags().get("knn_disabled", False),
-                "complex_strategy_disabled":
-                    selector.get_degradation_flags().get("complex_strategy_disabled", False),
+                DegradationFlag.METRICS_FAILED.value: len(metrics_warnings) > 0,
+                DegradationFlag.KNN_DISABLED.value: selector.get_degradation_flags().get(
+                    DegradationFlag.KNN_DISABLED.value, False
+                ),
+                DegradationFlag.COMPLEX_STRATEGY_DISABLED.value: selector.get_degradation_flags().get(
+                    DegradationFlag.COMPLEX_STRATEGY_DISABLED.value, False
+                ),
             },
         )
 
@@ -465,7 +514,7 @@ class EvaluateQualityRequest(BaseModel):
         default="json",
         description="Template ID to use for evaluation. Must be one of: json, procedure_md, checklist_md, example_md."
     )
-    template_spec: Optional[Dict[str, Any]] = Field(
+    template_spec: dict[str, Any] | None = Field(
         default=None,
         description="Optional template specification override. If not provided, uses DEFAULT_TEMPLATES."
     )
@@ -505,7 +554,7 @@ class EvaluateQualityResponse(BaseModel):
     overall_pass: bool = Field(description="Overall pass status (v0.1 must pass AND v0.2 must have 0 FAILs).")
     overall_status: str = Field(description="Overall status: PASS, WARN, or FAIL.")
     summary: str = Field(description="Human-readable summary of evaluation results.")
-    gates: Dict[str, Dict[str, Any]] = Field(description="Complete gate results with details for each gate.")
+    gates: dict[str, dict[str, Any]] = Field(description="Complete gate results with details for each gate.")
 
 
 @router.post("/evaluate-quality", response_model=EvaluateQualityResponse)
@@ -636,19 +685,10 @@ async def _save_history_async(
         provider = settings.LLM_PROVIDER
 
         # Convert guardrails to list if it's a string
-        guardrails_list = (
-            result.guardrails.split("\n")
-            if isinstance(result.guardrails, str)
-            else result.guardrails
-        )
+        guardrails_list = _normalize_guardrails(result.guardrails)
 
-        # Extract and convert confidence to float if it's a string
-        confidence_value = getattr(result, "confidence", None)
-        if confidence_value is not None:
-            try:
-                confidence_value = float(confidence_value)
-            except (ValueError, TypeError):
-                confidence_value = None
+        # Extract confidence score
+        confidence_value = _extract_confidence(result)
 
         # Create PromptHistory entity
         history = PromptHistory(

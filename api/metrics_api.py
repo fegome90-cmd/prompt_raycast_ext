@@ -9,15 +9,15 @@ Provides endpoints for:
 """
 
 import logging
-from typing import Dict, Any
-from datetime import datetime, UTC, timedelta
-from fastapi import APIRouter, HTTPException, Query, Depends
+from datetime import UTC, datetime, timedelta
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from hemdov.domain.metrics.analyzers import (
     MetricsAnalyzer,
     TrendAnalysis,
 )
-from hemdov.domain.metrics.dimensions import PromptMetrics
 from hemdov.infrastructure.persistence.metrics_repository import (
     SQLiteMetricsRepository,
 )
@@ -26,6 +26,25 @@ from hemdov.interfaces import container
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/metrics", tags=["metrics"])
+
+
+def _calculate_averages(metrics: list) -> dict[str, float]:
+    """Calculate average metrics from list.
+
+    Args:
+        metrics: List of PromptMetrics objects
+
+    Returns:
+        Dict with quality, performance, and impact averages (0.0 if empty list)
+    """
+    if not metrics:
+        return {"quality": 0.0, "performance": 0.0, "impact": 0.0}
+
+    return {
+        "quality": sum(m.quality.composite_score for m in metrics) / len(metrics),
+        "performance": sum(m.performance.performance_score for m in metrics) / len(metrics),
+        "impact": sum(m.impact.impact_score for m in metrics) / len(metrics),
+    }
 
 
 async def get_metrics_repository() -> SQLiteMetricsRepository:
@@ -45,7 +64,7 @@ async def get_metrics_repository() -> SQLiteMetricsRepository:
 @router.get("/summary")
 async def get_metrics_summary(
     repo: SQLiteMetricsRepository = Depends(get_metrics_repository),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get overall metrics summary.
 
@@ -69,23 +88,20 @@ async def get_metrics_summary(
                 "grade_distribution": {},
             }
 
-        # Calculate averages
-        total = len(metrics)
-        avg_quality = sum(m.quality.composite_score for m in metrics) / total
-        avg_performance = sum(m.performance.performance_score for m in metrics) / total
-        avg_impact = sum(m.impact.impact_score for m in metrics) / total
+        # Calculate averages using helper
+        averages = _calculate_averages(metrics)
 
         # Grade distribution
-        grade_dist: Dict[str, int] = {}
+        grade_dist: dict[str, int] = {}
         for m in metrics:
             grade = m.grade
             grade_dist[grade] = grade_dist.get(grade, 0) + 1
 
         return {
-            "total_prompts": total,
-            "average_quality": round(avg_quality, 3),
-            "average_performance": round(avg_performance, 3),
-            "average_impact": round(avg_impact, 3),
+            "total_prompts": len(metrics),
+            "average_quality": round(averages["quality"], 3),
+            "average_performance": round(averages["performance"], 3),
+            "average_impact": round(averages["impact"], 3),
             "grade_distribution": grade_dist,
         }
 
@@ -111,7 +127,7 @@ async def get_metrics_summary(
 async def get_trends(
     days: int = Query(7, ge=1, le=90, description="Number of days to analyze"),
     repo: SQLiteMetricsRepository = Depends(get_metrics_repository),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get trend analysis over time.
 
@@ -132,14 +148,8 @@ async def get_trends(
         end_date = datetime.now(UTC)
         start_date = end_date - timedelta(days=days)
 
-        # Get metrics in date range
-        # Note: Get all and filter in memory (can optimize later with date range query)
-        all_metrics = await repo.get_all(limit=5000)
-
-        filtered = [
-            m for m in all_metrics
-            if start_date <= m.measured_at <= end_date
-        ]
+        # Get metrics in date range using indexed query
+        filtered = await repo.get_by_date_range(start_date, end_date, limit=5000)
 
         if len(filtered) < 2:
             return {
@@ -192,7 +202,7 @@ async def compare_metrics(
     group_a: str = Query(..., description="Filter for group A (e.g., 'model:haiku')"),
     group_b: str = Query(..., description="Filter for group B (e.g., 'model:sonnet')"),
     repo: SQLiteMetricsRepository = Depends(get_metrics_repository),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Compare metrics between two groups (A/B testing).
 
@@ -263,15 +273,17 @@ async def compare_metrics(
                 detail=f"One or both groups have no data. Group A: {len(group_a_metrics)}, Group B: {len(group_b_metrics)}"
             )
 
-        # Calculate averages for group A
-        avg_quality_a = sum(m.quality.composite_score for m in group_a_metrics) / len(group_a_metrics)
-        avg_performance_a = sum(m.performance.performance_score for m in group_a_metrics) / len(group_a_metrics)
-        avg_impact_a = sum(m.impact.impact_score for m in group_a_metrics) / len(group_a_metrics)
+        # Calculate averages using helper
+        averages_a = _calculate_averages(group_a_metrics)
+        averages_b = _calculate_averages(group_b_metrics)
 
-        # Calculate averages for group B
-        avg_quality_b = sum(m.quality.composite_score for m in group_b_metrics) / len(group_b_metrics)
-        avg_performance_b = sum(m.performance.performance_score for m in group_b_metrics) / len(group_b_metrics)
-        avg_impact_b = sum(m.impact.impact_score for m in group_b_metrics) / len(group_b_metrics)
+        # Extract averages for clarity
+        avg_quality_a = averages_a["quality"]
+        avg_performance_a = averages_a["performance"]
+        avg_impact_a = averages_a["impact"]
+        avg_quality_b = averages_b["quality"]
+        avg_performance_b = averages_b["performance"]
+        avg_impact_b = averages_b["impact"]
 
         # Calculate deltas
         quality_delta = avg_quality_b - avg_quality_a

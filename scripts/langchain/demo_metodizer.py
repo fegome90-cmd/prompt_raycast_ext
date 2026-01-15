@@ -5,8 +5,8 @@ to DSPy Architect format with intelligent analysis.
 """
 
 import json
-import sys
 import os
+import sys
 
 # Add parent directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
@@ -90,20 +90,20 @@ Are followup questions needed here:{agent_scratchpad}""",
         results.append(result)
 
         # Display results
-        print(f"\n📋 ORIGINAL IDEA (Synthetic Input):")
+        print("\n📋 ORIGINAL IDEA (Synthetic Input):")
         print(f"   {result['inputs']['original_idea']}")
 
-        print(f"\n🎭 ROLE:")
+        print("\n🎭 ROLE:")
         print(f"   {result['outputs']['role']}")
 
-        print(f"\n🎯 DIRECTIVE:")
+        print("\n🎯 DIRECTIVE:")
         directive = result['outputs']['directive']
         if len(directive) > 100:
             print(f"   {directive[:100]}...")
         else:
             print(f"   {directive}")
 
-        print(f"\n🧠 FRAMEWORK:")
+        print("\n🧠 FRAMEWORK:")
         framework = result['outputs']['framework']
         if framework:
             print(f"   {framework} (confidence: {result['metadata']['quality_scores']['framework_confidence']:.2f})")
@@ -112,9 +112,9 @@ Are followup questions needed here:{agent_scratchpad}""",
                 evidence = result['metadata']['framework_detections'][0]['evidence']
                 print(f"   Evidence: {', '.join(evidence[:3])}")
         else:
-            print(f"   (none detected)")
+            print("   (none detected)")
 
-        print(f"\n🛡️ GUARDRAILS:")
+        print("\n🛡️ GUARDRAILS:")
         guardrails = result['outputs']['guardrails']
         if guardrails:
             if len(guardrails) > 150:
@@ -122,18 +122,18 @@ Are followup questions needed here:{agent_scratchpad}""",
             else:
                 print(f"   {guardrails}")
         else:
-            print(f"   (none detected)")
+            print("   (none detected)")
 
-        print(f"\n📊 QUALITY SCORES:")
+        print("\n📊 QUALITY SCORES:")
         scores = result['metadata']['quality_scores']
         print(f"   Role clarity:          {scores['role_clarity']:.2f}")
         print(f"   Directive specificity:  {scores['directive_specificity']:.2f}")
         print(f"   Framework confidence:  {scores['framework_confidence']:.2f}")
         print(f"   Guardrails measurability: {scores['guardrails_measurability']:.2f}")
-        print(f"   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
         print(f"   Overall quality:        {scores['overall_quality']:.2f}")
 
-        print(f"\n🔍 DETECTED PATTERNS:")
+        print("\n🔍 DETECTED PATTERNS:")
         patterns = result['metadata']['detected_patterns']
         for pattern in patterns[:5]:
             print(f"   • {pattern}")

@@ -8,23 +8,23 @@ Tests cover:
 """
 
 import pytest
+
 from api.quality_gates import (
+    DEFAULT_TEMPLATES,
+    GateSeverity,
+    GateThresholds,
+    TemplateSpec,
     evaluate_output,
     gate1_expected_format,
     gate2_min_completeness,
     gate_a1_filler_detector,
     gate_a4_repetition_detector,
-    gate_j1_empty_value_ratio,
-    gate_p1_real_step_content,
     gate_c1_bullet_specificity,
     gate_e1_non_trivial_code,
+    gate_j1_empty_value_ratio,
+    gate_p1_real_step_content,
     get_template_summary,
-    GateThresholds,
-    TemplateSpec,
-    GateSeverity,
-    DEFAULT_TEMPLATES,
 )
-
 
 # ============================================================================
 # Fixtures

@@ -1,10 +1,12 @@
 """Test OPROOptimizer handles specific exceptions correctly."""
 
+from datetime import UTC, datetime
+from unittest.mock import Mock
+
 import pytest
-from datetime import datetime, UTC
-from unittest.mock import Mock, AsyncMock
-from hemdov.domain.services.oprop_optimizer import OPROOptimizer
+
 from hemdov.domain.dto.nlac_models import PromptObject
+from hemdov.domain.services.oprop_optimizer import OPROOptimizer
 
 
 @pytest.mark.asyncio
