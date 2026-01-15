@@ -4,8 +4,8 @@ from pathlib import Path
 
 def test_cli_main_command():
     """Should have main command entry point"""
-    import sys
     import subprocess
+    import sys
 
     result = subprocess.run(
         [sys.executable, "-m", "scripts.phase3_pipeline.main"],

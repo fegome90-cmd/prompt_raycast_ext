@@ -108,7 +108,7 @@ Answer:"""
     print(f"Dirty input (first 200 chars):\n{dirty_template[:200]}...")
     print(f"\nExpected clean template:\n{clean_template}")
     print(f"\nExtracted template:\n{result}")
-    print(f"\nComparison:")
+    print("\nComparison:")
     print(f"  Expected length: {len(clean_template)}")
     print(f"  Extracted length: {len(result)}")
     print(f"  Match: {result == clean_template}")

@@ -3,7 +3,8 @@ Context Loader Port - Hexagonal Architecture.
 Defines the protocol for loading context data into the domain.
 """
 
-from typing import Protocol, List
+from typing import Protocol
+
 from shared.context_entities import ContextItem
 
 
@@ -13,7 +14,7 @@ class ContextLoader(Protocol):
     Provided by the infrastructure layer.
     """
 
-    def load_all(self, file_paths: List[str]) -> List[ContextItem]:
+    def load_all(self, file_paths: list[str]) -> list[ContextItem]:
         """
         Loads multiple context files and returns a list of ContextItems.
         Must be synchronous to keep the domain simple.

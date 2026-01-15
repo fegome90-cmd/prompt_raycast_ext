@@ -6,7 +6,6 @@ Based on HemDov patterns - 100% reusable across projects.
 """
 
 import os
-from typing import Optional
 
 import dspy
 
@@ -26,8 +25,8 @@ class LiteLLMDSPyAdapter(dspy.LM):
     def __init__(
         self,
         model: str,
-        api_base: Optional[str] = None,
-        api_key: Optional[str] = None,
+        api_base: str | None = None,
+        api_key: str | None = None,
         temperature: float = 0.3,
         max_tokens: int = 2000,
         **kwargs,
@@ -89,7 +88,7 @@ def create_ollama_adapter(
 
 
 def create_gemini_adapter(
-    model: str = "gemini-pro", api_key: Optional[str] = None, **kwargs
+    model: str = "gemini-pro", api_key: str | None = None, **kwargs
 ) -> LiteLLMDSPyAdapter:
     """Create Gemini adapter."""
     return LiteLLMDSPyAdapter(
@@ -100,7 +99,7 @@ def create_gemini_adapter(
 
 
 def create_deepseek_adapter(
-    model: str = "deepseek-chat", api_key: Optional[str] = None, **kwargs
+    model: str = "deepseek-chat", api_key: str | None = None, **kwargs
 ) -> LiteLLMDSPyAdapter:
     """Create DeepSeek adapter."""
     return LiteLLMDSPyAdapter(
@@ -111,7 +110,7 @@ def create_deepseek_adapter(
 
 
 def create_openai_adapter(
-    model: str = "gpt-4o", api_key: Optional[str] = None, **kwargs
+    model: str = "gpt-4o", api_key: str | None = None, **kwargs
 ) -> LiteLLMDSPyAdapter:
     """Create OpenAI adapter."""
     return LiteLLMDSPyAdapter(
@@ -123,7 +122,7 @@ def create_openai_adapter(
 
 def create_anthropic_adapter(
     model: str = "claude-3-haiku-20240307",
-    api_key: Optional[str] = None,
+    api_key: str | None = None,
     base_url: str = "https://api.anthropic.com",
     **kwargs,
 ) -> LiteLLMDSPyAdapter:

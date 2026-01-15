@@ -6,7 +6,6 @@ pairs), so we extract components and generate synthetic inputs.
 """
 
 import re
-from typing import Dict
 
 
 class FormatConverter:
@@ -70,7 +69,7 @@ class FormatConverter:
         r"(?:constraint|limitation|restriction)(?:s)?[:\s]+([^\n]+(?:\n\s+[^A-Z\n].+)*?)(?=\n\n|\n[A-Z]|$)",
     ]
 
-    def to_dspy_format(self, lc_prompt: Dict) -> Dict:
+    def to_dspy_format(self, lc_prompt: dict) -> dict:
         """Convert LangChain prompt to unified DSPy format.
 
         Args:

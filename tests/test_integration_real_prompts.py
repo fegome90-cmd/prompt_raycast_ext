@@ -12,25 +12,24 @@ Prerequisites:
 - Datasets generated (make dataset)
 """
 
-import pytest
-import asyncio
-from httpx import AsyncClient
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from pathlib import Path
 
+import pytest
+from httpx import AsyncClient
+
 from hemdov.domain.dto.nlac_models import (
-    NLaCRequest,
     IntentType,
+    NLaCRequest,
     PromptObject,
 )
 from hemdov.domain.services.intent_classifier import IntentClassifier
-from hemdov.domain.services.nlac_builder import NLaCBuilder
 from hemdov.domain.services.knn_provider import KNNProvider
+from hemdov.domain.services.nlac_builder import NLaCBuilder
 from hemdov.domain.services.oprop_optimizer import OPROOptimizer
-from hemdov.domain.services.reflexion_service import ReflexionService, ReflexionResult
-from hemdov.infrastructure.adapters.litellm_dspy_adapter_prompt import PromptImproverLiteLLMAdapter
 from hemdov.domain.services.prompt_validator import PromptValidator
-
+from hemdov.domain.services.reflexion_service import ReflexionResult, ReflexionService
+from hemdov.infrastructure.adapters.litellm_dspy_adapter_prompt import PromptImproverLiteLLMAdapter
 
 # ============================================================================
 # FIXTURES
@@ -307,7 +306,7 @@ class TestOPROOptimizer:
 
     def test_opro_produces_meta_prompt(self, opro_optimizer):
         """OPRO should generate meta-prompt with examples."""
-        from datetime import datetime, UTC
+        from datetime import UTC, datetime
 
         prompt_obj = PromptObject(
             id="test-opro-1",

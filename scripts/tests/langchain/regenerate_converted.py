@@ -25,7 +25,7 @@ def main():
         return 1
 
     print(f"\n📂 Loading candidates from {candidates_file.name}...")
-    with open(candidates_file, 'r') as f:
+    with open(candidates_file) as f:
         data = json.load(f)
 
     candidates = data.get('candidates', [])
@@ -64,25 +64,25 @@ def main():
         # Verify it's clean
         improved_prompt = converted.get('outputs', {}).get('improved_prompt', '')
         if improved_prompt.startswith('input_variables='):
-            print(f"   ❌ ERROR: Converted prompt is still dirty!")
+            print("   ❌ ERROR: Converted prompt is still dirty!")
         else:
-            print(f"   ✅ Converted successfully!")
+            print("   ✅ Converted successfully!")
 
-    print(f"\n" + "=" * 70)
-    print(f"SUMMARY:")
+    print("\n" + "=" * 70)
+    print("SUMMARY:")
     print(f"  Total candidates: {len(candidates)}")
     print(f"  Regenerated: {regenerated_count}")
     print("=" * 70)
 
     # Save the updated version
-    print(f"\n💾 Saving updated candidates...")
+    print("\n💾 Saving updated candidates...")
     with open(candidates_file, 'w') as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
     print(f"✅ Updated file saved to: {candidates_file}")
 
     # Verify all converted prompts are clean
-    print(f"\n🔍 Verifying all converted prompts are clean...")
+    print("\n🔍 Verifying all converted prompts are clean...")
     all_clean = True
     for candidate in candidates:
         improved_prompt = candidate.get('converted', {}).get('outputs', {}).get('improved_prompt', '')
@@ -91,9 +91,9 @@ def main():
             all_clean = False
 
     if all_clean:
-        print(f"   ✅ All converted prompts are CLEAN!")
+        print("   ✅ All converted prompts are CLEAN!")
     else:
-        print(f"   ❌ Some converted prompts are still dirty")
+        print("   ❌ Some converted prompts are still dirty")
 
     return 0 if all_clean else 1
 

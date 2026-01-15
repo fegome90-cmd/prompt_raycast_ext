@@ -1,16 +1,17 @@
 # eval/src/strategy_selector.py
 import json
 import logging
-from typing import Optional
 from pathlib import Path
-from .complexity_analyzer import ComplexityAnalyzer, ComplexityLevel
-from .strategies.base import PromptImproverStrategy
-from .strategies.simple_strategy import SimpleStrategy
-from .strategies.moderate_strategy import ModerateStrategy
-from .strategies.complex_strategy import ComplexStrategy
-from .strategies.nlac_strategy import NLaCStrategy
+
 from hemdov.domain.services.knn_provider import KNNProvider
 from hemdov.domain.services.llm_protocol import LLMClient
+
+from .complexity_analyzer import ComplexityAnalyzer, ComplexityLevel
+from .strategies.base import PromptImproverStrategy
+from .strategies.complex_strategy import ComplexStrategy
+from .strategies.moderate_strategy import ModerateStrategy
+from .strategies.nlac_strategy import NLaCStrategy
+from .strategies.simple_strategy import SimpleStrategy
 
 logger = logging.getLogger(__name__)
 
@@ -36,11 +37,11 @@ class StrategySelector:
 
     def __init__(
         self,
-        trainset_path: Optional[str] = None,
-        compiled_path: Optional[str] = None,
+        trainset_path: str | None = None,
+        compiled_path: str | None = None,
         fewshot_k: int = 3,
         use_nlac: bool = False,
-        llm_client: Optional[LLMClient] = None,
+        llm_client: LLMClient | None = None,
     ):
         """
         Initialize strategy selector.

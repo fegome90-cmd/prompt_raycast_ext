@@ -8,8 +8,8 @@ Converges in 1-2 iterations vs 3 for OPRO (-33% latency).
 """
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Optional, Callable
 
 from hemdov.domain.services.llm_protocol import LLMClient
 
@@ -23,7 +23,7 @@ class ReflexionResult:
     iteration_count: int
     success: bool
     error_history: list[str] = field(default_factory=list)
-    final_error: Optional[str] = None
+    final_error: str | None = None
 
 
 class ReflexionService:
@@ -41,7 +41,7 @@ class ReflexionService:
     Reference: https://arxiv.org/abs/2303.11366
     """
 
-    def __init__(self, llm_client: Optional[LLMClient] = None, executor: Optional[Callable] = None):
+    def __init__(self, llm_client: LLMClient | None = None, executor: Callable | None = None):
         """
         Initialize ReflexionService.
 
@@ -57,9 +57,9 @@ class ReflexionService:
         self,
         prompt: str,
         error_type: str,
-        error_message: Optional[str] = None,
+        error_message: str | None = None,
         max_iterations: int = 2,
-        initial_context: Optional[str] = None
+        initial_context: str | None = None
     ) -> ReflexionResult:
         """
         Run Reflexion loop to fix/debug code.
@@ -152,7 +152,7 @@ class ReflexionService:
                         )
             else:
                 # No executor - assume success after first iteration
-                logger.info(f"Reflexion generated code (no execution validation)")
+                logger.info("Reflexion generated code (no execution validation)")
                 return ReflexionResult(
                     code=code,
                     iteration_count=iteration,
@@ -174,8 +174,8 @@ class ReflexionService:
         self,
         prompt: str,
         error_type: str,
-        error_message: Optional[str] = None,
-        context: Optional[str] = None
+        error_message: str | None = None,
+        context: str | None = None
     ) -> str:
         """Build initial debugging prompt."""
         parts = [

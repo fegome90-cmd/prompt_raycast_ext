@@ -4,8 +4,10 @@ HemDov Dependency Injection Container
 Simple container for managing dependencies like Settings.
 """
 
-from typing import Callable, Dict, List, Type, TypeVar, Any
 from asyncio import iscoroutinefunction
+from collections.abc import Callable
+from typing import Any, TypeVar
+
 from hemdov.infrastructure.config import settings
 
 T = TypeVar("T")
@@ -15,20 +17,20 @@ class Container:
     """Simple dependency injection container."""
 
     def __init__(self):
-        self._services: Dict[Type, Any] = {}
-        self._singletons: Dict[Type, Any] = {}
-        self._factories: Dict[Type, Callable] = {}
-        self._cleanup_hooks: List[Callable] = []
+        self._services: dict[type, Any] = {}
+        self._singletons: dict[type, Any] = {}
+        self._factories: dict[type, Callable] = {}
+        self._cleanup_hooks: list[Callable] = []
 
-    def register(self, interface: Type[T], implementation: T) -> None:
+    def register(self, interface: type[T], implementation: T) -> None:
         """Register a service implementation."""
         self._services[interface] = implementation
 
-    def register_factory(self, interface: Type[T], factory: Callable[[], T]) -> None:
+    def register_factory(self, interface: type[T], factory: Callable[[], T]) -> None:
         """Register factory function for lazy initialization."""
         self._factories[interface] = factory
 
-    def get(self, interface: Type[T]) -> T:
+    def get(self, interface: type[T]) -> T:
         """Get service, instantiating from factory if needed."""
         # Check services
         if interface in self._services:

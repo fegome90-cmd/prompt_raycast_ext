@@ -2,12 +2,12 @@
 
 Tests the complete workflow: evaluate_dataset → analyze_thresholds → generate_report
 """
-import pytest
 import json
 import tempfile
 from pathlib import Path
-from scripts.eval.evaluate_dataset_gates import evaluate_dataset
+
 from scripts.eval.analyze_thresholds import analyze_thresholds
+from scripts.eval.evaluate_dataset_gates import evaluate_dataset
 from scripts.eval.generate_report import generate_markdown_report
 
 

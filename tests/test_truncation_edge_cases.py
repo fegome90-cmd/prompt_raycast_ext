@@ -8,11 +8,13 @@ Tests for:
 - Exactly at 70% threshold
 - Multiple boundaries
 """
-import pytest
 from unittest.mock import Mock
+
 import dspy
-from eval.src.strategies.simple_strategy import SimpleStrategy
+import pytest
+
 from eval.src.strategies.moderate_strategy import ModerateStrategy
+from eval.src.strategies.simple_strategy import SimpleStrategy
 
 
 def test_truncation_with_no_sentence_boundaries():

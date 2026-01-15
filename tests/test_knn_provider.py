@@ -3,9 +3,11 @@ Tests for KNNProvider service.
 
 Tests ComponentCatalog integration using semantic search.
 """
-import pytest
 from pathlib import Path
-from hemdov.domain.services.knn_provider import KNNProvider, FewShotExample
+
+import pytest
+
+from hemdov.domain.services.knn_provider import FewShotExample, KNNProvider
 
 
 def test_knn_provider_initializes():
@@ -79,8 +81,8 @@ def test_knn_provider_returns_examples_for_any_query():
 
 def test_knn_provider_raises_when_no_examples():
     """KNNProvider should raise ValueError when catalog has no valid examples."""
-    import tempfile
     import json
+    import tempfile
 
     # Create temporary catalog with no valid examples
     with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
@@ -106,7 +108,8 @@ def test_knn_provider_raises_when_no_examples():
 def test_find_examples_raises_after_initialization_failure(tmp_path):
     """find_examples should raise KNNProviderError when vectorizer initialization fails."""
     import json
-    from hemdov.domain.services.knn_provider import KNNProviderError, KNNProvider
+
+    from hemdov.domain.services.knn_provider import KNNProvider, KNNProviderError
 
     # Create catalog with enough examples to bypass early return (len > k)
     # This ensures semantic search path is taken where vectorizer check occurs
@@ -275,6 +278,7 @@ def test_handle_knn_failure_returns_correct_tuple(caplog):
     When: Call handle_knn_failure utility
     Then: Returns (failed=True, error_message)"""
     import logging
+
     from hemdov.domain.services.knn_provider import handle_knn_failure
 
     logger_instance = logging.getLogger("test")
@@ -373,6 +377,7 @@ def test_knn_does_not_raise_below_20_percent_skip_rate(tmp_path):
 def test_compute_cosine_similarities_raises_with_nan_vectors(monkeypatch):
     """_compute_cosine_similarities should raise KNNProviderError with NaN vectors."""
     import numpy as np
+
     from hemdov.domain.services.knn_provider import KNNProvider, KNNProviderError
 
     provider = KNNProvider(catalog_path=Path("datasets/exports/unified-fewshot-pool-v2.json"))
@@ -388,6 +393,7 @@ def test_compute_cosine_similarities_raises_with_nan_vectors(monkeypatch):
 def test_compute_cosine_similarities_raises_with_inf_vectors(monkeypatch):
     """_compute_cosine_similarities should raise KNNProviderError with infinite vectors."""
     import numpy as np
+
     from hemdov.domain.services.knn_provider import KNNProvider, KNNProviderError
 
     provider = KNNProvider(catalog_path=Path("datasets/exports/unified-fewshot-pool-v2.json"))
@@ -566,6 +572,7 @@ def test_find_examples_result_enforces_invariants():
 def test_compute_cosine_similarities_with_zero_norm_vectors():
     """Should handle zero-norm vectors gracefully (return 0 similarity)."""
     import numpy as np
+
     from hemdov.domain.services.knn_provider import KNNProvider
 
     provider = KNNProvider(catalog_path=Path("datasets/exports/unified-fewshot-pool-v2.json"))
@@ -585,6 +592,7 @@ def test_compute_cosine_similarities_with_zero_norm_vectors():
 def test_knn_provider_accepts_repository():
     """KNNProvider should accept CatalogRepositoryInterface."""
     from unittest.mock import Mock
+
     from hemdov.infrastructure.repositories.catalog_repository import CatalogRepositoryInterface
 
     mock_repo = Mock(spec=CatalogRepositoryInterface)
@@ -739,6 +747,7 @@ def test_knn_provider_error_is_runtime_error():
 def test_knn_propagates_repository_permission_error():
     """KNNProvider should propagate PermissionError from repository."""
     from unittest.mock import Mock
+
     from hemdov.infrastructure.repositories.catalog_repository import CatalogRepositoryInterface
 
     mock_repo = Mock(spec=CatalogRepositoryInterface)

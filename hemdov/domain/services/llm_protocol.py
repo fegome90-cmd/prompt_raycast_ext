@@ -3,7 +3,7 @@ LLM Client Protocol - Type-safe interface for LLM providers.
 
 Defines the expected interface for LLM clients used across domain services.
 """
-from typing import Protocol, Any
+from typing import Any, Protocol
 
 
 class LLMClient(Protocol):

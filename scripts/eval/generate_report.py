@@ -4,8 +4,8 @@ Generate markdown report from evaluation results.
 
 import json
 import logging
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
@@ -136,7 +136,7 @@ This evaluation used the following approach:
     try:
         with open(output_path, 'w') as f:
             f.write(report)
-    except IOError as e:
+    except OSError as e:
         logger.error(f"Failed to write report: {e}")
         raise SystemExit(1)
 

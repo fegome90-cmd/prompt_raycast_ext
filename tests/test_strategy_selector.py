@@ -1,9 +1,9 @@
 # tests/test_strategy_selector.py
-from eval.src.strategy_selector import StrategySelector
-from eval.src.strategies.simple_strategy import SimpleStrategy
-from eval.src.strategies.moderate_strategy import ModerateStrategy
-from eval.src.strategies.complex_strategy import ComplexStrategy
 from eval.src.complexity_analyzer import ComplexityLevel
+from eval.src.strategies.complex_strategy import ComplexStrategy
+from eval.src.strategies.moderate_strategy import ModerateStrategy
+from eval.src.strategies.simple_strategy import SimpleStrategy
+from eval.src.strategy_selector import StrategySelector
 
 
 def test_selector_returns_simple_for_short_input():

@@ -7,20 +7,20 @@ Tests that verify:
 - No regressions: Quality doesn't degrade from baseline
 """
 
-import pytest
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 
+import pytest
+
+from eval.src.strategies.nlac_strategy import NLaCStrategy
 from hemdov.domain.dto.nlac_models import (
-    NLaCRequest,
     IntentType,
     NLaCInputs,
+    NLaCRequest,
 )
 from hemdov.domain.services import (
     NLaCBuilder,
-    OPROOptimizer,
     PromptValidator,
 )
-from eval.src.strategies.nlac_strategy import NLaCStrategy
 
 
 class TestNLaCRegression:

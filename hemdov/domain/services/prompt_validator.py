@@ -6,8 +6,7 @@ Implements Reflexion loop (1 retry) for autocorrection.
 """
 
 import logging
-from typing import List, Tuple
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 
 from hemdov.domain.dto.nlac_models import PromptObject
 
@@ -30,7 +29,7 @@ class PromptValidator:
         """Initialize validator with optional LLM client."""
         self.llm_client = llm_client
 
-    def validate(self, prompt_obj: PromptObject) -> Tuple[bool, List[str]]:
+    def validate(self, prompt_obj: PromptObject) -> tuple[bool, list[str]]:
         """
         Validate prompt against constraints.
 
@@ -64,7 +63,7 @@ class PromptValidator:
         logger.warning(f"Autocorrection failed, returning warnings: {warnings}")
         return False, warnings
 
-    def _check_constraints(self, prompt_obj: PromptObject) -> List[str]:
+    def _check_constraints(self, prompt_obj: PromptObject) -> list[str]:
         """Check all constraints and return list of warnings."""
         warnings = []
         template = prompt_obj.template
@@ -149,7 +148,7 @@ class PromptValidator:
         template_lower = template.lower()
         return any(indicator in template_lower for indicator in explanation_indicators)
 
-    def _autocorrect(self, prompt_obj: PromptObject, warnings: List[str]) -> bool:
+    def _autocorrect(self, prompt_obj: PromptObject, warnings: list[str]) -> bool:
         """
         Attempt autocorrection (Reflexion loop).
 
@@ -182,7 +181,7 @@ class PromptValidator:
 
         return False
 
-    def _simple_autocorrect(self, prompt_obj: PromptObject, warnings: List[str]) -> bool:
+    def _simple_autocorrect(self, prompt_obj: PromptObject, warnings: list[str]) -> bool:
         """
         Simple autocorrection without LLM (testing fallback).
 
@@ -232,7 +231,7 @@ class PromptValidator:
 
         return False
 
-    def _build_correction_prompt(self, prompt_obj: PromptObject, warnings: List[str]) -> str:
+    def _build_correction_prompt(self, prompt_obj: PromptObject, warnings: list[str]) -> str:
         """Build correction prompt for LLM."""
         issues = '\n'.join(f'- {w}' for w in warnings)
 

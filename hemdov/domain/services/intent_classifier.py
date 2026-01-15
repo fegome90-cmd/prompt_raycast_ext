@@ -13,9 +13,8 @@ Based on MultiAIGCD scenarios:
 
 import logging
 import re
-from typing import Optional
 
-from hemdov.domain.dto.nlac_models import NLaCRequest, IntentType
+from hemdov.domain.dto.nlac_models import IntentType, NLaCRequest
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +47,7 @@ class IntentClassifier:
         # Debug keywords (negative sentiment + error indicators)
         self._debug_keywords = {
             "error", "bug", "fix", "broken", "crash", "fail",
-            "incorrecto", "error", "fallo", "rompe", "no funciona"
+            "incorrecto", "fallo", "rompe", "no funciona"
         }
 
         # Refactor/Optimization verbs
@@ -197,7 +196,7 @@ class IntentClassifier:
         """
         negative_words = {
             "error", "fail", "broken", "wrong", "bad", "frustrating",
-            "error", "fallo", "roto", "mal", "frustrante"
+            "fallo", "roto", "mal", "frustrante"
         }
 
         positive_words = {

@@ -8,9 +8,9 @@ and that DSPy KNNFewShot can load the updated pool successfully.
 
 import json
 import sys
-from pathlib import Path
-from typing import Dict, List, Any
 from hashlib import sha256
+from pathlib import Path
+from typing import Any
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -37,7 +37,7 @@ class PostMergeValidator:
     def load_pool(self) -> bool:
         """Load the unified pool from JSON."""
         try:
-            with open(self.pool_path, 'r', encoding='utf-8') as f:
+            with open(self.pool_path, encoding='utf-8') as f:
                 self.pool_data = json.load(f)
             self.examples = self.pool_data.get('examples', [])
             return True
@@ -261,7 +261,7 @@ class PostMergeValidator:
             framework_counts[fw] = framework_counts.get(fw, 0) + 1
 
         # Check that RAG is present
-        has_rag = 'rag' in [k.lower() for k in framework_counts.keys()]
+        has_rag = 'rag' in [k.lower() for k in framework_counts]
 
         # Check that no single framework dominates > 80%
         total = len(self.examples)
@@ -293,13 +293,13 @@ class PostMergeValidator:
         )
         return passed
 
-    def run_all_tests(self) -> Dict[str, Any]:
+    def run_all_tests(self) -> dict[str, Any]:
         """Run all validation tests."""
         print("=" * 80)
         print("POST-MERGE VALIDATION TESTS")
         print("=" * 80)
         print(f"\nPool: {self.pool_path}")
-        print(f"Loading pool...")
+        print("Loading pool...")
 
         if not self.load_pool():
             print("\n❌ Failed to load pool, aborting tests")
@@ -343,7 +343,7 @@ class PostMergeValidator:
         print(f"Success Rate: {passed / len(self.test_results) * 100:.1f}%")
 
         if failed == 0:
-            print(f"\n✅ All tests passed! Pool is ready for production.")
+            print("\n✅ All tests passed! Pool is ready for production.")
         else:
             print(f"\n❌ {failed} test(s) failed. Review and fix issues.")
 

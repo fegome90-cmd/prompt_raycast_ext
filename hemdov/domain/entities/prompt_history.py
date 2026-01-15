@@ -6,8 +6,7 @@ Represents a single prompt improvement event with full audit trail.
 """
 import logging
 from dataclasses import dataclass
-from datetime import datetime, UTC
-from typing import Optional
+from datetime import UTC, datetime
 
 logger = logging.getLogger(__name__)
 
@@ -37,10 +36,10 @@ class PromptHistory:
     provider: str
 
     # Optional fields with defaults
-    reasoning: Optional[str] = None
-    confidence: Optional[float] = None
-    latency_ms: Optional[int] = None
-    created_at: Optional[str] = None
+    reasoning: str | None = None
+    confidence: float | None = None
+    latency_ms: int | None = None
+    created_at: str | None = None
 
     def __post_init__(self):
         """Validate business invariants."""

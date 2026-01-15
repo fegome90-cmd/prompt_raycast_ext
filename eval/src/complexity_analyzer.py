@@ -2,7 +2,6 @@
 # DEPRECATED: This module has moved to hemdov/domain/services/complexity_analyzer.py
 # This file is kept for backward compatibility but should not be used in new code.
 # Please import from: from hemdov.domain.services import ComplexityAnalyzer, ComplexityLevel
-import warnings
 import re
 from enum import Enum
 

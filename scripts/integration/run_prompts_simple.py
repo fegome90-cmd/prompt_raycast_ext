@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Test rápido de DSPy PromptImprover con prompts genéricos"""
 
-import requests
-import json
 import time
+
+import requests
 
 API_URL = "http://localhost:8001/api/v1/improve-prompt"
 

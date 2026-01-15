@@ -119,7 +119,7 @@ def bootstrap_calibration() -> dict:
     # Analyze score distribution
     scores = [r["score"] for r in results]
 
-    print(f"\n📊 Score Distribution Analysis:")
+    print("\n📊 Score Distribution Analysis:")
     print(f"   Count: {len(scores)}")
     print(f"   Min: {min(scores):.2f}")
     print(f"   Max: {max(scores):.2f}")
@@ -128,7 +128,7 @@ def bootstrap_calibration() -> dict:
     print(f"   Std Dev: {statistics.stdev(scores) if len(scores) > 1 else 0:.3f}")
 
     # Calculate score distribution buckets
-    print(f"\n📈 Score Distribution:")
+    print("\n📈 Score Distribution:")
     buckets = {
         "0.0": 0,
         "0.33": 0,
@@ -166,7 +166,7 @@ def bootstrap_calibration() -> dict:
         # Most prompts score well, use higher threshold
         calibrated_threshold = 0.67
         print(f"\n💡 High-quality distribution detected (p60={percentile_60:.2f})")
-        print(f"   Using threshold: 0.67")
+        print("   Using threshold: 0.67")
     elif percentile_50 >= 0.5:
         # Median is good, use it
         calibrated_threshold = round(percentile_50, 2)
@@ -176,20 +176,20 @@ def bootstrap_calibration() -> dict:
         # Low scores, use conservative threshold
         calibrated_threshold = 0.5
         print(f"\n⚠️  Low-score distribution detected (median={percentile_50:.2f})")
-        print(f"   Using conservative threshold: 0.5")
+        print("   Using conservative threshold: 0.5")
 
     pass_count = sum(1 for r in results if r["score"] >= calibrated_threshold)
     pass_rate = pass_count / len(results)
 
-    print(f"\n✅ Calibration Results:")
+    print("\n✅ Calibration Results:")
     print(f"   Threshold: {calibrated_threshold}")
     print(f"   Pass rate: {pass_count}/{len(results)} ({pass_rate:.1%})")
 
     # Check for score distribution issues
     if len(buckets) <= 2:
-        print(f"\n⚠️  WARNING: Narrow score distribution!")
+        print("\n⚠️  WARNING: Narrow score distribution!")
         print(f"   Only {len(buckets)} unique score values detected.")
-        print(f"   Consider adjusting constraints for better discrimination.")
+        print("   Consider adjusting constraints for better discrimination.")
 
     # Save calibration data
     calibration_output = Path("data/ifeval-calibration.json")
@@ -226,7 +226,7 @@ def bootstrap_calibration() -> dict:
         json.dump(calibration_data, f, indent=2)
 
     print(f"\n💾 Calibration saved to {calibration_output}")
-    print(f"\n📋 Sample prompt scores (first 5):")
+    print("\n📋 Sample prompt scores (first 5):")
     for i, result in enumerate(results[:5]):
         status = "✅" if result["score"] >= calibrated_threshold else "❌"
         print(f"   {status} Prompt {i+1}: score={result['score']:.2f}, length={result['prompt_length']}")

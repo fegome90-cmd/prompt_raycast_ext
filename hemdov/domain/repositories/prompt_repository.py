@@ -1,7 +1,5 @@
 # hemdov/domain/repositories/prompt_repository.py
 from abc import ABC, abstractmethod
-from typing import List, Optional
-from datetime import datetime
 
 from hemdov.domain.entities.prompt_history import PromptHistory
 
@@ -25,7 +23,7 @@ class PromptRepository(ABC):
         pass
 
     @abstractmethod
-    async def find_by_id(self, history_id: int) -> Optional[PromptHistory]:
+    async def find_by_id(self, history_id: int) -> PromptHistory | None:
         """Find a prompt history by ID."""
         pass
 
@@ -34,14 +32,14 @@ class PromptRepository(ABC):
         self,
         limit: int = 50,
         offset: int = 0,
-        provider: Optional[str] = None,
-        backend: Optional[str] = None,
-    ) -> List[PromptHistory]:
+        provider: str | None = None,
+        backend: str | None = None,
+    ) -> list[PromptHistory]:
         """Find recent prompts with optional filters."""
         pass
 
     @abstractmethod
-    async def search(self, query: str, limit: int = 20) -> List[PromptHistory]:
+    async def search(self, query: str, limit: int = 20) -> list[PromptHistory]:
         """Search prompts by text content."""
         pass
 

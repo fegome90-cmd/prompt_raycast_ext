@@ -1,8 +1,7 @@
 """Tests for ExampleGenerator."""
 
-import pytest
-from scripts.synthetic_examples.generators.example_generator import ExampleGenerator
 from scripts.legacy_curation.models import Component, Domain
+from scripts.synthetic_examples.generators.example_generator import ExampleGenerator
 
 
 def test_generate_example_missing_required_fields():

@@ -9,8 +9,8 @@ Tests:
 """
 
 import os
-import time
 import sys
+import time
 from pathlib import Path
 
 # Add parent dir to path
@@ -34,18 +34,19 @@ def test_backend_with_fewshot():
     print(f"   DSPY_FEWSHOT_K: {os.getenv('DSPY_FEWSHOT_K')}")
 
     # Import after setting environment
-    from hemdov.infrastructure.config import Settings
-    from hemdov.interfaces import container
     import dspy
 
+    from hemdov.infrastructure.config import Settings
+    from hemdov.interfaces import container
+
     settings = container.get(Settings)
-    print(f"\n✓ Settings loaded:")
+    print("\n✓ Settings loaded:")
     print(f"   FEWSHOT_ENABLED: {settings.DSPY_FEWSHOT_ENABLED}")
     print(f"   TRAINSET_PATH: {settings.DSPY_FEWSHOT_TRAINSET_PATH}")
     print(f"   K: {settings.DSPY_FEWSHOT_K}")
 
     # Configure DSPy LM
-    print(f"\n🔧 Configuring DSPy LM...")
+    print("\n🔧 Configuring DSPy LM...")
     from hemdov.infrastructure.adapters.litellm_dspy_adapter_prompt import create_deepseek_adapter
     lm = create_deepseek_adapter(
         model=settings.LLM_MODEL,
@@ -56,16 +57,16 @@ def test_backend_with_fewshot():
     print(f"   ✓ DSPy configured with {settings.LLM_MODEL}")
 
     # Test API import
-    print(f"\n📦 Testing API imports...")
+    print("\n📦 Testing API imports...")
     try:
         from api.prompt_improver_api import get_fewshot_improver, get_prompt_improver
-        print(f"   ✓ Imports successful")
+        print("   ✓ Imports successful")
     except Exception as e:
         print(f"   ✗ Import failed: {e}")
         return False
 
     # Initialize few-shot improver (this will compile with training set)
-    print(f"\n🔧 Initializing few-shot improver (may take a moment)...")
+    print("\n🔧 Initializing few-shot improver (may take a moment)...")
     start = time.time()
     try:
         fewshot_improver = get_fewshot_improver(settings)
@@ -79,11 +80,11 @@ def test_backend_with_fewshot():
         return False
 
     # Test inference
-    print(f"\n🧪 Testing inference...")
+    print("\n🧪 Testing inference...")
     test_idea = "Documenta una función TypeScript que calcula el factorial"
 
     # Few-shot
-    print(f"\n   Few-shot mode:")
+    print("\n   Few-shot mode:")
     start = time.time()
     try:
         result_fewshot = fewshot_improver(original_idea=test_idea, context="")
@@ -98,7 +99,7 @@ def test_backend_with_fewshot():
         return False
 
     # Zero-shot (for comparison)
-    print(f"\n   Zero-shot mode (for comparison):")
+    print("\n   Zero-shot mode (for comparison):")
     zero_improver = get_prompt_improver(settings)
     start = time.time()
     try:
@@ -112,7 +113,7 @@ def test_backend_with_fewshot():
         return False
 
     # Comparison
-    print(f"\n📊 Comparison:")
+    print("\n📊 Comparison:")
     latency_diff = ((elapsed_fewshot - elapsed_zero) / elapsed_zero) * 100
     print(f"   Latency delta: {latency_diff:+.1f}%")
 
@@ -123,7 +124,7 @@ def test_backend_with_fewshot():
             conf_delta = conf_fewshot - conf_zero
             print(f"   Confidence delta: {conf_delta:+.3f}")
         except (ValueError, TypeError):
-            print(f"   Confidence delta: N/A")
+            print("   Confidence delta: N/A")
 
     print("\n" + "=" * 60)
     print("✓ All tests passed!")

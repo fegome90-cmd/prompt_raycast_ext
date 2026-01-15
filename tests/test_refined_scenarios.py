@@ -6,15 +6,10 @@ Tests the 3 MultiAIGCD-refined scenarios:
 2. REFACTOR with Expected Output - Scenario III
 3. GENERATE with RaR scope constraints
 """
-import pytest
-from pathlib import Path
-from unittest.mock import Mock, MagicMock
-import dspy
+from unittest.mock import Mock
 
 from hemdov.domain.dto.nlac_models import NLaCRequest
-from hemdov.domain.services.knn_provider import KNNProvider
 from hemdov.domain.services.reflexion_service import ReflexionService
-
 
 # ============================================================================
 # Scenario 1: DEBUG with Reflexion (MultiAIGCD Scenario II)
@@ -174,8 +169,8 @@ class TestNLaCPipelineIntegration:
 
     def test_nlac_builder_with_mock_knn(self):
         """NLaCBuilder should inject KNN examples when KNNProvider is available"""
-        from hemdov.domain.services.nlac_builder import NLaCBuilder
         from hemdov.domain.services.knn_provider import FewShotExample
+        from hemdov.domain.services.nlac_builder import NLaCBuilder
 
         # Create mock KNNProvider
         mock_knn = Mock()
@@ -218,8 +213,8 @@ class TestOPROWithKNNIntegration:
 
     def test_opro_without_knn(self):
         """OPROOptimizer should work without KNNProvider"""
+        from hemdov.domain.dto.nlac_models import IntentType, PromptObject
         from hemdov.domain.services.oprop_optimizer import OPROOptimizer
-        from hemdov.domain.dto.nlac_models import PromptObject, IntentType
 
         optimizer = OPROOptimizer(llm_client=None, knn_provider=None)
 
@@ -241,9 +236,9 @@ class TestOPROWithKNNIntegration:
 
     def test_opro_with_mock_knn(self):
         """OPROOptimizer should include KNN examples in meta-prompt"""
-        from hemdov.domain.services.oprop_optimizer import OPROOptimizer
-        from hemdov.domain.dto.nlac_models import PromptObject, IntentType
+        from hemdov.domain.dto.nlac_models import IntentType, PromptObject
         from hemdov.domain.services.knn_provider import FewShotExample
+        from hemdov.domain.services.oprop_optimizer import OPROOptimizer
 
         # Create mock KNNProvider
         mock_knn = Mock()

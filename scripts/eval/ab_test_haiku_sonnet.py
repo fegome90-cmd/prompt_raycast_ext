@@ -1,8 +1,7 @@
 """A/B Test: Haiku 4.5 vs Sonnet 4.5 for DSPy Prompt Improver"""
 
-import os
-import time
 import json
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -120,7 +119,7 @@ def main():
     latency_diff = haiku['avg_latency_ms'] - sonnet['avg_latency_ms']
     confidence_diff = haiku['avg_confidence'] - sonnet['avg_confidence']
     
-    print(f"\n📊 Comparison:")
+    print("\n📊 Comparison:")
     print(f"  Latency difference: {latency_diff:+.0f}ms ({'Haiku faster' if latency_diff < 0 else 'Sonnet faster'})")
     print(f"  Confidence difference: {confidence_diff:+.3f}")
     

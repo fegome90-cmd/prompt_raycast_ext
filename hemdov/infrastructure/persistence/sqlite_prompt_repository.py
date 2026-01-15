@@ -7,16 +7,16 @@ Async repository implementation using aiosqlite with:
 - Graceful error handling
 - Prompt caching with SHA256 keys
 """
-import aiosqlite
-import json
 import asyncio
+import json
 import logging
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import List, Optional
-from datetime import datetime, UTC
 
-from hemdov.domain.repositories.prompt_repository import PromptRepository
+import aiosqlite
+
 from hemdov.domain.entities.prompt_history import PromptHistory
+from hemdov.domain.repositories.prompt_repository import PromptRepository
 from hemdov.infrastructure.config import Settings
 from hemdov.infrastructure.persistence.migrations import run_migrations
 
@@ -43,7 +43,7 @@ class SQLitePromptRepository(PromptRepository):
         """
         self.settings = settings
         self.db_path = Path(settings.SQLITE_DB_PATH)
-        self._connection: Optional[aiosqlite.Connection] = None
+        self._connection: aiosqlite.Connection | None = None
         self._lock = asyncio.Lock()
 
     async def _get_connection(self) -> aiosqlite.Connection:
@@ -122,7 +122,7 @@ class SQLitePromptRepository(PromptRepository):
             logger.debug(f"Saved prompt history (id={cursor.lastrowid})")
             return cursor.lastrowid
 
-    async def find_by_id(self, history_id: int) -> Optional[PromptHistory]:
+    async def find_by_id(self, history_id: int) -> PromptHistory | None:
         """
         Find a prompt history record by ID.
 
@@ -148,9 +148,9 @@ class SQLitePromptRepository(PromptRepository):
         self,
         limit: int = 50,
         offset: int = 0,
-        provider: Optional[str] = None,
-        backend: Optional[str] = None,
-    ) -> List[PromptHistory]:
+        provider: str | None = None,
+        backend: str | None = None,
+    ) -> list[PromptHistory]:
         """
         Find recent prompt history records with optional filters.
 
@@ -185,7 +185,7 @@ class SQLitePromptRepository(PromptRepository):
                 rows = await cursor.fetchall()
                 return [self._row_to_entity(row) for row in rows]
 
-    async def search(self, query: str, limit: int = 20) -> List[PromptHistory]:
+    async def search(self, query: str, limit: int = 20) -> list[PromptHistory]:
         """
         Search prompt history by text content.
 
@@ -285,7 +285,7 @@ class SQLitePromptRepository(PromptRepository):
         # Safely parse JSON, fallback to safe default on corruption
         try:
             guardrails = json.loads(row["guardrails"])
-        except (json.JSONDecodeError, TypeError) as e:
+        except (json.JSONDecodeError, TypeError):
             logger.exception(
                 f"Invalid JSON in guardrails for record {row['id']}. "
                 f"Raw value: {repr(str(row['guardrails'])[:200])}. Using fallback value."
@@ -314,7 +314,7 @@ class SQLitePromptRepository(PromptRepository):
     # Cache Operations
     # ============================================================================
 
-    async def get_cached_prompt(self, cache_key: str) -> Optional[dict]:
+    async def get_cached_prompt(self, cache_key: str) -> dict | None:
         """
         Retrieve cached prompt by cache key.
 

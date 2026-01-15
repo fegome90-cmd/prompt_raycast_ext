@@ -9,11 +9,13 @@ Tests cover:
 - Error recovery
 """
 
-import pytest
 import asyncio
-from datetime import datetime, UTC
-from unittest.mock import AsyncMock, MagicMock, patch
-from hemdov.domain.dto.nlac_models import NLaCRequest, PromptObject, IntentType
+from datetime import UTC, datetime
+from unittest.mock import AsyncMock
+
+import pytest
+
+from hemdov.domain.dto.nlac_models import IntentType, NLaCRequest, PromptObject
 from hemdov.domain.services.prompt_cache import PromptCache
 
 

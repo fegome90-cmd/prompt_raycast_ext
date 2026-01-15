@@ -3,9 +3,8 @@
 Shows the improvements in extraction quality and analysis depth.
 """
 
-import json
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
@@ -77,7 +76,7 @@ Thought:{agent_scratchpad}"""
     print(f"Guardrails: {pm_result['outputs']['guardrails'][:80]}..." if len(pm_result['outputs']['guardrails']) > 80 else f"Guardrails: {pm_result['outputs']['guardrails'] or '(none)'}")
     print(f"Idea:       {pm_result['inputs']['original_idea']}")
 
-    print(f"\nQuality Scores:")
+    print("\nQuality Scores:")
     scores = pm_result['metadata']['quality_scores']
     print(f"  Role clarity:          {scores['role_clarity']:.2f}")
     print(f"  Directive specificity:  {scores['directive_specificity']:.2f}")
@@ -85,11 +84,11 @@ Thought:{agent_scratchpad}"""
     print(f"  Guardrails measurability: {scores['guardrails_measurability']:.2f}")
     print(f"  Overall quality:        {scores['overall_quality']:.2f}")
 
-    print(f"\nDetected Patterns:")
+    print("\nDetected Patterns:")
     for pattern in pm_result['metadata']['detected_patterns'][:5]:
         print(f"  • {pattern}")
 
-    print(f"\nFramework Evidence:")
+    print("\nFramework Evidence:")
     evidence = pm_result['metadata']['framework_detections'][0]['evidence']
     for ev in evidence[:3]:
         print(f"  • {ev}")

@@ -2,13 +2,12 @@
 
 import json
 from pathlib import Path
-from typing import List, Optional
 
 from scripts.legacy_curation.models import Component, Domain
 from scripts.synthetic_examples.config import CONFIDENCE_THRESHOLD, DEFAULT_CATALOG_PATH
 
 
-def load_component_catalog(path: Optional[str] = None) -> List[Component]:
+def load_component_catalog(path: str | None = None) -> list[Component]:
     """Load and validate component catalog from JSON file.
 
     Args:
@@ -29,13 +28,13 @@ def load_component_catalog(path: Optional[str] = None) -> List[Component]:
         raise ValueError(f"File not found: {path}")
 
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             data = json.load(f)
     except json.JSONDecodeError as e:
         raise ValueError(f"Invalid JSON in {path}: {e}")
 
     if "components" not in data:
-        raise ValueError(f"Invalid catalog format: missing 'components' field")
+        raise ValueError("Invalid catalog format: missing 'components' field")
 
     components = []
     for comp_data in data["components"]:

@@ -4,10 +4,10 @@ HemDov Infrastructure Settings
 Configuration management for DSPy modules and adapters.
 """
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import Optional
 import os
+from typing import Optional
 
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Feature flags for NLaC pipeline (imported but kept separate)
 from hemdov.infrastructure.config.feature_flags import FeatureFlags
@@ -19,27 +19,27 @@ class Settings(BaseSettings):
     # LLM Provider Settings
     LLM_PROVIDER: str = "ollama"  # ollama, gemini, deepseek, openai, anthropic
     LLM_MODEL: str = "hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M"
-    LLM_BASE_URL: Optional[str] = "http://localhost:11434"
-    LLM_API_KEY: Optional[str] = None
-    GEMINI_API_KEY: Optional[str] = None
-    DEEPSEEK_API_KEY: Optional[str] = None
-    OPENAI_API_KEY: Optional[str] = None
-    ANTHROPIC_API_KEY: Optional[str] = None
-    HEMDOV_ANTHROPIC_API_KEY: Optional[str] = None
+    LLM_BASE_URL: str | None = "http://localhost:11434"
+    LLM_API_KEY: str | None = None
+    GEMINI_API_KEY: str | None = None
+    DEEPSEEK_API_KEY: str | None = None
+    OPENAI_API_KEY: str | None = None
+    ANTHROPIC_API_KEY: str | None = None
+    HEMDOV_ANTHROPIC_API_KEY: str | None = None
 
     # DSPy Settings
     DSPY_MAX_BOOTSTRAPPED_DEMOS: int = 5
     DSPY_MAX_LABELED_DEMOS: int = 3
-    DSPY_COMPILED_PATH: Optional[str] = None
+    DSPY_COMPILED_PATH: str | None = None
 
     # Few-Shot Settings
     # USE_KNN_FEWSHOT is an alias for DSPY_FEWSHOT_ENABLED for backward compatibility
     # USE_KNN_FEWSHOT takes precedence if both are set
     USE_KNN_FEWSHOT: bool = True
     DSPY_FEWSHOT_ENABLED: bool = False
-    DSPY_FEWSHOT_TRAINSET_PATH: Optional[str] = None
+    DSPY_FEWSHOT_TRAINSET_PATH: str | None = None
     DSPY_FEWSHOT_K: int = 3
-    DSPY_FEWSHOT_COMPILED_PATH: Optional[str] = "models/prompt_improver_fewshot.json"
+    DSPY_FEWSHOT_COMPILED_PATH: str | None = "models/prompt_improver_fewshot.json"
 
     def get_fewshot_enabled(self) -> bool:
         """Get the few-shot enabled flag, checking both USE_KNN_FEWSHOT and DSPY_FEWSHOT_ENABLED.

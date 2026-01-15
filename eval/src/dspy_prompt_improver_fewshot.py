@@ -6,12 +6,12 @@ Extends PromptImprover with KNNFewShot compilation for better quality.
 
 import json
 from pathlib import Path
-from typing import List, Optional, Callable
-import numpy as np
+
 import dspy
+import numpy as np
 
 # Import base PromptImprover
-from .dspy_prompt_improver import PromptImprover, PromptImproverSignature
+from .dspy_prompt_improver import PromptImprover
 
 
 class FixedVocabularyVectorizer:
@@ -21,7 +21,7 @@ class FixedVocabularyVectorizer:
     to work with different DSPy versions.
     """
 
-    def __init__(self, vocabulary: Optional[List[str]] = None):
+    def __init__(self, vocabulary: list[str] | None = None):
         """Initialize with optional vocabulary.
 
         Args:
@@ -29,7 +29,7 @@ class FixedVocabularyVectorizer:
         """
         self.vocabulary = vocabulary or []
 
-    def fit(self, texts: List[str]) -> 'FixedVocabularyVectorizer':
+    def fit(self, texts: list[str]) -> 'FixedVocabularyVectorizer':
         """Build vocabulary from texts."""
         ngrams = set()
         for text in texts:
@@ -40,7 +40,7 @@ class FixedVocabularyVectorizer:
         self.vocabulary = list(ngrams)
         return self
 
-    def transform(self, texts: List[str]) -> np.ndarray:
+    def transform(self, texts: list[str]) -> np.ndarray:
         """Transform texts to feature vectors."""
         vectors = []
         for text in texts:
@@ -60,11 +60,11 @@ class FixedVocabularyVectorizer:
 
         return np.array(vectors)
 
-    def fit_transform(self, texts: List[str]) -> np.ndarray:
+    def fit_transform(self, texts: list[str]) -> np.ndarray:
         """Fit and transform."""
         return self.fit(texts).transform(texts)
 
-    def __call__(self, texts: List[str]) -> np.ndarray:
+    def __call__(self, texts: list[str]) -> np.ndarray:
         """Make vectorizer callable.
 
         This allows it to work with DSPy's KNNFewShot.
@@ -92,7 +92,7 @@ class PromptImproverWithFewShot(dspy.Module):
 
     def __init__(
         self,
-        compiled_path: Optional[str] = None,
+        compiled_path: str | None = None,
         k: int = 3,
         fallback_to_zeroshot: bool = True
     ):
@@ -109,7 +109,7 @@ class PromptImproverWithFewShot(dspy.Module):
         self.k = k
         self.fallback_to_zeroshot = fallback_to_zeroshot
         self._compiled = False
-        self.compiled_improver: Optional[dspy.Module] = None
+        self.compiled_improver: dspy.Module | None = None
 
         # Try to load existing compiled module
         if compiled_path and Path(compiled_path).exists():
@@ -126,7 +126,7 @@ class PromptImproverWithFewShot(dspy.Module):
             return
         metadata_path = Path(self.compiled_path).with_suffix('.metadata.json')
         if metadata_path.exists():
-            with open(metadata_path, 'r') as f:
+            with open(metadata_path) as f:
                 metadata = json.load(f)
             self._compiled = metadata.get('compiled', False)
             # Note: Actual compiled module needs to be recreated
@@ -150,8 +150,8 @@ class PromptImproverWithFewShot(dspy.Module):
 
     def compile(
         self,
-        trainset: List[dspy.Example],
-        k: Optional[int] = None
+        trainset: list[dspy.Example],
+        k: int | None = None
     ) -> None:
         """Compile with KNNFewShot.
 
@@ -182,17 +182,17 @@ class PromptImproverWithFewShot(dspy.Module):
             self.compiled_improver = knn_fewshot.compile(self.base_improver)
 
             self._compiled = True
-            print(f"✓ Compilation complete")
+            print("✓ Compilation complete")
 
             # Save metadata
             if self.compiled_path:
                 self._save_compiled_metadata(len(trainset))
-                print(f"✓ Saved compilation metadata")
+                print("✓ Saved compilation metadata")
 
         except Exception as e:
             print(f"✗ Compilation failed: {e}")
             if self.fallback_to_zeroshot:
-                print(f"⚠️  Falling back to zero-shot mode")
+                print("⚠️  Falling back to zero-shot mode")
                 self._compiled = False
                 self.compiled_improver = None
             else:
@@ -234,7 +234,7 @@ class CompilationError(Exception):
     pass
 
 
-def load_trainset(path: str) -> List[dspy.Example]:
+def load_trainset(path: str) -> list[dspy.Example]:
     """Load training set from JSON file.
 
     Args:
@@ -245,7 +245,7 @@ def load_trainset(path: str) -> List[dspy.Example]:
     Returns:
         List of dspy.Example with inputs() and outputs()
     """
-    with open(path, 'r', encoding='utf-8') as f:
+    with open(path, encoding='utf-8') as f:
         data = json.load(f)
 
     # Handle unified pool wrapper format: {"metadata": {...}, "examples": [...]}
@@ -278,7 +278,7 @@ def load_trainset(path: str) -> List[dspy.Example]:
 
 def create_fewshot_improver(
     trainset_path: str,
-    compiled_path: Optional[str] = None,
+    compiled_path: str | None = None,
     k: int = 3,
     force_recompile: bool = False
 ) -> PromptImproverWithFewShot:
@@ -301,7 +301,7 @@ def create_fewshot_improver(
 
     # Check if already compiled
     if improver._compiled and not force_recompile:
-        print(f"✓ Using existing compiled module")
+        print("✓ Using existing compiled module")
         # Recompile to restore (DSPy doesn't serialize compiled modules)
         trainset = load_trainset(trainset_path)
         improver.compile(trainset, k=k)

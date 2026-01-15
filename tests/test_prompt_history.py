@@ -1,6 +1,4 @@
 """Tests for PromptHistory entity."""
-import pytest
-from datetime import datetime
 from hemdov.domain.entities.prompt_history import PromptHistory
 
 

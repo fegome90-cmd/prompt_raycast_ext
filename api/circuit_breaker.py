@@ -1,8 +1,7 @@
 # api/circuit_breaker.py
 import asyncio
-from datetime import datetime, timedelta, UTC
-from typing import Optional
 import logging
+from datetime import UTC, datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +18,7 @@ class CircuitBreaker:
         self._max_failures = max_failures
         self._timeout_seconds = timeout_seconds
         self._failure_count = 0
-        self._disabled_until: Optional[datetime] = None
+        self._disabled_until: datetime | None = None
         self._lock = asyncio.Lock()
 
     async def should_attempt(self) -> bool:

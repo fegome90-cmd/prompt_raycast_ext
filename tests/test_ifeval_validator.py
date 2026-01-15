@@ -240,10 +240,9 @@ class TestCalibrationLoading:
 
     def test_load_calibrated_threshold_fallback(self, tmp_path):
         """Falls back to 0.7 when calibration file doesn't exist."""
-        from pathlib import Path
-
         # Import the load function from bootstrap script
         import sys
+        from pathlib import Path
         sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
         from bootstrap_ifeval_calibration import load_calibrated_threshold
 

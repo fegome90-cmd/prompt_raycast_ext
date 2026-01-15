@@ -10,7 +10,6 @@ Each dimension captures specific aspects of prompt quality:
 """
 
 from dataclasses import dataclass, field
-from typing import Optional, List
 from datetime import datetime
 from enum import Enum
 
@@ -173,7 +172,7 @@ class ImpactMetrics:
     regeneration_count: int = 0
 
     # User feedback score (1-5, if provided)
-    feedback_score: Optional[int] = None
+    feedback_score: int | None = None
 
     # Number of times the prompt was used in session
     reuse_count: int = 0

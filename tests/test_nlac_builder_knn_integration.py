@@ -3,11 +3,11 @@ Tests for NLaCBuilder integration with KNNProvider.
 
 Tests ComponentCatalog few-shot example injection into NLaCBuilder.
 """
-from pathlib import Path
-from hemdov.domain.dto.nlac_models import NLaCRequest, NLaCInputs
-from hemdov.domain.services.nlac_builder import NLaCBuilder
-from hemdov.domain.services.knn_provider import KNNProvider, FewShotExample
 from unittest.mock import Mock
+
+from hemdov.domain.dto.nlac_models import NLaCInputs, NLaCRequest
+from hemdov.domain.services.knn_provider import FewShotExample, KNNProvider
+from hemdov.domain.services.nlac_builder import NLaCBuilder
 
 
 def test_nlac_builder_without_knn():
@@ -117,7 +117,6 @@ def test_nlac_builder_filters_refactor_examples():
 
 def test_nlac_builder_includes_knn_failure_metadata():
     """NLaCBuilder should include KNN failure metadata in PromptObject."""
-    from hemdov.domain.dto.nlac_models import IntentType
 
     # Create mock KNN provider that raises error
     mock_knn = Mock(spec=KNNProvider)
@@ -140,8 +139,9 @@ def test_nlac_builder_includes_knn_failure_metadata():
 
 def test_knn_failure_propagated_to_response():
     """When KNN fails, NLaCResponse should expose knn_failure field."""
+    from datetime import UTC, datetime
+
     from hemdov.domain.dto.nlac_models import NLaCResponse
-    from datetime import datetime, UTC
 
     # Verify NLaCResponse has knn_failure field
     mock_knn = Mock(spec=KNNProvider)

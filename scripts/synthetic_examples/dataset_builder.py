@@ -1,8 +1,7 @@
-from typing import List, Dict, Optional
 import json
 from pathlib import Path
-from scripts.legacy_curation.models import Domain
 
+from scripts.legacy_curation.models import Domain
 
 DATASET_SCHEMA = {
     "examples": [
@@ -39,9 +38,9 @@ class DSPyDatasetBuilder:
             dataset_name: Name of the dataset being built
         """
         self.dataset_name = dataset_name
-        self.examples: List[Dict] = []
+        self.examples: list[dict] = []
 
-    def add_examples(self, examples: List[Dict], task_type: str = "combined_task"):
+    def add_examples(self, examples: list[dict], task_type: str = "combined_task"):
         """Add examples to dataset.
 
         Args:
@@ -95,7 +94,7 @@ class DSPyDatasetBuilder:
 
     def add_domain_specific_datasets(
         self,
-        components_by_domain: Dict[Domain, List[Dict]],
+        components_by_domain: dict[Domain, list[dict]],
         examples_per_component: int = 5,
     ):
         """Add domain-specific examples to dataset.
@@ -144,7 +143,7 @@ class DSPyDatasetBuilder:
 
         return str(output_file)
 
-    def get_statistics(self) -> Dict:
+    def get_statistics(self) -> dict:
         """Calculate dataset statistics.
 
         Returns:
@@ -152,8 +151,8 @@ class DSPyDatasetBuilder:
         """
         total_examples = len(self.examples)
 
-        by_task_type: Dict[str, int] = {}
-        by_domain: Dict[str, int] = {}
+        by_task_type: dict[str, int] = {}
+        by_domain: dict[str, int] = {}
         total_confidence = 0.0
 
         for example in self.examples:

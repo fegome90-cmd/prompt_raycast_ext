@@ -6,11 +6,12 @@ Demonstrates how to query metrics from the database and analyze trends.
 """
 
 import asyncio
-from datetime import datetime, UTC, timedelta
+from datetime import UTC, datetime, timedelta
+
+from hemdov.domain.metrics.analyzers import MetricsAnalyzer
 from hemdov.infrastructure.persistence.metrics_repository import (
     SQLiteMetricsRepository,
 )
-from hemdov.domain.metrics.analyzers import MetricsAnalyzer
 
 
 async def main() -> None:

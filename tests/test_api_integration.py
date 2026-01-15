@@ -16,10 +16,12 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
-from fastapi.testclient import TestClient
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import dspy
+import pytest
+from fastapi.testclient import TestClient
+
 
 # Configure DSPy with mock LM BEFORE importing main (which imports dspy modules)
 # This prevents "No LM is loaded" error at module import time
@@ -159,10 +161,10 @@ class TestImprovePromptSuccess:
 
                 # Assert response status
                 if response.status_code != 200:
-                    print(f"\n=== ERROR DETAILS ===")
+                    print("\n=== ERROR DETAILS ===")
                     print(f"Status: {response.status_code}")
                     print(f"Response: {response.text}")
-                    print(f"===================\n")
+                    print("===================\n")
                 assert response.status_code == 200
 
                 # Assert response structure
@@ -527,8 +529,8 @@ class TestNonBlockingSave:
         - Save operation runs in background
         - Response time is < 100ms (not waiting for save)
         """
-        from unittest.mock import AsyncMock, patch
         import asyncio
+        from unittest.mock import AsyncMock, patch
 
         # Mock save to take 1 second
         async def slow_save(*args, **kwargs):

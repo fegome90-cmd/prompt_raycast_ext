@@ -5,25 +5,24 @@ This module provides functionality to load the unified few-shot pool
 and compile a KNNFewShot optimizer for production few-shot learning.
 """
 
+import json
 import os
 import sys
-import json
-from pathlib import Path
 from datetime import datetime
-from typing import List, Optional
+from pathlib import Path
 
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 import dspy
+
 from eval.src.dspy_prompt_improver_fewshot import (
     PromptImproverWithFewShot,
-    create_vectorizer,
 )
 
 
-def load_unified_pool(pool_path: Path) -> List[dspy.Example]:
+def load_unified_pool(pool_path: Path) -> list[dspy.Example]:
     """Load unified few-shot pool from JSON.
 
     The unified pool has a wrapper structure with metadata and examples:
@@ -122,7 +121,7 @@ def compile_fewshot_with_pool(
     print(f"Compiling with k={k}...")
     try:
         improver.compile(trainset, k=k)
-        print(f"✓ Compilation complete")
+        print("✓ Compilation complete")
     except Exception as e:
         raise RuntimeError(f"Compilation failed: {e}")
 
@@ -179,10 +178,10 @@ def get_feature_flag() -> bool:
 
 
 def create_optimizer_from_config(
-    pool_path: Optional[Path] = None,
+    pool_path: Path | None = None,
     k: int = 3,
     force_recompile: bool = False
-) -> Optional[PromptImproverWithFewShot]:
+) -> PromptImproverWithFewShot | None:
     """Create few-shot optimizer from environment configuration.
 
     This is the main entry point for production use. It:
@@ -279,10 +278,10 @@ def main() -> int:
 
         # Note: We can't actually run inference without DSPy LM configured
         # This just validates the compilation worked
-        print(f"\n✓ KNNFewShot compiled successfully!")
-        print(f"   k=3")
+        print("\n✓ KNNFewShot compiled successfully!")
+        print("   k=3")
         print(f"   Trainset size: {improver.compiled_improver is not None}")
-        print(f"   Ready for inference")
+        print("   Ready for inference")
 
         return 0
     except Exception as e:

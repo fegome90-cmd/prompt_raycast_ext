@@ -2,9 +2,8 @@
 """Analyze prompt diversity and coverage gaps in the unified pool."""
 
 import json
+from collections import defaultdict
 from pathlib import Path
-from collections import Counter, defaultdict
-import re
 
 
 def load_unified_pool():

@@ -1,7 +1,6 @@
 """Tests for threshold analysis script."""
-import pytest
-import json
-from scripts.eval.analyze_thresholds import analyze_thresholds, HIGH_FAIL_RATE_THRESHOLD, HIGH_WARN_RATE_THRESHOLD
+from scripts.eval.analyze_thresholds import analyze_thresholds
+
 
 def test_analyzer_exists():
     """Test analyzer can be imported."""

@@ -6,20 +6,20 @@ Provides async operations for storing and retrieving PromptMetrics
 using aiosqlite with WAL mode for optimal concurrency.
 """
 
-import aiosqlite
-import json
 import asyncio
+import json
 import logging
-from pathlib import Path
-from typing import List, Optional
 from datetime import datetime
+from pathlib import Path
+
+import aiosqlite
 
 from hemdov.domain.metrics.dimensions import (
+    FrameworkType,
+    ImpactMetrics,
+    PerformanceMetrics,
     PromptMetrics,
     QualityMetrics,
-    PerformanceMetrics,
-    ImpactMetrics,
-    FrameworkType,
 )
 
 logger = logging.getLogger(__name__)
@@ -44,7 +44,7 @@ class SQLiteMetricsRepository:
             db_path: Path to SQLite database file (or ":memory:" for in-memory)
         """
         self.db_path = db_path
-        self._connection: Optional[aiosqlite.Connection] = None
+        self._connection: aiosqlite.Connection | None = None
         self._lock = asyncio.Lock()
 
     async def initialize(self):
@@ -188,7 +188,7 @@ class SQLiteMetricsRepository:
             logger.debug(f"Saved metrics for prompt_id={metrics.prompt_id} (id={cursor.lastrowid})")
             return cursor.lastrowid
 
-    async def get_by_id(self, prompt_id: str) -> Optional[PromptMetrics]:
+    async def get_by_id(self, prompt_id: str) -> PromptMetrics | None:
         """
         Retrieve metrics by prompt ID.
 
@@ -216,7 +216,7 @@ class SQLiteMetricsRepository:
         self,
         limit: int = 50,
         offset: int = 0,
-    ) -> List[PromptMetrics]:
+    ) -> list[PromptMetrics]:
         """
         Retrieve all metrics with pagination.
 
@@ -240,6 +240,37 @@ class SQLiteMetricsRepository:
                 """,
                 (limit, offset),
             ) as cursor:
+                rows = await cursor.fetchall()
+                return [self._row_to_metrics(row) for row in rows]
+
+    async def get_by_date_range(
+        self,
+        start_date: datetime,
+        end_date: datetime,
+        limit: int = 5000
+    ) -> list[PromptMetrics]:
+        """Get metrics within date range (indexed query).
+
+        Args:
+            start_date: Start of date range (inclusive)
+            end_date: End of date range (inclusive)
+            limit: Maximum number of records to return
+
+        Returns:
+            List of PromptMetrics within the date range, ordered by measured_at DESC
+        """
+        async with self._lock:
+            conn = self._connection
+            if conn is None:
+                raise RuntimeError("Repository not initialized. Call initialize() first.")
+
+            query = """
+                SELECT * FROM prompt_metrics
+                WHERE measured_at BETWEEN ? AND ?
+                ORDER BY measured_at DESC
+                LIMIT ?
+            """
+            async with conn.execute(query, (start_date.isoformat(), end_date.isoformat(), limit)) as cursor:
                 rows = await cursor.fetchall()
                 return [self._row_to_metrics(row) for row in rows]
 

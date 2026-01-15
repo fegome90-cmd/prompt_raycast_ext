@@ -11,17 +11,20 @@ The "Compiler" for NLaC - builds structured prompts using:
 
 import logging
 import uuid
-from datetime import datetime, UTC
-from typing import Optional, List
+from datetime import UTC, datetime
 
 from hemdov.domain.dto.nlac_models import (
     NLaCRequest,
     PromptObject,
-    IntentType,
 )
-from hemdov.domain.services.intent_classifier import IntentClassifier
-from hemdov.domain.services.knn_provider import KNNProvider, FewShotExample, handle_knn_failure, KNNProviderError
 from hemdov.domain.services.complexity_analyzer import ComplexityAnalyzer, ComplexityLevel
+from hemdov.domain.services.intent_classifier import IntentClassifier
+from hemdov.domain.services.knn_provider import (
+    FewShotExample,
+    KNNProvider,
+    KNNProviderError,
+    handle_knn_failure,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +39,7 @@ class NLaCBuilder:
     - KNN few-shot learning (ComponentCatalog)
     """
 
-    def __init__(self, knn_provider: Optional[KNNProvider] = None):
+    def __init__(self, knn_provider: KNNProvider | None = None):
         """
         Initialize builder with dependencies.
 
@@ -90,7 +93,7 @@ class NLaCBuilder:
         # Step 5: Fetch KNN examples
         knn_failed = False
         knn_error = None
-        fewshot_examples: List[FewShotExample] = []
+        fewshot_examples: list[FewShotExample] = []
 
         if self.knn_provider:
             # Determine k based on complexity (k=3 for simple/moderate, k=5 for complex)
@@ -210,7 +213,7 @@ class NLaCBuilder:
             else:
                 return "Software Engineer"
 
-    def _build_simple_template(self, request: NLaCRequest, role: str, fewshot_examples: Optional[List[FewShotExample]] = None) -> str:
+    def _build_simple_template(self, request: NLaCRequest, role: str, fewshot_examples: list[FewShotExample] | None = None) -> str:
         """Build simple template without RaR, optionally with few-shot examples."""
         template_parts = [
             f"# Role\nYou are a {role}.",
@@ -275,7 +278,7 @@ class NLaCBuilder:
 
         return "\n".join(template_parts)
 
-    def _build_rar_template(self, request: NLaCRequest, role: str, fewshot_examples: Optional[List[FewShotExample]] = None) -> str:
+    def _build_rar_template(self, request: NLaCRequest, role: str, fewshot_examples: list[FewShotExample] | None = None) -> str:
         """
         Build template with RaR (Rephrase and Respond) and few-shot examples.
 
@@ -287,7 +290,7 @@ class NLaCBuilder:
         Few-shot examples are added after RaR for guidance.
         """
         template_parts = [
-            f"# Role",
+            "# Role",
             f"You are a {role}.",
             "",
             "# Understanding the Request",

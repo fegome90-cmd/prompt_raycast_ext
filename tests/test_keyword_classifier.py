@@ -1,5 +1,7 @@
 """Tests for keyword-based priority classifier."""
 
+import pytest
+
 from hemdov.domain.services.keyword_classifier import KeywordBasedClassifier
 from shared.priority_entities import PriorityRule
 
@@ -52,3 +54,35 @@ def test_classifier_should_be_case_insensitive():
     priority2, cat2 = classifier.classify("instructions.md")
     assert priority1 == priority2 == 5
     assert cat1 == cat2 == "instruction"
+
+
+def test_classifier_should_handle_overlapping_keywords():
+    """Verify that first matching rule wins when keywords overlap."""
+    classifier = KeywordBasedClassifier()
+    # Filename has both "instructions" and "agent"
+    priority, category = classifier.classify("agent_instructions.md")
+    # "instructions" comes first in DEFAULT_RULES, should take precedence
+    assert priority == 5
+    assert category == "instruction"
+
+
+def test_classifier_should_reject_empty_filename():
+    """Verify that empty filenames raise ValueError."""
+    classifier = KeywordBasedClassifier()
+
+    with pytest.raises(ValueError, match="cannot be empty"):
+        classifier.classify("")
+
+    with pytest.raises(ValueError, match="cannot be empty"):
+        classifier.classify("   ")  # whitespace only
+
+
+def test_classifier_should_reject_non_string_types():
+    """Verify that non-string types raise ValueError."""
+    classifier = KeywordBasedClassifier()
+
+    with pytest.raises(ValueError, match="must be a string"):
+        classifier.classify(None)  # type: ignore
+
+    with pytest.raises(ValueError, match="must be a string"):
+        classifier.classify(123)  # type: ignore

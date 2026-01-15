@@ -13,15 +13,19 @@ Key features:
 """
 
 import logging
-from typing import List, Optional, Dict, Any
-from datetime import datetime, UTC
+from datetime import UTC, datetime
+from typing import Any
 
 from hemdov.domain.dto.nlac_models import (
-    PromptObject,
     OPROIteration,
     OptimizeResponse,
+    PromptObject,
 )
-from hemdov.domain.services.knn_provider import KNNProvider, FewShotExample, handle_knn_failure, KNNProviderError
+from hemdov.domain.services.knn_provider import (
+    KNNProvider,
+    KNNProviderError,
+    handle_knn_failure,
+)
 from hemdov.domain.services.llm_protocol import LLMClient
 
 logger = logging.getLogger(__name__)
@@ -41,7 +45,7 @@ class OPROOptimizer:
     MAX_ITERATIONS = 3  # Fixed iterations (latency control per user decision: 5-10 LLM calls)
     QUALITY_THRESHOLD = 1.0  # Early stopping if 100% pass
 
-    def __init__(self, llm_client: Optional[LLMClient] = None, knn_provider: Optional[KNNProvider] = None):
+    def __init__(self, llm_client: LLMClient | None = None, knn_provider: KNNProvider | None = None):
         """
         Initialize optimizer.
 
@@ -52,7 +56,7 @@ class OPROOptimizer:
         """
         self.llm_client = llm_client
         self.knn_provider = knn_provider
-        self._knn_failures: List[Dict[str, Any]] = []  # Track failures across iterations
+        self._knn_failures: list[dict[str, Any]] = []  # Track failures across iterations
 
     def run_loop(self, prompt_obj: PromptObject) -> OptimizeResponse:
         """
@@ -77,7 +81,7 @@ class OPROOptimizer:
         if prompt_obj is None:
             raise ValueError("prompt_obj cannot be None")
 
-        trajectory: List[OPROIteration] = []
+        trajectory: list[OPROIteration] = []
         best_score = 0.0
         best_prompt = prompt_obj
         self._knn_failures = []  # Reset for each optimization run
@@ -167,7 +171,7 @@ class OPROOptimizer:
             knn_failure=knn_failure,
         )
 
-    def _generate_variation(self, original: PromptObject, trajectory: List[OPROIteration]) -> PromptObject:
+    def _generate_variation(self, original: PromptObject, trajectory: list[OPROIteration]) -> PromptObject:
         """
         Generate candidate variation using meta-prompt + trajectory.
 
@@ -196,7 +200,7 @@ class OPROOptimizer:
             knn_error=original.knn_error,
         )
 
-    def _simple_refinement(self, prompt_obj: PromptObject, trajectory: List[OPROIteration]) -> str:
+    def _simple_refinement(self, prompt_obj: PromptObject, trajectory: list[OPROIteration]) -> str:
         """
         Simple template refinement without LLM (for testing).
 
@@ -218,7 +222,7 @@ class OPROOptimizer:
 
         return template
 
-    def _llm_generate_variation(self, prompt_obj: PromptObject, trajectory: List[OPROIteration]) -> str:
+    def _llm_generate_variation(self, prompt_obj: PromptObject, trajectory: list[OPROIteration]) -> str:
         """
         Generate variation using LLM (production implementation).
 
@@ -231,7 +235,7 @@ class OPROOptimizer:
         # For now, delegate to simple refinement
         return self._simple_refinement(prompt_obj, trajectory)
 
-    def _build_meta_prompt(self, candidate: PromptObject, trajectory: List[OPROIteration]) -> str:
+    def _build_meta_prompt(self, candidate: PromptObject, trajectory: list[OPROIteration]) -> str:
         """
         Build meta-prompt for next iteration.
 
@@ -367,8 +371,8 @@ class OPROOptimizer:
         final_score: float,
         iteration_count: int,
         early_stopped: bool,
-        trajectory: List[OPROIteration],
-        knn_failure: Optional[Dict[str, Any]] = None,
+        trajectory: list[OPROIteration],
+        knn_failure: dict[str, Any] | None = None,
     ) -> OptimizeResponse:
         """Build OptimizeResponse from optimization results."""
         return OptimizeResponse(

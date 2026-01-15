@@ -1,6 +1,8 @@
 # tests/test_strategies/test_moderate_strategy.py
 from unittest.mock import Mock
+
 import dspy
+
 from eval.src.strategies.moderate_strategy import ModerateStrategy
 
 

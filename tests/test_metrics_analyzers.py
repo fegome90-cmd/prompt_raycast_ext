@@ -4,26 +4,27 @@ Tests for metrics analyzers (analyzers.py).
 Tests trend analysis, comparison, and recommendation generation.
 """
 
-import pytest
 from datetime import datetime, timedelta, timezone
+
+import pytest
+
 from hemdov.domain.metrics.analyzers import (
-    TrendPoint,
-    TrendMetrics,
+    ComparisonAnalyzer,
+    ComparisonReport,
+    ComparisonResult,
+    MetricsAnalyzer,
     TrendAnalysis,
     TrendAnalyzer,
-    ComparisonResult,
-    ComparisonReport,
-    ComparisonAnalyzer,
-    MetricsAnalyzer,
+    TrendMetrics,
+    TrendPoint,
 )
 from hemdov.domain.metrics.dimensions import (
+    FrameworkType,
+    ImpactMetrics,
+    PerformanceMetrics,
     PromptMetrics,
     QualityMetrics,
-    PerformanceMetrics,
-    ImpactMetrics,
-    FrameworkType,
 )
-
 
 # =============================================================================
 # Fixtures

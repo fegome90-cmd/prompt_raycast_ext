@@ -3,6 +3,7 @@ Tests for NLaC Strategy integration with Strategy Pattern.
 """
 
 import pytest
+
 from eval.src.strategies.nlac_strategy import NLaCStrategy
 from eval.src.strategy_selector import StrategySelector
 
@@ -111,8 +112,9 @@ class TestNLaCStrategy:
 
     def test_to_prediction_mapping(self, nlac_strategy):
         """Internal _to_prediction maps fields correctly."""
-        from hemdov.domain.dto.nlac_models import PromptObject, IntentType
-        from datetime import datetime, UTC
+        from datetime import UTC, datetime
+
+        from hemdov.domain.dto.nlac_models import IntentType, PromptObject
 
         prompt_obj = PromptObject(
             id="test",

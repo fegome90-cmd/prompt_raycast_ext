@@ -1,10 +1,9 @@
 """Test SQLite repository handles specific exceptions correctly."""
 
 import pytest
-import aiosqlite
-from hemdov.infrastructure.persistence.sqlite_prompt_repository import SQLitePromptRepository
+
 from hemdov.infrastructure.config import Settings
-from hemdov.domain.entities.prompt_history import PromptHistory
+from hemdov.infrastructure.persistence.sqlite_prompt_repository import SQLitePromptRepository
 
 
 @pytest.mark.asyncio

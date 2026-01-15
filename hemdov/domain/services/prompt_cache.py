@@ -8,12 +8,12 @@ Cache key is SHA256(idea + context + mode) for deterministic lookups.
 import hashlib
 import json
 import logging
-from typing import Optional, TypedDict
-from datetime import datetime, UTC
+from datetime import UTC, datetime
+from typing import TypedDict
 
 import aiosqlite
 
-from hemdov.domain.dto.nlac_models import PromptObject, NLaCRequest
+from hemdov.domain.dto.nlac_models import NLaCRequest, PromptObject
 
 
 class CacheStats(TypedDict):
@@ -62,7 +62,7 @@ class PromptCache:
         normalized = f"{request.idea}|{request.context}|{request.mode}"
         return hashlib.sha256(normalized.encode()).hexdigest()
 
-    async def get(self, request: NLaCRequest) -> Optional[PromptObject]:
+    async def get(self, request: NLaCRequest) -> PromptObject | None:
         """
         Retrieve cached prompt if available.
 

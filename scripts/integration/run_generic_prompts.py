@@ -3,9 +3,9 @@
 Test script para DSPy PromptImprover - Prueba con prompts genéricos
 """
 
-import requests
-import json
 import time
+
+import requests
 
 BASE_URL = "http://localhost:8000"
 
@@ -117,7 +117,7 @@ def main():
             successful_results
         )
 
-        print(f"\n📈 Métricas de Exitosos:")
+        print("\n📈 Métricas de Exitosos:")
         print(f"   Latencia promedio: {avg_latency:.2f}ms")
         print(f"   Longitud promedio output: {avg_length:.0f} chars")
         print(
@@ -134,12 +134,12 @@ def main():
         )
 
     # Variabilidad - revisar si outputs son diferentes para inputs similares
-    print(f"\n🔄 Análisis de Variabilidad:")
-    print(f"   ¿Cambian outputs para inputs similares? Need revisión manual")
+    print("\n🔄 Análisis de Variabilidad:")
+    print("   ¿Cambian outputs para inputs similares? Need revisión manual")
 
     # Consistencia - revisar si estructura es consistente
-    print(f"\n🎯 Consistencia de Estructura:")
-    print(f"   ¿Todos los exitosos tienen ROLE/DIRECTIVE/FRAMEWORK/GUARDRAILS?")
+    print("\n🎯 Consistencia de Estructura:")
+    print("   ¿Todos los exitosos tienen ROLE/DIRECTIVE/FRAMEWORK/GUARDRAILS?")
     consistent_structure = all(
         [
             r["has_role"]
@@ -153,7 +153,7 @@ def main():
     print(f"   {consistent_structure and '✅ SÍ' or '❌ NO'}")
 
     # Calidad - outputs deben ser significativamente más largos que inputs
-    print(f"\n✨ Mejora de Calidad:")
+    print("\n✨ Mejora de Calidad:")
     if successes > 0:
         successful_results = [r for r in results if r["success"]]
         avg_length = sum(r["improved_length"] for r in successful_results) / len(

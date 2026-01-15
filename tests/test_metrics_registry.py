@@ -4,19 +4,19 @@ Tests for metrics registry (registry.py).
 Tests threshold configuration, grade calculation, and singleton pattern.
 """
 
-import pytest
 import threading
-import time
+
+import pytest
+
 from hemdov.domain.metrics.registry import (
-    MetricsRegistry,
-    MetricThreshold,
-    MetricDefinition,
-    MetricGrade,
-    get_registry,
     DEFAULT_THRESHOLDS,
     METRIC_DEFINITIONS,
+    MetricDefinition,
+    MetricGrade,
+    MetricsRegistry,
+    MetricThreshold,
+    get_registry,
 )
-
 
 # ============================================================================
 # SINGLETON PATTERN TESTS

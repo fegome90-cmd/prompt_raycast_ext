@@ -1,10 +1,12 @@
 """Tests for infrastructure module."""
 
 import json
-import pytest
 from pathlib import Path
+
+import pytest
+
+from scripts.legacy_curation.models import Component
 from scripts.synthetic_examples.infrastructure import load_component_catalog
-from scripts.legacy_curation.models import Component, Domain
 
 
 class TestLoadComponentCatalog:

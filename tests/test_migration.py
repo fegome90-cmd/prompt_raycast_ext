@@ -4,10 +4,11 @@ Test Suite for Migration Verification
 Tests that all migrated files maintain their functionality after reorganization.
 """
 
-import pytest
-from pathlib import Path
-import sys
 import os
+import sys
+from pathlib import Path
+
+import pytest
 
 # Project root
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -145,8 +146,9 @@ class TestAPIFunctionality:
     def test_api_has_cors_middleware(self):
         """Verify CORS middleware is configured."""
         sys.path.insert(0, str(PROJECT_ROOT))
-        from api.main import app
         from fastapi.middleware.cors import CORSMiddleware
+
+        from api.main import app
 
         # Check if CORS middleware is present
         has_cors = any(

@@ -10,20 +10,15 @@ Provides tools for:
 """
 
 import logging
-from datetime import datetime, UTC, timedelta
-from typing import List, Dict, Any, Optional, Tuple
-from dataclasses import dataclass, field
-from collections import defaultdict
 import statistics
+from collections import defaultdict
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from typing import Any
 
 from .dimensions import (
     PromptMetrics,
-    QualityMetrics,
-    PerformanceMetrics,
-    ImpactMetrics,
-    ImprovementMetrics,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -80,10 +75,10 @@ class TrendAnalysis:
     overall_trend: TrendMetrics
 
     # Recommendations
-    recommendations: List[str] = field(default_factory=list)
+    recommendations: list[str] = field(default_factory=list)
 
     # Anomalies detected
-    anomalies: List[str] = field(default_factory=list)
+    anomalies: list[str] = field(default_factory=list)
 
 
 class TrendAnalyzer:
@@ -107,7 +102,7 @@ class TrendAnalyzer:
 
     def analyze(
         self,
-        metrics: List[PromptMetrics],
+        metrics: list[PromptMetrics],
     ) -> TrendAnalysis:
         """
         Analyze trends in metrics data.
@@ -158,7 +153,7 @@ class TrendAnalyzer:
             anomalies=anomalies,
         )
 
-    def _calculate_trend_metrics(self, values: List[float]) -> TrendMetrics:
+    def _calculate_trend_metrics(self, values: list[float]) -> TrendMetrics:
         """Calculate statistical summary and trend direction."""
         if not values:
             return TrendMetrics(0, 0, 0, 0, 0, "stable", 0)
@@ -202,7 +197,7 @@ class TrendAnalyzer:
         performance_trend: TrendMetrics,
         impact_trend: TrendMetrics,
         overall_trend: TrendMetrics,
-    ) -> List[str]:
+    ) -> list[str]:
         """Generate actionable recommendations from trend analysis."""
         recommendations = []
 
@@ -244,7 +239,7 @@ class TrendAnalyzer:
 
         return recommendations
 
-    def _detect_anomalies(self, metrics: List[PromptMetrics]) -> List[str]:
+    def _detect_anomalies(self, metrics: list[PromptMetrics]) -> list[str]:
         """Detect statistical anomalies in metrics."""
         anomalies = []
 
@@ -327,7 +322,7 @@ class ComparisonReport:
     recommendation: str = ""
 
     # Detailed breakdown
-    details: Dict[str, Any] = field(default_factory=dict)
+    details: dict[str, Any] = field(default_factory=dict)
 
 
 class ComparisonAnalyzer:
@@ -353,8 +348,8 @@ class ComparisonAnalyzer:
 
     def compare(
         self,
-        baseline_metrics: List[PromptMetrics],
-        treatment_metrics: List[PromptMetrics],
+        baseline_metrics: list[PromptMetrics],
+        treatment_metrics: list[PromptMetrics],
         baseline_name: str = "Baseline",
         treatment_name: str = "Treatment",
     ) -> ComparisonReport:
@@ -466,8 +461,8 @@ class ComparisonAnalyzer:
         metric_name: str,
         baseline_value: float,
         current_value: float,
-        baseline_metrics: List[PromptMetrics],
-        current_metrics: List[PromptMetrics],
+        baseline_metrics: list[PromptMetrics],
+        current_metrics: list[PromptMetrics],
     ) -> ComparisonResult:
         """Create a comparison result."""
         delta = current_value - baseline_value
@@ -491,7 +486,7 @@ class ComparisonAnalyzer:
             is_significant=is_significant,
         )
 
-    def _extract_values(self, metric_name: str, metrics: List[PromptMetrics]) -> List[float]:
+    def _extract_values(self, metric_name: str, metrics: list[PromptMetrics]) -> list[float]:
         """Extract values for a specific metric."""
         mapping = {
             "Quality": lambda m: m.quality.composite_score,
@@ -505,7 +500,7 @@ class ComparisonAnalyzer:
             return [extractor(m) for m in metrics]
         return []
 
-    def _is_significant(self, baseline: List[float], treatment: List[float]) -> bool:
+    def _is_significant(self, baseline: list[float], treatment: list[float]) -> bool:
         """
         Perform simple t-test for significance.
 
@@ -546,7 +541,7 @@ class ComparisonAnalyzer:
         performance: ComparisonResult,
         impact: ComparisonResult,
         overall: ComparisonResult,
-    ) -> Tuple[str, str]:
+    ) -> tuple[str, str]:
         """Determine winner and generate recommendation."""
         # Weighted scoring: quality (40%) + performance (30%) + impact (30%)
         score = 0
@@ -617,14 +612,14 @@ class MetricsAnalyzer:
         self.trend_analyzer = TrendAnalyzer()
         self.comparison_analyzer = ComparisonAnalyzer()
 
-    def analyze_trends(self, metrics: List[PromptMetrics]) -> TrendAnalysis:
+    def analyze_trends(self, metrics: list[PromptMetrics]) -> TrendAnalysis:
         """Analyze trends over time."""
         return self.trend_analyzer.analyze(metrics)
 
     def compare_versions(
         self,
-        baseline: List[PromptMetrics],
-        treatment: List[PromptMetrics],
+        baseline: list[PromptMetrics],
+        treatment: list[PromptMetrics],
         baseline_name: str = "Baseline",
         treatment_name: str = "Treatment",
     ) -> ComparisonReport:
@@ -636,7 +631,7 @@ class MetricsAnalyzer:
             treatment_name=treatment_name,
         )
 
-    def summarize(self, metrics: List[PromptMetrics]) -> Dict[str, Any]:
+    def summarize(self, metrics: list[PromptMetrics]) -> dict[str, Any]:
         """
         Generate summary statistics for a metrics collection.
 
@@ -688,7 +683,7 @@ class MetricsAnalyzer:
             "grade_distribution": self._grade_distribution(metrics),
         }
 
-    def _grade_distribution(self, metrics: List[PromptMetrics]) -> Dict[str, int]:
+    def _grade_distribution(self, metrics: list[PromptMetrics]) -> dict[str, int]:
         """Calculate distribution of grades."""
         distribution = defaultdict(int)
 
