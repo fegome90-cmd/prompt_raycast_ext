@@ -114,7 +114,7 @@ class NLaCBuilder:
                     logger, "NLaCBuilder.build", e
                 )
                 # Continue with empty examples list
-            except (RuntimeError, KeyError, TypeError) as e:
+            except (RuntimeError, KeyError, TypeError, ValueError) as e:
                 # Code bugs - should propagate to surface the issue
                 logger.exception(
                     f"Unexpected KNN error (code bug) in NLaCBuilder.build: {type(e).__name__}"

@@ -130,6 +130,24 @@ def test_code_bug_runtime_error_propagates():
         builder.build(request)
 
 
+def test_code_bug_value_error_propagates():
+    """Test that ValueError (code bug) propagates."""
+    mock_knn = Mock()
+    mock_knn.find_examples.side_effect = ValueError("Invalid value")
+
+    builder = NLaCBuilder(knn_provider=mock_knn)
+    request = NLaCRequest(
+        idea="Debug this error",
+        context="",
+        mode="nlac",
+        intent="debug",
+        complexity=ComplexityLevel.SIMPLE
+    )
+
+    with pytest.raises(ValueError):
+        builder.build(request)
+
+
 def test_keyboard_interrupt_never_caught():
     """KeyboardInterrupt should NEVER be caught."""
     mock_knn = Mock()

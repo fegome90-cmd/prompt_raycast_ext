@@ -13,8 +13,7 @@ from hemdov.domain.dto.nlac_models import PromptObject
 from hemdov.domain.services.knn_provider import KNNProviderError
 
 
-@pytest.mark.asyncio
-async def test_transient_connection_error_tracked_and_degraded():
+def test_transient_connection_error_tracked_and_degraded():
     """Test that transient ConnectionError is tracked with metadata."""
     mock_knn = Mock()
     mock_knn.find_examples.side_effect = ConnectionError("Network timeout")
@@ -43,8 +42,7 @@ async def test_transient_connection_error_tracked_and_degraded():
     assert failure["is_transient"] is True
 
 
-@pytest.mark.asyncio
-async def test_knn_provider_error_degrades_gracefully():
+def test_knn_provider_error_degrades_gracefully():
     """Test that KNNProviderError degrades gracefully."""
     mock_knn = Mock()
     mock_knn.find_examples.side_effect = KNNProviderError("KNN service down")
@@ -67,8 +65,7 @@ async def test_knn_provider_error_degrades_gracefully():
     assert len(optimizer._knn_failures) >= 1
 
 
-@pytest.mark.asyncio
-async def test_code_bug_keyerror_propagates_with_tracking():
+def test_code_bug_keyerror_propagates_with_tracking():
     """Test that KeyError (code bug) propagates after tracking."""
     mock_knn = Mock()
     mock_knn.find_examples.side_effect = KeyError("schema_drift")
@@ -96,8 +93,7 @@ async def test_code_bug_keyerror_propagates_with_tracking():
     assert optimizer._knn_failures[0]["is_bug"] is True
 
 
-@pytest.mark.asyncio
-async def test_code_bug_typeerror_propagates_with_tracking():
+def test_code_bug_typeerror_propagates_with_tracking():
     """Test that TypeError (code bug) propagates after tracking."""
     mock_knn = Mock()
     mock_knn.find_examples.side_effect = TypeError("Wrong type")
@@ -123,8 +119,7 @@ async def test_code_bug_typeerror_propagates_with_tracking():
     assert optimizer._knn_failures[0]["is_bug"] is True
 
 
-@pytest.mark.asyncio
-async def test_code_bug_runtime_error_propagates_with_tracking():
+def test_code_bug_runtime_error_propagates_with_tracking():
     """Test that RuntimeError (code bug) propagates after tracking."""
     mock_knn = Mock()
     mock_knn.find_examples.side_effect = RuntimeError("Code bug")
@@ -150,8 +145,7 @@ async def test_code_bug_runtime_error_propagates_with_tracking():
     assert optimizer._knn_failures[0]["is_bug"] is True
 
 
-@pytest.mark.asyncio
-async def test_code_bug_value_error_propagates_with_tracking():
+def test_code_bug_value_error_propagates_with_tracking():
     """Test that ValueError (code bug) propagates after tracking."""
     mock_knn = Mock()
     mock_knn.find_examples.side_effect = ValueError("Invalid value")
