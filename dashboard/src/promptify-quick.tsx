@@ -9,6 +9,7 @@ import { Typography } from "./core/design/typography";
 import { ToastHelper } from "./core/design/toast";
 import { savePrompt, formatTimestamp } from "./core/promptStorage";
 import { LoadingStage, STAGE_MESSAGES } from "./core/constants";
+import { buildErrorHint } from "./core/errors/hints";
 
 // Engine display names (used in metadata)
 const ENGINE_NAMES = {
@@ -419,7 +420,7 @@ export default function Command() {
       const dspyBaseUrl = preferences.dspyBaseUrl?.trim() || config.dspy.baseUrl;
       const executionMode = preferences.executionMode ?? "legacy";
       const useBackend = executionMode !== "ollama";
-      const hint = buildErrorHint(e, useBackend ? "dspy" : undefined);
+      const hint = buildErrorHint(e, useBackend ? (executionMode === "nlac" ? "nlac" : "dspy") : undefined);
 
       // Debug logging
       console.error(`${LOG_PREFIX} ❌ Error details:`, {
@@ -526,19 +527,6 @@ export default function Command() {
 function parseTimeoutMs(value: string | undefined, fallback: number): number {
   const n = Number.parseInt((value ?? "").trim(), 10);
   return Number.isFinite(n) && n > 0 ? n : fallback;
-}
-
-function buildErrorHint(error: unknown, mode?: "dspy"): string | null {
-  const message = error instanceof Error ? error.message : String(error);
-  const lower = message.toLowerCase();
-  if (lower.includes("timed out")) return "try increasing timeout (ms)";
-  if (lower.includes("connect") || lower.includes("econnrefused") || lower.includes("not reachable")) {
-    return mode === "dspy" ? "check the DSPy backend is running" : "check `ollama serve` is running";
-  }
-  if (lower.includes("model") && lower.includes("not found")) {
-    return "Pull the model first: `ollama pull <model>`";
-  }
-  return null;
 }
 
 async function runWithModelFallback(args: {
