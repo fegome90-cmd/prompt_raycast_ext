@@ -17,20 +17,9 @@ import type { ChatSession } from "./core/conversation/types";
 import { tokens } from "./core/design/tokens";
 import { Typography } from "./core/design/typography";
 import { ToastHelper } from "./core/design/toast";
+import { LoadingStage, STAGE_MESSAGES } from "./core/constants";
 
 const DEFAULT_MODEL = "hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M";
-
-type LoadingStage = "idle" | "validating" | "connecting" | "analyzing" | "improving" | "success" | "error";
-
-const STAGE_MESSAGES = {
-  idle: "",
-  validating: "Validating input...",
-  connecting: "Connecting to DSPy...",
-  analyzing: "Analyzing prompt structure...",
-  improving: "Applying few-shot learning...",
-  success: "Complete!",
-  error: "Failed",
-} as const;
 
 type Preferences = {
   wizardMode?: "auto" | "always" | "off";
@@ -270,7 +259,11 @@ export default function ConversationView() {
         <ActionPanel>
           <Action title="New Conversation" onAction={handleReset} shortcut={{ modifiers: ["cmd"], key: "n" }} />
           {wizardEnabled && !isWizardComplete && (
-            <Action title="Skip Wizard" shortcut={{ modifiers: ["cmd", "shift"], key: "s" }} onAction={handleSkipWizard} />
+            <Action
+              title="Skip Wizard"
+              shortcut={{ modifiers: ["cmd", "shift"], key: "s" }}
+              onAction={handleSkipWizard}
+            />
           )}
         </ActionPanel>
       }

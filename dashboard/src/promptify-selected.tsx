@@ -7,20 +7,9 @@ import { handleBackendError, NoInputDetail } from "./core/errors/handlers";
 import { logTtvMeasurement } from "./core/metrics/ttvLogger";
 import { loadConfig } from "./core/config";
 import { ToastHelper } from "./core/design/toast";
+import { LoadingStage, STAGE_MESSAGES } from "./core/constants";
 
 const LOG_PREFIX = "[PromptifySelected]";
-
-type LoadingStage = "idle" | "validating" | "connecting" | "analyzing" | "improving" | "success" | "error";
-
-const STAGE_MESSAGES = {
-  idle: "",
-  validating: "Validating input...",
-  connecting: "Connecting to DSPy...",
-  analyzing: "Analyzing prompt structure...",
-  improving: "Applying few-shot learning...",
-  success: "Complete!",
-  error: "Failed",
-} as const;
 
 type Preferences = {
   dspyBaseUrl?: string;
