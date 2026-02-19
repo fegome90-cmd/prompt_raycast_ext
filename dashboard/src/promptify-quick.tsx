@@ -7,15 +7,9 @@ import { loadConfig } from "./core/config";
 import { getCustomPatternSync } from "./core/templates/pattern";
 import { Typography } from "./core/design/typography";
 import { ToastHelper } from "./core/design/toast";
-import { savePrompt, formatTimestamp } from "./core/promptStorage";
-import { LoadingStage, STAGE_MESSAGES } from "./core/constants";
+import { savePrompt } from "./core/promptStorage";
+import { LoadingStage, STAGE_MESSAGES, ENGINE_NAMES } from "./core/constants";
 import { buildErrorHint } from "./core/errors/hints";
-
-// Engine display names (used in metadata)
-const ENGINE_NAMES = {
-  dspy: "DSPy + Haiku",
-  ollama: "Ollama",
-} as const;
 
 // Preset placeholders for input textarea
 const PLACEHOLDERS = {
@@ -210,8 +204,6 @@ function PromptPreview(props: {
 function getPlaceholder(preset?: "default" | "specific" | "structured" | "coding"): string {
   return PLACEHOLDERS[preset || "structured"];
 }
-
-// type LoadingStage = "validating" | "connecting" | "processing" | "finalizing";
 
 export default function Command() {
   const preferences = getPreferenceValues<Preferences>();

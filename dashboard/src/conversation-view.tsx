@@ -2,12 +2,9 @@ import {
   List,
   Action,
   ActionPanel,
-  Toast,
-  showToast,
   Form,
   Clipboard,
   getPreferenceValues,
-  popToRoot,
 } from "@raycast/api";
 import { useState, useEffect } from "react";
 import { SessionManager } from "./core/conversation/SessionManager";

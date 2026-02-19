@@ -5,9 +5,10 @@ import { ToastHelper } from "./core/design/toast";
 import type { PromptEntry } from "./core/promptStorage";
 import React from "react";
 
-type LoadingStage = "idle" | "loading" | "success" | "error";
+// History-specific loading stages (different from prompt improvement stages)
+type HistoryLoadingStage = "idle" | "loading" | "success" | "error";
 
-const STAGE_MESSAGES = {
+const HISTORY_STAGE_MESSAGES: Record<HistoryLoadingStage, string> = {
   idle: "",
   loading: "Loading history...",
   success: "Loaded",
@@ -15,12 +16,12 @@ const STAGE_MESSAGES = {
 } as const;
 
 export default function Command() {
-  const [loadingStage, setLoadingStage] = React.useState<LoadingStage>("idle");
+  const [loadingStage, setLoadingStage] = React.useState<HistoryLoadingStage>("idle");
 
   return (
     <List
       navigationTitle={`Prompt History${
-        loadingStage !== "idle" && loadingStage !== "success" ? ` — ${STAGE_MESSAGES[loadingStage]}` : ""
+        loadingStage !== "idle" && loadingStage !== "success" ? ` — ${HISTORY_STAGE_MESSAGES[loadingStage]}` : ""
       }`}
       actions={
         <ActionPanel>
@@ -44,11 +45,11 @@ export default function Command() {
 function PromptHistoryList({
   setLoadingStage,
 }: {
-  setLoadingStage: React.Dispatch<React.SetStateAction<LoadingStage>>;
+  setLoadingStage: React.Dispatch<React.SetStateAction<HistoryLoadingStage>>;
 }) {
   const [entries, setEntries] = React.useState<PromptEntry[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
-  const [loadingStage, setLoadingStageLocal] = React.useState<LoadingStage>("idle");
+  const [loadingStage, setLoadingStageLocal] = React.useState<HistoryLoadingStage>("idle");
 
   React.useEffect(() => {
     (async () => {
@@ -73,7 +74,7 @@ function PromptHistoryList({
   if (isLoading) {
     return (
       <List.Item.Detail
-        markdown={`## ${STAGE_MESSAGES[loadingStage] || "Loading..."}${
+        markdown={`## ${HISTORY_STAGE_MESSAGES[loadingStage] || "Loading..."}${
           loadingStage !== "idle" ? `\n\n_${loadingStage}_` : ""
         }`}
         isLoading={true}

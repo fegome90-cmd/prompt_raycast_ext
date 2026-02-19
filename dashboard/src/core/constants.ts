@@ -16,3 +16,9 @@ export const STAGE_MESSAGES: Record<LoadingStage, string> = {
   success: "Complete!",
   error: "Failed",
 } as const;
+
+// Engine display names (used in metadata across commands)
+export const ENGINE_NAMES = {
+  dspy: "DSPy + Haiku",
+  ollama: "Ollama",
+} as const;
