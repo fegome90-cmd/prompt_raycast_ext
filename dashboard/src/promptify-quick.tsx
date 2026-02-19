@@ -383,6 +383,7 @@ export default function Command() {
       await Clipboard.copy(finalPrompt);
 
       // Save to local history for persistence
+      let historySaveFailed = false;
       await savePrompt({
         prompt: finalPrompt,
         meta: {
@@ -395,9 +396,13 @@ export default function Command() {
         preset,
       }).catch((error) => {
         console.error(`${LOG_PREFIX} ❌ Failed to save prompt:`, error);
+        historySaveFailed = true;
       });
 
-      await ToastHelper.success("Copied to clipboard", `${finalPrompt.length} characters • Saved to history`);
+      const historyMessage = historySaveFailed
+        ? `${finalPrompt.length} characters (history save failed)`
+        : `${finalPrompt.length} characters • Saved to history`;
+      await ToastHelper.success("Copied to clipboard", historyMessage);
 
       // Clear loading stage on success
       setLoadingStage("idle");
