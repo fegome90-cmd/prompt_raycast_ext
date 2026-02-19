@@ -3,7 +3,7 @@ import { ActionPanel, Action, Detail, Clipboard, showHUD } from "@raycast/api";
 import { tokens } from "../design/tokens";
 
 // Start command for the backend
-const BACKEND_START_COMMAND = "cd <your-raycast-ext-dir> && make dev";
+const BACKEND_START_COMMAND = "make dev  # Run from project root";
 
 export function handleBackendError(error: unknown) {
   // Timeout errors
@@ -36,7 +36,7 @@ export function handleBackendError(error: unknown) {
   ) {
     return (
       <Detail
-        markdown={`## ${tokens.semantic.error.icon} Backend Not Running\n\nStart the backend:\n\`\`\`bash\ncd <your-raycast-ext-dir>\nmake dev\n\`\`\`\n\nThen verify:\n\`\`\`bash\ncurl http://localhost:8000/health\n\`\`\``}
+        markdown={`## ${tokens.semantic.error.icon} Backend Not Running\n\nStart the backend from the project root:\n\`\`\`bash\nmake dev\n\`\`\`\n\nThen verify:\n\`\`\`bash\ncurl http://localhost:8000/health\n\`\`\``}
         actions={
           <ActionPanel>
             <Action
