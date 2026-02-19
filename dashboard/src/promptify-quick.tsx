@@ -252,7 +252,11 @@ export default function Command() {
         const client = createDSPyClient({ baseUrl: dspyBaseUrl, timeoutMs: 3000 });
         await client.healthCheck();
         setBackendStatus("healthy");
-      } catch {
+      } catch (error) {
+        console.error(`${LOG_PREFIX} Health check failed:`, {
+          error: error instanceof Error ? error.message : String(error),
+          dspyBaseUrl: preferences.dspyBaseUrl?.trim() || configState.config.dspy.baseUrl,
+        });
         setBackendStatus("unavailable");
       }
     };
