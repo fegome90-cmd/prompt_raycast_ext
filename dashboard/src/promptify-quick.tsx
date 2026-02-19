@@ -2,11 +2,13 @@ import { Action, ActionPanel, Clipboard, Detail, Form, getPreferenceValues } fro
 import { useState, useEffect } from "react";
 import { improvePromptWithHybrid, improvePromptWithOllama } from "./core/llm/improvePrompt";
 import { ollamaHealthCheck } from "./core/llm/ollamaClient";
+import { createDSPyClient } from "./core/llm/dspyPromptImprover";
 import { loadConfig } from "./core/config";
 import { getCustomPatternSync } from "./core/templates/pattern";
 import { Typography } from "./core/design/typography";
 import { ToastHelper } from "./core/design/toast";
 import { savePrompt, formatTimestamp } from "./core/promptStorage";
+import { LoadingStage, STAGE_MESSAGES } from "./core/constants";
 
 // Engine display names (used in metadata)
 const ENGINE_NAMES = {
@@ -26,18 +28,13 @@ const PLACEHOLDERS = {
 const LOG_PREFIX = "[PromptifyQuick]";
 const FALLBACK_PREFIX = "[Fallback]";
 
-// Loading stage type for progressive status updates
-type LoadingStage = "idle" | "validating" | "connecting" | "analyzing" | "improving" | "success" | "error";
+// Backend status for health check indicator
+type BackendStatus = "checking" | "healthy" | "unavailable";
 
-// Stage messages for user-facing status display
-const STAGE_MESSAGES = {
-  idle: "",
-  validating: "Validating input...",
-  connecting: "Connecting to DSPy...",
-  analyzing: "Analyzing prompt structure...",
-  improving: "Applying few-shot learning...",
-  success: "Complete!",
-  error: "Failed",
+const BACKEND_STATUS_DISPLAY = {
+  checking: "⚪ Checking backend...",
+  healthy: "🟢 Backend ready",
+  unavailable: "🔴 Backend offline",
 } as const;
 
 type Preferences = {
@@ -231,8 +228,36 @@ export default function Command() {
     source?: "dspy" | "ollama";
   } | null>(null);
 
+  // Backend health check status
+  const [backendStatus, setBackendStatus] = useState<BackendStatus>("checking");
+
   // Show diagnostic toast if safe mode activated automatically
   const [safeModeToastShown, setSafeModeToastShown] = useState(false);
+
+  // Health check on component load (only for backend modes)
+  useEffect(() => {
+    const checkHealth = async () => {
+      const executionMode = preferences.executionMode ?? "legacy";
+      const useBackend = executionMode !== "ollama";
+
+      // Only check health if using backend (legacy or nlac mode)
+      if (!useBackend) {
+        setBackendStatus("healthy"); // Ollama mode doesn't need backend
+        return;
+      }
+
+      try {
+        const dspyBaseUrl = preferences.dspyBaseUrl?.trim() || configState.config.dspy.baseUrl;
+        const client = createDSPyClient({ baseUrl: dspyBaseUrl, timeoutMs: 3000 });
+        await client.healthCheck();
+        setBackendStatus("healthy");
+      } catch {
+        setBackendStatus("unavailable");
+      }
+    };
+
+    checkHealth();
+  }, []);
 
   useEffect(() => {
     if (isInSafeMode && !safeModeToastShown && configState.source === "defaults") {
@@ -394,7 +419,7 @@ export default function Command() {
       const dspyBaseUrl = preferences.dspyBaseUrl?.trim() || config.dspy.baseUrl;
       const executionMode = preferences.executionMode ?? "legacy";
       const useBackend = executionMode !== "ollama";
-      const hint = useBackend ? buildDSPyHint(e) : buildErrorHint(e);
+      const hint = buildErrorHint(e, useBackend ? "dspy" : undefined);
 
       // Debug logging
       console.error(`${LOG_PREFIX} ❌ Error details:`, {
@@ -483,6 +508,9 @@ export default function Command() {
       }
     >
       {loadingStage !== "idle" && <Form.Description text={`${STAGE_MESSAGES[loadingStage]}`} />}
+      {loadingStage === "idle" && backendStatus !== "healthy" && (
+        <Form.Description text={BACKEND_STATUS_DISPLAY[backendStatus]} />
+      )}
       <Form.TextArea
         id="inputText"
         title="Prompt"
@@ -500,27 +528,15 @@ function parseTimeoutMs(value: string | undefined, fallback: number): number {
   return Number.isFinite(n) && n > 0 ? n : fallback;
 }
 
-function buildErrorHint(error: unknown): string | null {
-  const message = error instanceof Error ? error.message : String(error);
-  const lower = message.toLowerCase();
-  if (lower.includes("timed out")) return "try increasing timeout (ms)";
-  if (
-    lower.includes("failed calling ollama") ||
-    lower.includes("connect") ||
-    lower.includes("econnrefused") ||
-    lower.includes("not reachable")
-  )
-    return "check `ollama serve` is running";
-  if (lower.includes("model") && lower.includes("not found")) return "Pull the model first: `ollama pull <model>`";
-  return null;
-}
-
-function buildDSPyHint(error: unknown): string | null {
+function buildErrorHint(error: unknown, mode?: "dspy"): string | null {
   const message = error instanceof Error ? error.message : String(error);
   const lower = message.toLowerCase();
   if (lower.includes("timed out")) return "try increasing timeout (ms)";
   if (lower.includes("connect") || lower.includes("econnrefused") || lower.includes("not reachable")) {
-    return "check the DSPy backend is running";
+    return mode === "dspy" ? "check the DSPy backend is running" : "check `ollama serve` is running";
+  }
+  if (lower.includes("model") && lower.includes("not found")) {
+    return "Pull the model first: `ollama pull <model>`";
   }
   return null;
 }
