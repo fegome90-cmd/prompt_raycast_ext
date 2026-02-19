@@ -19,8 +19,10 @@ export default defineConfig({
         "docs/**",
       ],
     },
-    deps: {
-      external: ["@raycast/api"],
+    server: {
+      deps: {
+        external: ["@raycast/api"],
+      },
     },
   },
   resolve: {
