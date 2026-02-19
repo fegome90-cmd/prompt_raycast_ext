@@ -144,7 +144,7 @@ export default function Command() {
         await ToastHelper.success("Prompt improved!", `TTV: ${ttv_ms}ms • ${input.source}`);
       } catch (e) {
         setLoadingStage("error");
-        const errorDetail = handleBackendError(e, t0);
+        const errorDetail = handleBackendError(e);
         console.error(`${LOG_PREFIX} ❌ Error:`, e);
         setError(errorDetail);
         await ToastHelper.error("Failed to improve prompt", e instanceof Error ? e.message : String(e));

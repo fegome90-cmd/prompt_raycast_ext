@@ -5,7 +5,7 @@ import { tokens } from "../design/tokens";
 // Start command for the backend
 const BACKEND_START_COMMAND = "cd <your-raycast-ext-dir> && make dev";
 
-export function handleBackendError(error: unknown, _t0: number) {
+export function handleBackendError(error: unknown) {
   // Timeout errors
   if (error instanceof Error && error.name === "AbortError") {
     return (
