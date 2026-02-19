@@ -417,7 +417,9 @@ export default function Command() {
         source: useBackend ? "dspy" : "ollama",
       });
     } catch (e) {
-      setLoadingStage("error");
+      // Note: setLoadingStage("error") is intentionally NOT called here
+      // because the finally block always resets to "idle". The toast
+      // provides the error feedback to the user.
       const config = configState.config;
       const baseUrl = preferences.ollamaBaseUrl?.trim() || config.ollama.baseUrl;
       const model = preferences.model?.trim() || config.ollama.model;
