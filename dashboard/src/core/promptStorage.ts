@@ -25,15 +25,22 @@ const MAX_HISTORY = 20;
 const LOG_PREFIX = "[PromptStorage]";
 
 /**
+ * Check if error is ENOENT (file not found)
+ */
+function isENOENT(error: unknown): boolean {
+  return error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "ENOENT";
+}
+
+/**
  * Ensure storage directory exists
  */
 async function ensureStorageDir(): Promise<void> {
   try {
     await fs.mkdir(STORAGE_DIR, { recursive: true });
   } catch (error) {
-    // Log error for debugging (EEXIST is OK, but permission errors are not)
     const message = error instanceof Error ? error.message : String(error);
-    console.warn(`${LOG_PREFIX} ⚠️ Failed to create storage directory: ${message}`);
+    console.error(`${LOG_PREFIX} Failed to create storage directory: ${message}`);
+    throw new Error(`Failed to initialize storage: ${message}`);
   }
 }
 
@@ -88,8 +95,11 @@ export async function getPromptHistory(limit: number = 10): Promise<PromptEntry[
 
     return entries.slice(0, limit);
   } catch (error) {
-    // File doesn't exist yet
-    return [];
+    if (isENOENT(error)) {
+      return []; // File doesn't exist yet
+    }
+    console.error(`${LOG_PREFIX} Failed to read history:`, error);
+    throw error;
   }
 }
 
@@ -108,7 +118,11 @@ export async function clearHistory(): Promise<void> {
   try {
     await fs.unlink(HISTORY_FILE);
   } catch (error) {
-    // File doesn't exist, ignore
+    if (isENOENT(error)) {
+      return; // File doesn't exist - already cleared
+    }
+    console.error(`${LOG_PREFIX} Failed to clear history:`, error);
+    throw new Error(`Failed to clear history: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -122,10 +136,17 @@ async function trimHistory(): Promise<void> {
 
     if (lines.length > MAX_HISTORY) {
       const keepLines = lines.slice(-MAX_HISTORY);
-      await fs.writeFile(HISTORY_FILE, keepLines.join("\n") + "\n", "utf-8");
+      // Atomic write: temp file + rename
+      const tempFile = HISTORY_FILE + ".tmp";
+      await fs.writeFile(tempFile, keepLines.join("\n") + "\n", "utf-8");
+      await fs.rename(tempFile, HISTORY_FILE);
     }
   } catch (error) {
-    // File doesn't exist yet, ignore
+    if (isENOENT(error)) {
+      return; // File doesn't exist yet - this is OK
+    }
+    console.error(`${LOG_PREFIX} Failed to trim history:`, error);
+    throw error;
   }
 }
 

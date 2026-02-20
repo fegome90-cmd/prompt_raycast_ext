@@ -1,0 +1,196 @@
+StrategyEvaluation:
+  plan_id: PLAN-2026-0001
+  requirement_set: RQ-2026-0001
+  created_at: "2026-01-15T10:30:00Z"
+
+  strategies:
+    # === STRATEGY 1: PHASED INCREMENTAL (User's Plan) ===
+    - id: STRAT-001
+      name: "Phased Incremental - Backend First, Then Frontend"
+      description: |
+        Implement in strict sequence: Backend Core (DebugModeSelector, API, telemetry, progress) →
+        Tests (unit, fallback, E2E) → Frontend (fix bug, feature flag, UI components).
+        Each phase completes before starting next, minimizing integration risk.
+      approach: |
+        Phase 1: Backend foundation (DebugModeSelector, API integration, progress endpoint, telemetry)
+        Phase 2: Test coverage (unit tests, fallback tests, integration tests)
+        Phase 3: Frontend implementation (fix hard-coded bug, feature flag, UI components)
+
+      strengths:
+        - "Low integration risk: backend API contract stable before frontend uses it"
+        - "High test coverage: tests written immediately after implementation"
+        - "Clear progress tracking: each phase has explicit exit criteria"
+        - "Easy to pause/resume: natural checkpoints between phases"
+
+      concerns:
+        - "Slower time-to-value: frontend blocked until backend complete"
+        - "Can't parallelize: frontend team waits for backend team"
+        - "No user feedback until Phase 3 complete"
+
+      scores:
+        constraint_satisfaction: 5  # Meets all constraints (domain purity, no OPRO, etc.)
+        time_to_value: 3            # Medium: ~1 week before any user-visible value
+        complexity: 4               # Simple: sequential, well-defined phases
+        auditability: 5             # Excellent: each phase independently testable
+        adaptability: 3             # Medium: phase boundaries are rigid
+      total_score: 20
+
+      recommendation: SELECTED
+      rationale: |
+        Best balance of risk management and clarity. Sequential phases ensure backend stability
+        before frontend integration, preventing "API contract churn" that plagues parallel development.
+        The 1-week timeline is acceptable for this scope.
+
+    # === STRATEGY 2: PARALLEL FULL-STACK ===
+    - id: STRAT-002
+      name: "Parallel Full-Stack - Backend and Frontend Simultaneously"
+      description: |
+        Implement backend and frontend in parallel using agreed-upon API contracts.
+        Frontend uses mock backend during development, switches to real backend when ready.
+      approach: |
+        Sprint 1: Define API contracts + Backend DebugModeSelector + Frontend mock mode
+        Sprint 2: Backend API integration + Frontend UI implementation (parallel)
+        Sprint 3: Integration + Tests
+
+      strengths:
+        - "Faster delivery: parallel work reduces total timeline"
+        - "Frontend not blocked: can develop UI with mock data"
+        - "Faster feedback: see UI components early"
+
+      concerns:
+        - "Integration risk: API contract misunderstandings cause rework"
+        - "Mock drift: frontend mocks diverge from actual backend behavior"
+        - "Harder to debug: issues could be in frontend, backend, or integration layer"
+        - "Test coverage lag: integration tests written late in cycle"
+
+      scores:
+        constraint_satisfaction: 4  # Meets constraints but risk of API contract violation
+        time_to_value: 5            # Fast: ~3-4 days to see UI
+        complexity: 2               # Complex: parallel work requires coordination
+        auditability: 3             # Medium: harder to isolate issues
+        adaptability: 4             # Good: can adjust frontend/backend independently
+      total_score: 18
+
+      recommendation: null
+      rationale: |
+        Faster but riskier. Good if you have tight deadlines and experienced team.
+        Mock management overhead often underestimated.
+
+    # === STRATEGY 3: TEST-FIRST (TDD) ===
+    - id: STRAT-003
+      name: "Test-First TDD - Write Tests Before Implementation"
+      description: |
+        Start with complete test suite (unit, integration, fallback, E2E) as failing tests,
+        then implement features to make tests pass. Tests drive API design.
+      approach: |
+        Step 1: Write all failing tests (DebugModeSelector tests, fallback tests, E2E tests)
+        Step 2: Implement DebugModeSelector to pass unit tests
+        Step 3: Implement API integration to pass integration tests
+        Step 4: Implement frontend to pass E2E tests
+
+      strengths:
+        - "Highest confidence: tests prove correctness at every level"
+        - "Regression protection: any change breaks tests immediately"
+        - "Documentation: tests serve as living documentation of expected behavior"
+        - "Drives design: tests force thinking about edge cases upfront"
+
+      concerns:
+        - "Slowest initial progress: no working code until tests pass"
+        - "Test maintenance: changing requirements requires updating tests first"
+        - "Learning curve: team must be proficient in TDD"
+        - "Over-testing risk: may test implementation details rather than behavior"
+
+      scores:
+        constraint_satisfaction: 5  # Perfect: tests enforce all constraints
+        time_to_value: 2            # Slow: ~10 days before any passing tests
+        complexity: 3               # Medium: well-known pattern, but requires discipline
+        auditability: 5             # Excellent: tests are the ultimate audit trail
+        adaptability: 2             # Poor: tests create rigidity, changes require test updates
+      total_score: 17
+
+      recommendation: null
+      rationale: |
+        Highest quality but slowest. Best for critical infrastructure where correctness
+        is paramount (e.g., payment processing, security systems). For this experimental
+        feature, TDD may be overkill.
+
+    # === STRATEGY 4: MINIMAL VIABLE DEBUG MODE ===
+    - id: STRAT-004
+      name: "Minimal Viable - Ship Core Debug Mode, Defer Observability"
+      description: |
+        Ship only essential debug mode functionality (DebugModeSelector, API integration,
+        basic UI). Defer telemetry, progress endpoint, advanced UI to Phase 3 if usage
+        confirms value.
+      approach: |
+        Phase 1 (Week 1): Core debug mode - DebugModeSelector, API integration, basic UI
+        Phase 2 (Week 1): Basic tests - unit tests, smoke tests
+        Phase 3 (Month 2, IF usage confirms value): Add telemetry, progress indicator, polish
+
+      strengths:
+        - "Fastest to production: ship debug mode in 3-4 days"
+        - "Validate assumption: see if users actually find debug mode useful"
+        - "Avoid wasted work: don't build telemetry for unused feature"
+        - "Simpler: less code to maintain initially"
+
+      concerns:
+        - "No observability: can't measure success criteria (latency, adoption, cancellation)"
+        - "Poor UX: no progress indicator, 60-180s wait feels like freeze"
+        - "No telemetry: violates requirement C-005 (P0) which specifies telemetry is critical"
+        - "Unknown if users like it: no metrics to inform Phase 3 decision"
+
+      scores:
+        constraint_satisfaction: 2  # FAILS: missing telemetry (C-005 P0), progress endpoint (C-006 P0)
+        time_to_value: 5            # Fastest: ship in 3-4 days
+        complexity: 5               # Simplest: minimal code
+        auditability: 2             # Poor: no telemetry = no visibility into usage
+        adaptability: 4             # Good: can add features later if needed
+      total_score: 18
+
+      recommendation: REJECTED
+      rationale: |
+        Violates P0 requirements (telemetry C-005, progress endpoint C-006). The plan explicitly
+        states telemetry is "CRITICAL for Phase 3" evaluation. Shipping without observability
+        makes Phase 3 decision impossible. If you want to de-scope, explicitly update requirements
+        first.
+
+  # === SCORING SUMMARY ===
+  scoring_summary:
+    dimensions:
+      - name: constraint_satisfaction
+        description: "How well strategy meets stated constraints (1=violates, 5=perfect)"
+        weight: 1.0
+      - name: time_to_value
+        description: "Speed of delivering initial value (1=months, 5=days)"
+        weight: 1.0
+      - name: complexity
+        description: "Implementation simplicity (1=very complex, 5=very simple)"
+        weight: 1.0
+      - name: auditability
+        description: "Ease of verifying correctness (1=opaque, 5=transparent)"
+        weight: 1.0
+      - name: adaptability
+        description: "Ease of changing/extending later (1=rigid, 5=flexible)"
+        weight: 1.0
+
+    comparison_table:
+      | Strategy | Constraints | Time-to-Value | Complexity | Auditability | Adaptability | Total |
+      |----------|-------------|---------------|------------|--------------|--------------|-------|
+      | STRAT-001 (Phased Incremental) | 5 | 3 | 4 | 5 | 3 | **20** ⭐ |
+      | STRAT-002 (Parallel Full-Stack) | 4 | 5 | 2 | 3 | 4 | 18 |
+      | STRAT-003 (Test-First TDD) | 5 | 2 | 3 | 5 | 2 | 17 |
+      | STRAT-004 (Minimal Viable) | 2 | 5 | 5 | 2 | 4 | 18 (REJECTED) |
+
+  decision: |
+    STRAT-001 (Phased Incremental) is RECOMMENDED because:
+    1. Satisfies all P0 constraints (unlike STRAT-004)
+    2. Lower integration risk than STRAT-002 (sequential phases prevent API contract churn)
+    3. Faster than STRAT-003 (1 week vs 10 days to first value)
+    4. Best auditability (each phase independently testable)
+
+    The 1-week timeline is acceptable for this experimental feature. If timeline becomes critical,
+    STRAT-002 (Parallel) is viable but requires rigorous API contract management.
+
+  next_steps: |
+    1. User confirms strategy selection
+    2. Decompose STRAT-001 into hierarchical plan tree (Vision → Strategy → Architecture → Work Packages → Work Orders)
+    3. Generate detailed Work Orders with Definition of Done

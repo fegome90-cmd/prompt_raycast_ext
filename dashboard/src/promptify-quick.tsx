@@ -2,42 +2,27 @@ import { Action, ActionPanel, Clipboard, Detail, Form, getPreferenceValues } fro
 import { useState, useEffect } from "react";
 import { improvePromptWithHybrid, improvePromptWithOllama } from "./core/llm/improvePrompt";
 import { ollamaHealthCheck } from "./core/llm/ollamaClient";
+import { createDSPyClient } from "./core/llm/dspyPromptImprover";
 import { loadConfig } from "./core/config";
 import { getCustomPatternSync } from "./core/templates/pattern";
 import { Typography } from "./core/design/typography";
 import { ToastHelper } from "./core/design/toast";
-import { savePrompt, formatTimestamp } from "./core/promptStorage";
-
-// Engine display names (used in metadata)
-const ENGINE_NAMES = {
-  dspy: "DSPy + Haiku",
-  ollama: "Ollama",
-} as const;
-
-// Preset placeholders for input textarea
-const PLACEHOLDERS = {
-  default: "Paste your rough prompt here… (⌘I to improve)",
-  specific: "What specific task should this prompt accomplish?",
-  structured: "Paste your prompt - we'll add structure and clarity…",
-  coding: "Describe what you want the code to do…",
-} as const;
+import { savePrompt } from "./core/promptStorage";
+import { LoadingStage, STAGE_MESSAGES, ENGINE_NAMES } from "./core/constants";
+import { buildErrorHint } from "./core/errors/hints";
+import { parseTimeoutMs, shouldTryFallback, getPlaceholder } from "./core/utils/parsing";
 
 // Logging prefixes for consistent filtering in Console.app
 const LOG_PREFIX = "[PromptifyQuick]";
 const FALLBACK_PREFIX = "[Fallback]";
 
-// Loading stage type for progressive status updates
-type LoadingStage = "idle" | "validating" | "connecting" | "analyzing" | "improving" | "success" | "error";
+// Backend status for health check indicator
+type BackendStatus = "checking" | "healthy" | "unavailable";
 
-// Stage messages for user-facing status display
-const STAGE_MESSAGES = {
-  idle: "",
-  validating: "Validating input...",
-  connecting: "Connecting to DSPy...",
-  analyzing: "Analyzing prompt structure...",
-  improving: "Applying few-shot learning...",
-  success: "Complete!",
-  error: "Failed",
+const BACKEND_STATUS_DISPLAY = {
+  checking: "⚪ Checking backend...",
+  healthy: "🟢 Backend ready",
+  unavailable: "🔴 Backend offline",
 } as const;
 
 type Preferences = {
@@ -209,12 +194,6 @@ function PromptPreview(props: {
   );
 }
 
-function getPlaceholder(preset?: "default" | "specific" | "structured" | "coding"): string {
-  return PLACEHOLDERS[preset || "structured"];
-}
-
-// type LoadingStage = "validating" | "connecting" | "processing" | "finalizing";
-
 export default function Command() {
   const preferences = getPreferenceValues<Preferences>();
 
@@ -231,8 +210,43 @@ export default function Command() {
     source?: "dspy" | "ollama";
   } | null>(null);
 
+  // Backend health check status
+  const [backendStatus, setBackendStatus] = useState<BackendStatus>("checking");
+
   // Show diagnostic toast if safe mode activated automatically
   const [safeModeToastShown, setSafeModeToastShown] = useState(false);
+
+  // Health check on component load (only for backend modes)
+  useEffect(() => {
+    const HEALTH_CHECK_TIMEOUT_MS = 5000; // 5s for health checks (slower networks)
+
+    const checkHealth = async () => {
+      const executionMode = preferences.executionMode ?? "legacy";
+      const useBackend = executionMode !== "ollama";
+
+      // Only check health if using backend (legacy or nlac mode)
+      if (!useBackend) {
+        setBackendStatus("healthy"); // Ollama mode doesn't need backend
+        return;
+      }
+
+      try {
+        const dspyBaseUrl = preferences.dspyBaseUrl?.trim() || configState.config.dspy.baseUrl;
+        const client = createDSPyClient({ baseUrl: dspyBaseUrl, timeoutMs: HEALTH_CHECK_TIMEOUT_MS });
+        await client.healthCheck();
+        setBackendStatus("healthy");
+      } catch (error) {
+        console.error(`${LOG_PREFIX} Health check failed:`, {
+          error: error instanceof Error ? error.message : String(error),
+          dspyBaseUrl: preferences.dspyBaseUrl?.trim() || configState.config.dspy.baseUrl,
+        });
+        setBackendStatus("unavailable");
+      }
+    };
+
+    checkHealth();
+    // Intentionally runs only on mount - config/preference changes require component remount
+  }, []);
 
   useEffect(() => {
     if (isInSafeMode && !safeModeToastShown && configState.source === "defaults") {
@@ -353,6 +367,7 @@ export default function Command() {
       await Clipboard.copy(finalPrompt);
 
       // Save to local history for persistence
+      let historySaveFailed = false;
       await savePrompt({
         prompt: finalPrompt,
         meta: {
@@ -365,9 +380,13 @@ export default function Command() {
         preset,
       }).catch((error) => {
         console.error(`${LOG_PREFIX} ❌ Failed to save prompt:`, error);
+        historySaveFailed = true;
       });
 
-      await ToastHelper.success("Copied to clipboard", `${finalPrompt.length} characters • Saved to history`);
+      const historyMessage = historySaveFailed
+        ? `${finalPrompt.length} characters (history save failed)`
+        : `${finalPrompt.length} characters • Saved to history`;
+      await ToastHelper.success("Copied to clipboard", historyMessage);
 
       // Clear loading stage on success
       setLoadingStage("idle");
@@ -387,14 +406,16 @@ export default function Command() {
         source: useBackend ? "dspy" : "ollama",
       });
     } catch (e) {
-      setLoadingStage("error");
+      // Note: setLoadingStage("error") is intentionally NOT called here
+      // because the finally block always resets to "idle". The toast
+      // provides the error feedback to the user.
       const config = configState.config;
       const baseUrl = preferences.ollamaBaseUrl?.trim() || config.ollama.baseUrl;
       const model = preferences.model?.trim() || config.ollama.model;
       const dspyBaseUrl = preferences.dspyBaseUrl?.trim() || config.dspy.baseUrl;
       const executionMode = preferences.executionMode ?? "legacy";
       const useBackend = executionMode !== "ollama";
-      const hint = useBackend ? buildDSPyHint(e) : buildErrorHint(e);
+      const hint = buildErrorHint(e, useBackend ? (executionMode === "nlac" ? "nlac" : "dspy") : undefined);
 
       // Debug logging
       console.error(`${LOG_PREFIX} ❌ Error details:`, {
@@ -483,6 +504,9 @@ export default function Command() {
       }
     >
       {loadingStage !== "idle" && <Form.Description text={`${STAGE_MESSAGES[loadingStage]}`} />}
+      {loadingStage === "idle" && backendStatus !== "healthy" && (
+        <Form.Description text={BACKEND_STATUS_DISPLAY[backendStatus]} />
+      )}
       <Form.TextArea
         id="inputText"
         title="Prompt"
@@ -493,36 +517,6 @@ export default function Command() {
       />
     </Form>
   );
-}
-
-function parseTimeoutMs(value: string | undefined, fallback: number): number {
-  const n = Number.parseInt((value ?? "").trim(), 10);
-  return Number.isFinite(n) && n > 0 ? n : fallback;
-}
-
-function buildErrorHint(error: unknown): string | null {
-  const message = error instanceof Error ? error.message : String(error);
-  const lower = message.toLowerCase();
-  if (lower.includes("timed out")) return "try increasing timeout (ms)";
-  if (
-    lower.includes("failed calling ollama") ||
-    lower.includes("connect") ||
-    lower.includes("econnrefused") ||
-    lower.includes("not reachable")
-  )
-    return "check `ollama serve` is running";
-  if (lower.includes("model") && lower.includes("not found")) return "Pull the model first: `ollama pull <model>`";
-  return null;
-}
-
-function buildDSPyHint(error: unknown): string | null {
-  const message = error instanceof Error ? error.message : String(error);
-  const lower = message.toLowerCase();
-  if (lower.includes("timed out")) return "try increasing timeout (ms)";
-  if (lower.includes("connect") || lower.includes("econnrefused") || lower.includes("not reachable")) {
-    return "check the DSPy backend is running";
-  }
-  return null;
 }
 
 async function runWithModelFallback(args: {
@@ -570,23 +564,4 @@ async function runWithModelFallback(args: {
     console.log(`${FALLBACK_PREFIX} ✅ Fallback successful with ${args.fallbackModel}`);
     return result;
   }
-}
-
-function shouldTryFallback(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error);
-  const lower = message.toLowerCase();
-  // Typical Ollama/model issues where a retry with another model makes sense.
-  if (lower.includes("model") && lower.includes("not found")) return true;
-  if (lower.includes("pull")) return true;
-  if (lower.includes("404")) return true;
-  if (lower.includes("ollama error") && lower.includes("model")) return true;
-  // Output/format issues (some models ignore schema or return unusable outputs).
-  if (lower.includes("non-json")) return true;
-  if (lower.includes("validation")) return true;
-  if (lower.includes("zod")) return true;
-  if (lower.includes("improved_prompt")) return true;
-  if (lower.includes("contains meta content")) return true;
-  if (lower.includes("starts with meta instructions")) return true;
-  if (lower.includes("describes creating a prompt")) return true;
-  return false;
 }

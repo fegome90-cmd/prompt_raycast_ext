@@ -1,4 +1,5 @@
 import { defineConfig } from "vitest/config";
+import path from "path";
 
 export default defineConfig({
   test: {
@@ -18,9 +19,17 @@ export default defineConfig({
         "docs/**",
       ],
     },
+    server: {
+      deps: {
+        external: ["@raycast/api"],
+      },
+    },
   },
   resolve: {
     conditions: ["node"],
+    alias: {
+      "@raycast/api": path.resolve(__dirname, "__mocks__/@raycast/api.ts"),
+    },
   },
 });
 

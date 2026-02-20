@@ -1,0 +1,574 @@
+PlanTree:
+  id: PLAN-2026-0001
+  requirement_set: RQ-2026-0001
+  selected_strategy: STRAT-003
+  created_at: "2026-01-15T11:00:00Z"
+
+  # === VISION LEVEL ===
+  vision:
+    id: V-001
+    title: "NLaC-DEBUG Selective Exposure"
+    objective: |
+      Enable opt-in debug mode for code+error scenarios using ReflexionService,
+      while keeping Legacy DSPy as default. Debug mode is an experimental feature
+      to validate whether code-aware debugging provides user value.
+    success_criteria:
+      - "Debug mode available only when user explicitly enables AND provides code+error"
+      - "Legacy mode remains default with no regression (859+ tests passing)"
+      - "Telemetry captures debug mode latency, success rate, and cancellation for Phase 3 evaluation"
+      - "All P0 requirements satisfied (C-001 through C-011)"
+
+  # === STRATEGY LEVEL ===
+  strategy:
+    id: STRAT-003
+    name: "Test-First TDD - Write Tests Before Implementation"
+    approach: |
+      Test-Driven Development: Write complete failing test suite first, then implement
+      features to make tests pass. Tests drive API design and ensure correctness.
+
+      Step 1: Write all failing tests (unit, integration, fallback, E2E)
+      Step 2: Implement DebugModeSelector to pass unit tests
+      Step 3: Implement API integration to pass integration/fallback tests
+      Step 4: Implement frontend to pass E2E tests
+      Step 5: Implement observability (telemetry, progress) to pass monitoring tests
+
+    phases:
+      - name: "Phase 1: Test Suite Foundation"
+        duration: "2-3 days"
+        objective: "Write complete failing test suite covering all P0 requirements"
+      - name: "Phase 2: Domain Layer Implementation"
+        duration: "2-3 days"
+        objective: "Implement DebugModeSelector to pass unit tests"
+      - name: "Phase 3: API Integration"
+        duration: "2-3 days"
+        objective: "Implement API integration with fallback to pass integration/fallback tests"
+      - name: "Phase 4: Frontend Implementation"
+        duration: "2-3 days"
+        objective: "Implement frontend to pass E2E tests"
+      - name: "Phase 5: Observability"
+        duration: "1-2 days"
+        objective: "Implement telemetry and progress endpoint"
+
+    tdd_principles:
+      - "Red: Write a failing test before writing implementation"
+      - "Green: Write minimum code to make test pass"
+      - "Refactor: Clean up code while keeping tests green"
+      - "Tests serve as living documentation of expected behavior"
+
+  # === ARCHITECTURE LEVEL ===
+  architecture:
+    pattern: "Hexagonal Architecture with Test-Driven Development"
+    description: |
+      Domain layer (DebugModeSelector) remains pure with no IO/async.
+      Application layer (API) handles integration, fallback, and observability.
+      Presentation layer (Frontend) handles UI and user interaction.
+      Tests are written first and drive the API design.
+
+    components:
+      - name: "DebugModeSelector (Domain)"
+        layer: "domain"
+        responsibility: "Mode selection with validation (code+error required for debug)"
+        tests: "Unit tests for validation logic"
+      - name: "ReflexionStrategy (Application)"
+        layer: "application"
+        responsibility: "Wraps ReflexionService for debug mode execution"
+        tests: "Integration tests for ReflexionService usage"
+      - name: "API Integration (Application)"
+        layer: "application"
+        responsibility: "Orchestrates mode selection, execution, fallback, telemetry"
+        tests: "Integration and fallback tests"
+      - name: "Telemetry Service (Infrastructure)"
+        layer: "infrastructure"
+        responsibility: "Emits telemetry events for debug mode lifecycle"
+        tests: "Unit tests for telemetry emission"
+      - name: "Progress Store (Infrastructure)"
+        layer: "infrastructure"
+        responsibility: "In-memory storage for debug mode progress polling"
+        tests: "Unit tests for progress storage/retrieval"
+      - name: "Frontend UI (Presentation)"
+        layer: "presentation"
+        responsibility: "Debug mode selector, code+error inputs, progress indicator"
+        tests: "E2E tests for complete user flows"
+
+    tech_stack:
+      backend:
+        - "Python 3.12+"
+        - "FastAPI (API layer)"
+        - "pytest (testing framework)"
+        - "ReflexionService (existing, 17 passing tests)"
+      frontend:
+        - "TypeScript"
+        - "React (Raycast extension)"
+        - "Existing dspyPromptImprover.ts"
+
+    data_flow: |
+      1. Frontend sends improve-prompt request with mode, code_snippet, error_log
+      2. API uses DebugModeSelector to determine execution mode
+      3. If debug mode + valid inputs → ReflexionStrategy executes
+      4. On timeout/exception → Fallback to LegacyStrategy with warning
+      5. Telemetry emitted at each step
+      6. Progress updated during ReflexionService execution
+      7. Frontend polls progress endpoint for UI updates
+
+  # === WORK PACKAGES (EPICS) ===
+  work_packages:
+    # === E-001: TEST SUITE FOUNDATION ===
+    - id: E-001
+      title: "Test Suite Foundation (TDD Red Phase)"
+      description: |
+        Write complete failing test suite covering all P0 requirements.
+        These tests define expected behavior and drive API design.
+      epic_objective: |
+        All P0 requirements have corresponding tests that fail initially
+        (no implementation exists yet). Tests serve as executable specification.
+      work_orders:
+        - id: WO-0001
+          title: "Write DebugModeSelector unit tests (failing)"
+          description: |
+            Create tests/test_debug_mode_selector.py with failing tests for:
+            - test_validacion_fail_fast: raises ValueError when debug mode without code+error
+            - test_legacy_default: returns 'legacy' when no mode specified
+            - test_debug_available: returns debug mode when enable_debug=true + code+error present
+            - test_debug_disabled_when_flag_false: returns legacy even with code+error
+          files:
+            create:
+              - "tests/test_debug_mode_selector.py"
+          definition_of_done:
+            - "All 4 tests written and fail (AttributeError: module 'debug_mode_selector' not found)"
+            - "Tests clearly document expected DebugModeSelector interface"
+            - "Tests cover all validation scenarios (P0 requirement C-003)"
+
+        - id: WO-0002
+          title: "Write fallback tests (failing)"
+          description: |
+            Create tests/test_debug_mode_fallback.py with failing tests for:
+            - test_debug_mode_timeout_fallback: fallback to Legacy on TimeoutError
+            - test_debug_mode_exception_fallback: fallback to Legacy on Exception
+            - test_debug_mode_validation_error_no_fallback: ValueError raises (no fallback)
+          files:
+            create:
+              - "tests/test_debug_mode_fallback.py"
+          definition_of_done:
+            - "All 3 tests written and fail (API endpoint not implemented yet)"
+            - "Tests validate fallback behavior (P0 requirement C-004)"
+            - "Tests check _debug_mode_failed metadata and warning"
+
+        - id: WO-0003
+          title: "Write integration tests (failing)"
+          description: |
+            Create tests/test_dual_pipeline_integration.py with failing tests for:
+            - test_simple_input_uses_legacy: no code+error → LegacyStrategy
+            - test_debug_mode_with_code_error: code+error + debug mode → ReflexionService
+            - test_debug_mode_no_code_fallback: no code + debug mode → fallback with warning
+          files:
+            create:
+              - "tests/test_dual_pipeline_integration.py"
+          definition_of_done:
+            - "All 3 tests written and fail (pipelines not integrated yet)"
+            - "Tests validate end-to-end flows (P0 requirement C-012)"
+
+        - id: WO-0004
+          title: "Write telemetry tests (failing)"
+          description: |
+            Create tests/test_debug_mode_telemetry.py with failing tests for:
+            - test_telemetry_mode_selected: emits mode_selected event
+            - test_telemetry_debug_mode_lifecycle: emits started/completed/failed events
+            - test_telemetry_debug_mode_latency: records latency histogram
+          files:
+            create:
+              - "tests/test_debug_mode_telemetry.py"
+          definition_of_done:
+            - "All 3 tests written and fail (telemetry not implemented yet)"
+            - "Tests validate telemetry coverage (P0 requirement C-005)"
+
+        - id: WO-0005
+          title: "Write progress endpoint tests (failing)"
+          description: |
+            Create tests/test_debug_mode_progress.py with failing tests for:
+            - test_progress_endpoint_returns_stage: GET /debug-progress/{id} returns stage+percent
+            - test_progress_cleanup_after_timeout: progress deleted after 300s
+          files:
+            create:
+              - "tests/test_debug_mode_progress.py"
+          definition_of_done:
+            - "All 2 tests written and fail (progress endpoint not implemented yet)"
+            - "Tests validate progress polling (P0 requirement C-006)"
+
+        - id: WO-0006
+          title: "Write E2E frontend tests (failing)"
+          description: |
+            Create dashboard/src/tests/debug-mode-e2e.test.ts with failing tests for:
+            - test_debug_mode_ui_shows_inputs: code+error fields appear when mode=debug
+            - test_debug_mode_progress_indicator: spinner+stage shown during execution
+            - test_legacy_mode_no_debug_inputs: code+error fields hidden for legacy
+          files:
+            create:
+              - "dashboard/src/tests/debug-mode-e2e.test.ts"
+          definition_of_done:
+            - "All 3 tests written and fail (UI not implemented yet)"
+            - "Tests validate UI requirements (P0 requirements C-007, C-008)"
+
+        - id: WO-0007
+          title: "Write performance regression tests (failing)"
+          description: |
+            Create tests/test_latency_benchmarks.py with failing tests for:
+            - test_legacy_p95_latency_under_90s: Legacy mode P95 ≤ 90s (no regression)
+            - test_debug_p95_latency_under_180s: Debug mode P95 ≤ 180s
+          files:
+            create:
+              - "tests/test_latency_benchmarks.py"
+          definition_of_done:
+            - "All 2 tests written and fail (no baseline established yet)"
+            - "Tests validate performance constraints (P0 requirement C-013, CN-009)"
+
+    # === E-002: DOMAIN LAYER IMPLEMENTATION ===
+    - id: E-002
+      title: "DebugModeSelector Implementation (TDD Green Phase)"
+      description: |
+        Implement DebugModeSelector service to make unit tests pass.
+        Domain layer remains pure (no IO, no async, no side effects).
+      epic_objective: |
+        WO-0001 tests pass. DebugModeSelector correctly validates inputs
+        and selects appropriate mode.
+      work_orders:
+        - id: WO-0008
+          title: "Implement DebugModeSelector class"
+          description: |
+            Create hemdov/domain/services/debug_mode_selector.py with:
+            - DebugModeSelector class with enable_debug parameter
+            - get_mode(requested_mode, code_snippet, error_log) method
+            - is_debug_available() method
+            - Validation: debug mode requires enable_debug=true + code_snippet + error_log
+            - Returns 'legacy' as default
+          files:
+            create:
+              - "hemdov/domain/services/debug_mode_selector.py"
+          definition_of_done:
+            - "pytest tests/test_debug_mode_selector.py: all 4 tests pass"
+            - "Domain layer pure: no IO, no async, no imports from api/ or infrastructure/"
+            - "Validation raises ValueError with clear message"
+            - "Code coverage ≥ 90% for DebugModeSelector"
+
+    # === E-003: API INTEGRATION ===
+    - id: E-003
+      title: "API Integration with Fallback (TDD Green Phase)"
+      description: |
+        Implement API integration using DebugModeSelector, ReflexionStrategy,
+        and fallback logic. Make integration and fallback tests pass.
+      epic_objective: |
+        WO-0002 (fallback) and WO-0003 (integration) tests pass.
+        API correctly routes to debug or legacy mode with fallback on failure.
+      work_orders:
+        - id: WO-0009
+          title: "Implement ReflexionStrategy wrapper"
+          description: |
+            Create hemdov/domain/services/reflexion_strategy.py that wraps
+            existing ReflexionService for debug mode execution:
+            - ReflexionStrategy class with llm_client, executor
+            - improve(idea, context, code_snippet, error_log) method
+            - Delegates to ReflexionService (existing, 17 passing tests)
+          files:
+            create:
+              - "hemdov/domain/services/reflexion_strategy.py"
+          definition_of_done:
+            - "ReflexionStrategy wraps ReflexionService correctly"
+            - "Existing 17 ReflexionService tests still pass"
+            - "No regression in ReflexionService functionality"
+
+        - id: WO-0010
+          title: "Integrate DebugModeSelector in API"
+          description: |
+            Modify api/prompt_improver_api.py to:
+            - Instantiate DebugModeSelector(enable_debug=settings.DEBUG_MODE_ENABLED)
+            - Use mode_selector.get_mode() to determine execution mode
+            - Route to ReflexionStrategy or LegacyStrategy based on mode
+            - Set DEBUG_MODE_TIMEOUT=180 for debug mode
+          files:
+            modify:
+              - "api/prompt_improver_api.py"
+          definition_of_done:
+            - "pytest tests/test_dual_pipeline_integration.py: all 3 tests pass"
+            - "API uses DebugModeSelector for mode selection"
+            - "Legacy mode still works (no regression)"
+
+        - id: WO-0011
+          title: "Implement fallback logic with try/except"
+          description: |
+            Add fallback logic in api/prompt_improver_api.py:
+            - Wrap debug mode execution in try/except (TimeoutError, Exception)
+            - On failure: fallback to LegacyStrategy with warning
+            - Set result._debug_mode_failed=True metadata
+            - Log warning with error details
+            - Use specific exception types (NOT except Exception)
+          files:
+            modify:
+              - "api/prompt_improver_api.py"
+          definition_of_done:
+            - "pytest tests/test_debug_mode_fallback.py: all 3 tests pass"
+            - "TimeoutError triggers fallback to LegacyStrategy"
+            - "Exception triggers fallback to LegacyStrategy"
+            - "ValueError does NOT trigger fallback (fail-fast)"
+            - "Fallback result includes _debug_mode_failed metadata"
+            - "No 'except Exception:' used (specific types only)"
+
+        - id: WO-0012
+          title: "Add DEBUG_MODE_ENABLED setting"
+          description: |
+            Add DEBUG_MODE_ENABLED setting to config:
+            - Add to .env or settings module
+            - Default: false (opt-in only)
+            - Used by DebugModeSelector constructor
+          files:
+            modify:
+              - "api/settings.py" or equivalent
+          definition_of_done:
+            - "DEBUG_MODE_ENABLED setting exists"
+            - "Default is false"
+            - "DebugModeSelector uses setting correctly"
+
+    # === E-004: OBSERVABILITY ===
+    - id: E-004
+      title: "Observability Implementation (TDD Green Phase)"
+      description: |
+        Implement telemetry and progress endpoint. Make telemetry and
+        progress tests pass.
+      epic_objective: |
+        WO-0004 (telemetry) and WO-0005 (progress) tests pass.
+        Debug mode lifecycle is observable for Phase 3 evaluation.
+      work_orders:
+        - id: WO-0013
+          title: "Implement telemetry module"
+          description: |
+            Create api/telemetry.py with:
+            - TELEMETRY_EVENTS dict (mode_selected, debug_mode_started, etc.)
+            - debug_mode_latency histogram
+            - debug_mode_success_rate counter
+            - debug_mode_cancellation_rate counter
+            - emit_telemetry(event, **kwargs) function
+            - OpenTelemetry integration (or placeholder)
+          files:
+            create:
+              - "api/telemetry.py"
+          definition_of_done:
+            - "pytest tests/test_debug_mode_telemetry.py: all 3 tests pass"
+            - "emit_telemetry() called at mode_selected, debug_mode_started, completed, failed"
+            - "Latency histogram records duration"
+            - "Success/cancellation counters updated"
+
+        - id: WO-0014
+          title: "Integrate telemetry in API"
+          description: |
+            Add telemetry calls in api/prompt_improver_api.py:
+            - emit_telemetry("mode_selected", mode=mode) after mode selection
+            - emit_telemetry("debug_mode_started") before debug execution
+            - emit_telemetry("debug_mode_completed", latency=...) after success
+            - emit_telemetry("debug_mode_failed", error=...) on failure
+            - emit_telemetry("debug_mode_fallback") on fallback
+          files:
+            modify:
+              - "api/prompt_improver_api.py"
+          definition_of_done:
+            - "All 5 telemetry events emitted at correct points"
+            - "Telemetry tests pass"
+            - "No performance impact from telemetry (async emission)"
+
+        - id: WO-0015
+          title: "Implement progress endpoint"
+          description: |
+            Add progress tracking to api/prompt_improver_api.py:
+            - debug_progress_store = {} (in-memory dict)
+            - GET /debug-progress/{request_id} endpoint
+            - Update progress during ReflexionService execution
+            - Cleanup progress after 300s
+          files:
+            modify:
+              - "api/prompt_improver_api.py"
+          definition_of_done:
+            - "pytest tests/test_debug_mode_progress.py: all 2 tests pass"
+            - "GET /debug-progress/{id} returns stage and percent"
+            - "Progress updates: Analizando (20%) → Refinando (60%) → Completado (100%)"
+            - "Progress cleaned up after 300s"
+
+    # === E-005: FRONTEND IMPLEMENTATION ===
+    - id: E-005
+      title: "Frontend Implementation (TDD Green Phase)"
+      description: |
+        Implement frontend UI components: fix hard-coded mode bug,
+        feature flag, debug mode inputs, progress indicator.
+        Make E2E tests pass.
+      epic_objective: |
+        WO-0006 (E2E tests) pass. Frontend supports debug mode selection,
+        code+error inputs, and progress indication.
+      work_orders:
+        - id: WO-0016
+          title: "Fix hard-coded mode bug in frontend"
+          description: |
+            Fix dashboard/src/core/llm/dspyPromptImprover.ts:86:
+            - Change from: const mode = "legacy"; (hard-coded)
+            - Change to: const mode = request.mode || preferences.executionMode || "legacy";
+            - Supports both "legacy" and "debug" modes
+          files:
+            modify:
+              - "dashboard/src/core/llm/dspyPromptImprover.ts"
+          definition_of_done:
+            - "Frontend respects request.mode parameter"
+            - "Legacy mode still works (no regression)"
+            - "E2E test test_legacy_mode_no_debug_inputs passes"
+
+        - id: WO-0017
+          title: "Add debugModeEnabled feature flag"
+          description: |
+            Add feature flag to frontend config:
+            - Add debugModeEnabled to dashboard/src/core/config/schema.ts
+            - Add default debugModeEnabled: false to defaults.ts
+            - Feature flag controls debug mode availability
+          files:
+            modify:
+              - "dashboard/src/core/config/schema.ts"
+              - "dashboard/src/core/config/defaults.ts"
+          definition_of_done:
+            - "debugModeEnabled feature flag exists"
+            - "Default is false (opt-in only)"
+            - "Schema validates boolean type"
+
+        - id: WO-0018
+          title: "Implement debug mode UI components"
+          description: |
+            Add debug mode UI to dashboard/src/views/promptify-quick.tsx:
+            - Mode indicator: "🐛 Debug Mode (1-3 minutos, para código con errores)"
+            - Code snippet input field (shown when mode=debug)
+            - Error log input field (shown when mode=debug)
+            - Warning: "⚠️ Este modo puede tardar 1-3 minutos..."
+            - All hidden when mode=legacy
+          files:
+            modify:
+              - "dashboard/src/views/promptify-quick.tsx"
+          definition_of_done:
+            - "E2E test test_debug_mode_ui_shows_inputs passes"
+            - "Code+error inputs shown/hidden based on mode"
+            - "Warning displayed for debug mode"
+            - "Legacy mode shows no debug inputs"
+
+        - id: WO-0019
+          title: "Implement progress indicator UI"
+          description: |
+            Add progress indicator to dashboard/src/views/promptify-quick.tsx:
+            - Spinner animation during debug mode execution
+            - Stage text: "Analizando código...", "Refinando...", "Completado"
+            - Progress bar with percentage
+            - Estimated time: "Tiempo estimado: 1-3 minutos"
+            - Cancel button with AbortController
+            - Poll progress endpoint every 5 seconds
+          files:
+            modify:
+              - "dashboard/src/views/promptify-quick.tsx"
+          definition_of_done:
+            - "E2E test test_debug_mode_progress_indicator passes"
+            - "Progress updates every 5 seconds via polling"
+            - "Cancel button aborts request"
+            - "Spinner and stage shown during execution"
+            - "Progress bar reflects percentage"
+
+    # === E-006: TEST CLEANUP ===
+    - id: E-006
+      title: "Test Cleanup and Validation (TDD Refactor Phase)"
+      description: |
+        Mark OPRO/NLaCBuilder tests with @pytest.mark.skip.
+        Run full test suite to ensure no regressions.
+      epic_objective: |
+        OPRO/NLaCBuilder tests skipped (not deleted).
+        All other tests pass (859+).
+      work_orders:
+        - id: WO-0020
+          title: "Mark OPRO/NLaCBuilder tests with skip"
+          description: |
+            Add @pytest.mark.skip to test files:
+            - tests/test_oprop_optimizer_coverage.py: pytestmark = pytest.mark.skip(...)
+            - tests/test_nlac_builder_coverage.py: pytestmark = pytest.mark.skip(...)
+            - Skip reason: "Component not exposed - kept for future use"
+            - Tests preserved in repo for potential future use
+          files:
+            modify:
+              - "tests/test_oprop_optimizer_coverage.py"
+              - "tests/test_nlac_builder_coverage.py"
+          definition_of_done:
+            - "Both test files have pytestmark = pytest.mark.skip"
+            - "Skip reason clearly documented"
+            - "Tests preserved in git history (not deleted)"
+            - "CI/CD does not execute skipped tests"
+
+        - id: WO-0021
+          title: "Run full test suite and validate"
+          description: |
+            Run complete test suite to validate no regressions:
+            - pytest tests/ (all tests except skipped)
+            - Verify 859+ tests passing (exit criterion)
+            - Verify ReflexionService tests still passing (17 tests)
+            - Verify Legacy tests still passing
+            - Run performance benchmarks to establish baseline
+          definition_of_done:
+            - "pytest tests/ exits with code 0 (all tests pass)"
+            - "859+ tests passing (no regression from baseline)"
+            - "ReflexionService: 17 tests passing"
+            - "Legacy tests: passing"
+            - "Performance: Legacy P95 ≤ 90s, Debug P95 ≤ 180s"
+            - "All P0 requirements satisfied"
+
+  # === EXIT CRITERIA ===
+  exit_criteria:
+    phase_1_complete:
+      - "All test files created (WO-0001 through WO-0007)"
+      - "All tests fail as expected (no implementation yet)"
+      - "Tests document expected behavior clearly"
+
+    phase_2_complete:
+      - "pytest tests/test_debug_mode_selector.py: all 4 tests pass"
+      - "DebugModeSelector implemented (pure domain layer)"
+
+    phase_3_complete:
+      - "pytest tests/test_debug_mode_fallback.py: all 3 tests pass"
+      - "pytest tests/test_dual_pipeline_integration.py: all 3 tests pass"
+      - "API integration with fallback working"
+
+    phase_4_complete:
+      - "dashboard/src/tests/debug-mode-e2e.test.ts: all 3 tests pass"
+      - "Frontend UI implemented (selector, inputs, progress)"
+
+    phase_5_complete:
+      - "pytest tests/test_debug_mode_telemetry.py: all 3 tests pass"
+      - "pytest tests/test_debug_mode_progress.py: all 2 tests pass"
+      - "Observability implemented"
+
+    all_complete:
+      - "pytest tests/ exits with code 0 (all tests pass except skipped)"
+      - "859+ tests passing (no regression)"
+      - "All P0 requirements satisfied (C-001 through C-011)"
+      - "Debug mode available (opt-in, code+error required)"
+      - "Legacy mode default with no regression"
+      - "Telemetry capturing debug mode metrics"
+      - "Progress endpoint operational"
+
+  # === TRACEABILITY MATRIX ===
+  traceability:
+    requirements_to_work_packages:
+      C-001: [E-005]  # Frontend hard-coded mode fix
+      C-002: [E-005]  # Feature flag
+      C-003: [E-002]  # DebugModeSelector
+      C-004: [E-003]  # API integration with fallback
+      C-005: [E-004]  # Telemetry
+      C-006: [E-004]  # Progress endpoint
+      C-007: [E-005]  # Debug mode UI
+      C-008: [E-005]  # Progress indicator
+      C-009: [E-001, E-002]  # DebugModeSelector tests
+      C-010: [E-001, E-003]  # Fallback tests
+      C-011: [E-006]  # Mark OPRO/NLaCBuilder with skip
+      C-012: [E-001, E-003]  # Integration tests
+      C-013: [E-001, E-006]  # Performance benchmarks
+
+    work_packages_to_requirements:
+      E-001: [C-009, C-010, C-012, C-005, C-006, C-007, C-008, C-013]  # Test foundation
+      E-002: [C-003, C-009]  # DebugModeSelector
+      E-003: [C-004, C-010, C-012]  # API integration
+      E-004: [C-005, C-006]  # Observability
+      E-005: [C-001, C-002, C-007, C-008]  # Frontend
+      E-006: [C-011, C-013]  # Test cleanup

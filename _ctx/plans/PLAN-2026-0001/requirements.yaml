@@ -1,0 +1,248 @@
+RequirementSet:
+  id: RQ-2026-0001
+  source: "NLaC-DEBUG Selective Exposure Plan - Activar SOLO NLaC-DEBUG (ReflexionService) sin exponer NLaC completo"
+  created_at: "2026-01-15T10:00:00Z"
+
+  claims:
+    # === FRONTEND FIXES (P0) ===
+    - id: C-001
+      text: "Fix hard-coded mode bug in frontend (dashboard/src/core/llm/dspyPromptImprover.ts:86)"
+      priority: P0
+      acceptance_signals:
+        - "Frontend supports both 'legacy' and 'debug' modes via request.mode parameter"
+        - "Mode defaults to preferences.executionMode or 'legacy' when not specified"
+        - "No regression in existing legacy mode functionality"
+
+    - id: C-002
+      text: "Add feature flag for debug mode (debugModeEnabled)"
+      priority: P0
+      acceptance_signals:
+        - "Feature flag added to dashboard/src/core/config/schema.ts"
+        - "Default value is false (opt-in only)"
+        - "Flag can be toggled without redeployment"
+
+    # === BACKEND SERVICES (P0) ===
+    - id: C-003
+      text: "Implement DebugModeSelector service with validation for code+error requirement"
+      priority: P0
+      acceptance_signals:
+        - "DebugModeSelector class created in hemdov/domain/services/debug_mode_selector.py"
+        - "Validates that debug mode requires both code_snippet and error_log"
+        - "Validates that debug mode requires enable_debug=true"
+        - "Raises ValueError with clear message when validation fails"
+        - "Returns 'legacy' as default mode"
+
+    - id: C-004
+      text: "Integrate debug mode in API with fallback to legacy on failure"
+      priority: P0
+      acceptance_signals:
+        - "API endpoint /improve-prompt uses DebugModeSelector"
+        - "Debug mode uses ReflexionStrategy with CodeExecutor"
+        - "Timeout for debug mode is 180s (vs 120s default)"
+        - "On timeout or exception, fallback to LegacyStrategy with warning metadata"
+        - "Result includes _debug_mode_failed metadata when fallback occurs"
+
+    # === OBSERVABILITY (P0) ===
+    - id: C-005
+      text: "Add telemetry for debug mode events (latency, success rate, cancellation)"
+      priority: P0
+      acceptance_signals:
+        - "Telemetry module created in api/telemetry.py or integrated into existing telemetry"
+        - "Events tracked: mode_selected, debug_mode_started, debug_mode_completed, debug_mode_failed, debug_mode_fallback"
+        - "Metrics: debug_mode_latency (histogram), debug_mode_success_rate (counter), debug_mode_cancellation_rate (counter)"
+        - "Dashboard queries defined for latency P50/P95, success rate, cancellation rate"
+
+    - id: C-006
+      text: "Backend progress endpoint for UI polling"
+      priority: P0
+      acceptance_signals:
+        - "GET /debug-progress/{request_id} endpoint returns current stage and percent"
+        - "Progress stored in memory (simple dict: debug_progress_store)"
+        - "Progress updates during ReflexionService execution (Analizando, Refinando, Completado)"
+        - "Progress cleanup after 300s timeout"
+
+    # === FRONTEND UI (P0) ===
+    - id: C-007
+      text: "Debug mode UI: selector, code+error input fields, latency warning"
+      priority: P0
+      acceptance_signals:
+        - "Mode selector shows current mode (Debug vs Legacy)"
+        - "Debug mode shows '🐛 Debug Mode (1-3 minutos, para código con errores)' indicator"
+        - "Code snippet input field shown when mode='debug'"
+        - "Error log input field shown when mode='debug'"
+        - "Warning displayed: '⚠️ Este modo puede tardar 1-3 minutos mientras analiza y refina el código'"
+
+    - id: C-008
+      text: "Progress indicator UI with spinner, stage updates, cancel button"
+      priority: P0
+      acceptance_signals:
+        - "Progress indicator shows spinner + current stage text"
+        - "Progress bar shows percentage complete"
+        - "Estimated time text: 'Tiempo estimado: 1-3 minutos'"
+        - "Cancel button triggers AbortController to stop request"
+        - "Frontend polls progress endpoint every 5 seconds during debug mode"
+
+    # === TESTING (P0) ===
+    - id: C-009
+      text: "Unit tests for DebugModeSelector"
+      priority: P0
+      acceptance_signals:
+        - "Test file: tests/test_debug_mode_selector.py"
+        - "Test: test_validacion_fail_fast - raises ValueError when debug mode without code+error"
+        - "Test: test_legacy_default - returns 'legacy' when no mode specified"
+        - "Test: test_debug_available - returns debug mode when all conditions met"
+        - "All tests passing"
+
+    - id: C-010
+      text: "Fallback tests (timeout, exception scenarios)"
+      priority: P0
+      acceptance_signals:
+        - "Test file: tests/test_debug_mode_fallback.py"
+        - "Test: test_debug_mode_timeout_fallback - fallback to Legacy on TimeoutError"
+        - "Test: test_debug_mode_exception_fallback - fallback to Legacy on Exception"
+        - "Test: test_debug_mode_validation_error_no_fallback - ValueError raises (no fallback)"
+        - "Fallback result includes _debug_mode_failed=True and warning metadata"
+
+    - id: C-011
+      text: "Mark OPRO/NLaCBuilder tests with @pytest.mark.skip (not physically archived)"
+      priority: P0
+      acceptance_signals:
+        - "tests/test_oprop_optimizer_coverage.py has pytestmark = pytest.mark.skip"
+        - "tests/test_nlac_builder_coverage.py has pytestmark = pytest.mark.skip"
+        - "Skip reason: 'Component not exposed - kept for future use'"
+        - "Tests preserved in git history and repo for potential future use"
+        - "CI/CD does not execute skipped tests"
+        - "Legacy and ReflexionService tests still passing (859+ tests)"
+
+    # === VALIDATION (P1) ===
+    - id: C-012
+      text: "Integration tests for dual pipeline (legacy + debug modes)"
+      priority: P1
+      acceptance_signals:
+        - "Test: simple input → legacy mode"
+        - "Test: code+error + debug mode → ReflexionService"
+        - "Test: no code + debug mode → fallback to legacy with warning"
+        - "Test: debug mode timeout → fallback to legacy with metadata"
+
+    - id: C-013
+      text: "Performance regression tests (latency benchmarks)"
+      priority: P1
+      acceptance_signals:
+        - "Test file: tests/test_latency_benchmarks.py"
+        - "Legacy mode: P95 latency ≤ 90s (no regression)"
+        - "Debug mode: P95 latency ≤ 180s (expected)"
+        - "Legacy mode timeout rate: <5% (no regression)"
+
+  assumptions:
+    # === HIGH CONFIDENCE ===
+    - id: A-001
+      text: "ReflexionService (17 tests) works correctly and is production-ready"
+      confidence: 0.95
+      impact: high
+      rationale: "ReflexionService has 17 passing tests, will be used directly by Debug mode"
+
+    - id: A-002
+      text: "Debug mode latency will be 60-180s (1-2 iterations of ReflexionService)"
+      confidence: 0.9
+      impact: high
+      rationale: "Based on measured latency: Legacy DSPy is 2-90s, NLaC with 1-2 iterations adds overhead"
+
+    - id: A-003
+      text: "Legacy mode passing tests (859+) will not regress during implementation"
+      confidence: 0.85
+      impact: high
+      rationale: "Core functionality must not break; exit criterion requires 859+ tests passing"
+
+    - id: A-004
+      text: "OPROOptimizer has insufficient evidence of benefit to justify exposure"
+      confidence: 0.9
+      impact: medium
+      rationale: "OPRO would add 180-360s latency (3 iterations) with no proven ROI"
+
+    # === MEDIUM CONFIDENCE ===
+    - id: A-005
+      text: "Debug mode utility is unproven; adoption and value are uncertain"
+      confidence: 0.6
+      impact: high
+      rationale: "This is an opt-in experiment; Phase 3 will evaluate if users find value and adopt it"
+
+    - id: A-006
+      text: "Polling (5s interval) is sufficient for progress updates (SSE/WebSocket overkill)"
+      confidence: 0.8
+      impact: low
+      rationale: "Simple in-memory dict with polling works for Phase 1; can upgrade to SSE if needed"
+
+    - id: A-007
+      text: "Debug mode timeout rate will be 5-15% (3-minute timeout)"
+      confidence: 0.7
+      impact: medium
+      rationale: "Based on expected 60-180s latency; some complex inputs may exceed 3 minutes"
+
+  constraints:
+    # === HARD CONSTRAINTS ===
+    - id: CN-001
+      type: architecture
+      description: "Legacy mode must remain the default execution mode"
+      hard: true
+
+    - id: CN-002
+      type: architecture
+      description: "Debug mode must be opt-in only (requires explicit user selection)"
+      hard: true
+
+    - id: CN-003
+      type: architecture
+      description: "Debug mode requires both code_snippet and error_log (fail-fast validation)"
+      hard: true
+
+    - id: CN-004
+      type: architecture
+      description: "Domain layer (hemdov/domain/) must remain pure - no IO, no async, no side effects"
+      hard: true
+
+    - id: CN-005
+      type: scope
+      description: "OPROOptimizer and NLaCBuilder must NOT be exposed (archived for future use)"
+      hard: true
+
+    - id: CN-006
+      type: performance
+      description: "Debug mode timeout: 180s (3 minutes)"
+      hard: true
+
+    - id: CN-007
+      type: quality
+      description: "All existing tests must pass (859+ tests) - no regression"
+      hard: true
+
+    - id: CN-008
+      type: engineering
+      description: "Never use 'except Exception:' - catch specific error types (ConnectionError, TimeoutError, ValueError, etc.)"
+      hard: true
+
+    - id: CN-009
+      type: performance
+      description: "Legacy mode P95 latency must not increase (baseline: 2-90s)"
+      hard: true
+
+    - id: CN-010
+      type: quality
+      description: "Optional features must fail gracefully with degradation_flags in responses"
+      hard: true
+
+    # === SOFT CONSTRAINTS ===
+    - id: CN-011
+      type: timeline
+      description: "Phase 1 (Backend Core + UI) completed in 1 week"
+      hard: false
+
+    - id: CN-012
+      type: scope
+      description: "Use Server-Sent Events or WebSocket for progress updates instead of polling"
+      hard: false
+      rationale: "Polling is sufficient for Phase 1; SSE is a nice-to-have optimization"
+
+    - id: CN-013
+      type: ux
+      description: "Debug mode cancellation rate should be <10% (indicates timeout is adequate)"
+      hard: false
