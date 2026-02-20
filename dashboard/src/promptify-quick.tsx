@@ -10,14 +10,7 @@ import { ToastHelper } from "./core/design/toast";
 import { savePrompt } from "./core/promptStorage";
 import { LoadingStage, STAGE_MESSAGES, ENGINE_NAMES } from "./core/constants";
 import { buildErrorHint } from "./core/errors/hints";
-
-// Preset placeholders for input textarea
-const PLACEHOLDERS = {
-  default: "Paste your rough prompt here… (⌘I to improve)",
-  specific: "What specific task should this prompt accomplish?",
-  structured: "Paste your prompt - we'll add structure and clarity…",
-  coding: "Describe what you want the code to do…",
-} as const;
+import { parseTimeoutMs, shouldTryFallback, getPlaceholder } from "./core/utils/parsing";
 
 // Logging prefixes for consistent filtering in Console.app
 const LOG_PREFIX = "[PromptifyQuick]";
@@ -201,10 +194,6 @@ function PromptPreview(props: {
   );
 }
 
-function getPlaceholder(preset?: "default" | "specific" | "structured" | "coding"): string {
-  return PLACEHOLDERS[preset || "structured"];
-}
-
 export default function Command() {
   const preferences = getPreferenceValues<Preferences>();
 
@@ -229,6 +218,8 @@ export default function Command() {
 
   // Health check on component load (only for backend modes)
   useEffect(() => {
+    const HEALTH_CHECK_TIMEOUT_MS = 5000; // 5s for health checks (slower networks)
+
     const checkHealth = async () => {
       const executionMode = preferences.executionMode ?? "legacy";
       const useBackend = executionMode !== "ollama";
@@ -241,7 +232,7 @@ export default function Command() {
 
       try {
         const dspyBaseUrl = preferences.dspyBaseUrl?.trim() || configState.config.dspy.baseUrl;
-        const client = createDSPyClient({ baseUrl: dspyBaseUrl, timeoutMs: 3000 });
+        const client = createDSPyClient({ baseUrl: dspyBaseUrl, timeoutMs: HEALTH_CHECK_TIMEOUT_MS });
         await client.healthCheck();
         setBackendStatus("healthy");
       } catch (error) {
@@ -254,6 +245,7 @@ export default function Command() {
     };
 
     checkHealth();
+    // Intentionally runs only on mount - config/preference changes require component remount
   }, []);
 
   useEffect(() => {
@@ -527,11 +519,6 @@ export default function Command() {
   );
 }
 
-function parseTimeoutMs(value: string | undefined, fallback: number): number {
-  const n = Number.parseInt((value ?? "").trim(), 10);
-  return Number.isFinite(n) && n > 0 ? n : fallback;
-}
-
 async function runWithModelFallback(args: {
   baseUrl: string;
   model: string;
@@ -577,23 +564,4 @@ async function runWithModelFallback(args: {
     console.log(`${FALLBACK_PREFIX} ✅ Fallback successful with ${args.fallbackModel}`);
     return result;
   }
-}
-
-function shouldTryFallback(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error);
-  const lower = message.toLowerCase();
-  // Typical Ollama/model issues where a retry with another model makes sense.
-  if (lower.includes("model") && lower.includes("not found")) return true;
-  if (lower.includes("pull")) return true;
-  if (lower.includes("404")) return true;
-  if (lower.includes("ollama error") && lower.includes("model")) return true;
-  // Output/format issues (some models ignore schema or return unusable outputs).
-  if (lower.includes("non-json")) return true;
-  if (lower.includes("validation")) return true;
-  if (lower.includes("zod")) return true;
-  if (lower.includes("improved_prompt")) return true;
-  if (lower.includes("contains meta content")) return true;
-  if (lower.includes("starts with meta instructions")) return true;
-  if (lower.includes("describes creating a prompt")) return true;
-  return false;
 }

@@ -1,6 +1,6 @@
 // dashboard/src/core/errors/__tests__/handlers.test.ts
 import { describe, it, expect } from "vitest";
-import { handleBackendError } from "../handlers";
+import { handleBackendError, NoInputDetail } from "../handlers";
 
 /**
  * Tests for handleBackendError React component.
@@ -94,5 +94,23 @@ describe("handleBackendError", () => {
       const result = handleBackendError(error);
       expect(result).toBeDefined();
     });
+  });
+});
+
+describe("NoInputDetail", () => {
+  it("renders without throwing", () => {
+    expect(() => NoInputDetail()).not.toThrow();
+  });
+
+  it("returns a valid React element", () => {
+    const result = NoInputDetail();
+    expect(result).toBeDefined();
+    expect(result.type).toBeDefined();
+  });
+
+  it("contains expected markdown content", () => {
+    const result = NoInputDetail();
+    // Check props contain guidance text
+    expect(result.props.markdown).toContain("No Input Found");
   });
 });
