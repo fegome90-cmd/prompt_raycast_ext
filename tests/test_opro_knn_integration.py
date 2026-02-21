@@ -3,6 +3,7 @@ Tests for OPROOptimizer with KNNProvider integration.
 
 Tests few-shot examples in meta-prompts for better optimization.
 """
+import pytest
 from unittest.mock import Mock
 
 from hemdov.domain.dto.nlac_models import IntentType, NLaCRequest, PromptObject
@@ -113,9 +114,9 @@ def test_opro_handles_knn_failure_gracefully():
     assert result.trajectory is not None
 
 
-def test_opro_knn_failure_tracked():
-    """When KNN fails during OPRO, failure should be tracked in response."""
-    # Create mock KNN that fails
+def test_opro_knn_runtime_error_raises():
+    """When KNN raises RuntimeError (code bug), OPRO should re-raise exception."""
+    # Create mock KNN that fails with RuntimeError (code bug)
     mock_knn = Mock(spec=KNNProvider)
     mock_knn.find_examples.side_effect = RuntimeError("KNN catalog empty")
 
@@ -131,11 +132,7 @@ def test_opro_knn_failure_tracked():
         updated_at="2025-01-13T00:00:00Z"
     )
 
-    # Act
-    result = optimizer.run_loop(prompt_obj)
-
-    # Assert
-    assert result.knn_failure is not None
-    assert result.knn_failure.get('failed') is True
-    assert "RuntimeError" in result.knn_failure.get('errors', [{}])[0].get('error_type', '')
+    # Act & Assert - RuntimeError should be re-raised (code bug)
+    with pytest.raises(RuntimeError, match="KNN catalog empty"):
+        optimizer.run_loop(prompt_obj)
 

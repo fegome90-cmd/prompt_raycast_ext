@@ -9,38 +9,55 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../.."))
 from scripts.langchain.fetch_prompts import LangChainHubFetcher
 
 
-def test_init_with_api_key():
+def _clear_api_key_env():
+    """Clear API key env vars for direct-script execution."""
+    os.environ.pop("LANGCHAIN_API_KEY", None)
+    os.environ.pop("LANGSMITH_API_KEY", None)
+
+
+def test_init_with_api_key(monkeypatch=None):
     """Test initialization with explicit API key."""
     print("Testing init with API key...")
+    if monkeypatch:
+        monkeypatch.delenv("LANGCHAIN_API_KEY", raising=False)
+        monkeypatch.delenv("LANGSMITH_API_KEY", raising=False)
+    else:
+        _clear_api_key_env()
     fetcher = LangChainHubFetcher(api_key="lsv2_test_key")
     assert fetcher.api_key == "lsv2_test_key"
     assert os.environ["LANGCHAIN_API_KEY"] == "lsv2_test_key"
+    assert os.environ["LANGSMITH_API_KEY"] == "lsv2_test_key"
     print("✓ init with API key works")
 
 
-def test_init_from_env():
-    """Test initialization reading API key from environment."""
+def test_init_from_env(monkeypatch=None):
+    """Test initialization reading API key from env with current precedence."""
     print("\nTesting init from environment...")
-    os.environ["LANGCHAIN_API_KEY"] = "lsv2_env_key"
+    if monkeypatch:
+        monkeypatch.delenv("LANGCHAIN_API_KEY", raising=False)
+        monkeypatch.setenv("LANGSMITH_API_KEY", "lsv2_env_key")
+    else:
+        os.environ.pop("LANGCHAIN_API_KEY", None)
+        os.environ["LANGSMITH_API_KEY"] = "lsv2_env_key"
     fetcher = LangChainHubFetcher()
     assert fetcher.api_key == "lsv2_env_key"
     print("✓ init from env works")
 
 
-def test_init_missing_api_key():
+def test_init_missing_api_key(monkeypatch=None):
     """Test initialization fails when no API key is available."""
     print("\nTesting init with missing API key...")
-    original_key = os.environ.pop("LANGCHAIN_API_KEY", None)
+    if monkeypatch:
+        monkeypatch.delenv("LANGCHAIN_API_KEY", raising=False)
+        monkeypatch.delenv("LANGSMITH_API_KEY", raising=False)
+    else:
+        _clear_api_key_env()
     try:
-        try:
-            LangChainHubFetcher()
-            assert False, "Should have raised ValueError"
-        except ValueError as e:
-            assert "LANGCHAIN_API_KEY not set" in str(e)
-            print("✓ init with missing API key raises ValueError")
-    finally:
-        if original_key:
-            os.environ["LANGCHAIN_API_KEY"] = original_key
+        LangChainHubFetcher()
+        assert False, "Should have raised ValueError"
+    except ValueError as e:
+        assert "LANGSMITH_API_KEY not set" in str(e)
+        print("✓ init with missing API key raises ValueError")
 
 
 def test_to_candidates_file_basic():

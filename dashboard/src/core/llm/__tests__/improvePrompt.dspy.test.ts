@@ -89,4 +89,79 @@ describe("dspy hybrid config", () => {
 
     expect(mockCallOllamaChat).not.toHaveBeenCalled();
   });
+
+  it("propagates mode=nlac to DSPy request body", async () => {
+    const fetchMock = globalThis.fetch as ReturnType<typeof vi.fn>;
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ status: "healthy", provider: "ollama", model: "x", dspy_configured: true }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          improved_prompt: "ok",
+          role: "r",
+          directive: "d",
+          framework: "f",
+          guardrails: [],
+        }),
+      });
+
+    const result = await improvePromptWithHybrid({
+      rawInput: "x",
+      preset: "default",
+      options: {
+        baseUrl: "http://localhost:11434",
+        model: "x",
+        timeoutMs: 30000,
+        dspyBaseUrl: "http://localhost:8000",
+        mode: "nlac",
+      },
+    });
+
+    expect(result._metadata?.backend).toBe("dspy");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const [, requestInit] = fetchMock.mock.calls[1] as [string, RequestInit];
+    const payload = JSON.parse(String(requestInit.body));
+    expect(payload.mode).toBe("nlac");
+  });
+
+  it("uses legacy as effective mode when options.mode is omitted", async () => {
+    const fetchMock = globalThis.fetch as ReturnType<typeof vi.fn>;
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ status: "healthy", provider: "ollama", model: "x", dspy_configured: true }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          improved_prompt: "ok",
+          role: "r",
+          directive: "d",
+          framework: "f",
+          guardrails: [],
+        }),
+      });
+
+    const result = await improvePromptWithHybrid({
+      rawInput: "x",
+      preset: "default",
+      options: {
+        baseUrl: "http://localhost:11434",
+        model: "x",
+        timeoutMs: 30000,
+        dspyBaseUrl: "http://localhost:8000",
+      },
+    });
+
+    expect(result._metadata?.backend).toBe("dspy");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const [, requestInit] = fetchMock.mock.calls[1] as [string, RequestInit];
+    const payload = JSON.parse(String(requestInit.body));
+    expect(payload.mode).toBe("legacy");
+  });
 });

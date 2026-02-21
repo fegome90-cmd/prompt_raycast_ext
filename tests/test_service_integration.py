@@ -511,8 +511,8 @@ class TestErrorPropagationIntegration:
     def failing_cache(self):
         """Create cache with failing repository."""
         mock_repo = AsyncMock()
-        mock_repo.get_cached_prompt.side_effect = Exception("DB down")
-        mock_repo.cache_prompt.side_effect = Exception("DB down")
+        mock_repo.get_cached_prompt.side_effect = ConnectionError("DB down")
+        mock_repo.cache_prompt.side_effect = ConnectionError("DB down")
 
         return PromptCache(repository=mock_repo)
 

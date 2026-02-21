@@ -87,18 +87,30 @@ backend: ## Start DSPy backend server (foreground)
 
 dev: ## Start backend in background (for development)
 	@printf "\033[34m→ Starting DSPy backend in background...\033[0m\n"
-	@if [ -f $(BACKEND_PID) ]; then \
+	@running=0; \
+	if [ -f $(BACKEND_PID) ]; then \
 		pid=$$(cat $(BACKEND_PID)); \
 		if ps -p $$pid > /dev/null 2>&1; then \
 			printf "\033[33m⚠️  Backend already running (PID: $$pid)\033[0m\n"; \
-			exit 1; \
+			running=1; \
 		fi; \
+	fi; \
+	if [ $$running -eq 0 ]; then \
+		listeners=$$(lsof -t -iTCP:$(BACKEND_PORT) -sTCP:LISTEN 2>/dev/null | tr '\n' ' '); \
+		if [ -n "$$listeners" ]; then \
+			printf "\033[33m⚠️  Port $(BACKEND_PORT) already in use (PID(s): $$listeners)\033[0m\n"; \
+			running=1; \
+		fi; \
+	fi; \
+	if [ $$running -eq 1 ]; then \
+		$(MAKE) --silent health; \
+	else \
+		nohup $(PYTHON) api/main.py > $(BACKEND_LOG) 2>&1 & echo $$! > $(BACKEND_PID); \
+		printf "\033[32m✓ Backend started in background\033[0m\n"; \
+		printf "\033[34m→ Logs: tail -f $(BACKEND_LOG)\033[0m\n"; \
+		sleep 2; \
+		$(MAKE) --silent health; \
 	fi
-	@nohup $(PYTHON) api/main.py > $(BACKEND_LOG) 2>&1 & echo $$! > $(BACKEND_PID)
-	@printf "\033[32m✓ Backend started in background\033[0m\n"
-	@printf "\033[34m→ Logs: tail -f $(BACKEND_LOG)\033[0m\n"
-	@sleep 2
-	@$(MAKE) --silent health
 
 stop: ## Stop background backend
 	@printf "\033[34m→ Stopping backend...\033[0m\n"
@@ -136,11 +148,25 @@ status: ## Show backend status
 			echo ""; \
 			$(MAKE) --silent health; \
 		else \
-			printf "\033[33m○ Stopped\033[0m (stale PID file)\n"; \
-			rm $(BACKEND_PID); \
+			listeners=$$(lsof -t -iTCP:$(BACKEND_PORT) -sTCP:LISTEN 2>/dev/null | tr '\n' ' '); \
+			if [ -n "$$listeners" ]; then \
+				printf "\033[32m● Running\033[0m (port $(BACKEND_PORT), PID(s): $$listeners)\n"; \
+				echo ""; \
+				$(MAKE) --silent health; \
+			else \
+				printf "\033[33m○ Stopped\033[0m (stale PID file)\n"; \
+				rm $(BACKEND_PID); \
+			fi; \
 		fi; \
 	else \
-		printf "\033[33m○ Stopped\033[0m\n"; \
+		listeners=$$(lsof -t -iTCP:$(BACKEND_PORT) -sTCP:LISTEN 2>/dev/null | tr '\n' ' '); \
+		if [ -n "$$listeners" ]; then \
+			printf "\033[32m● Running\033[0m (port $(BACKEND_PORT), PID(s): $$listeners)\n"; \
+			echo ""; \
+			$(MAKE) --silent health; \
+		else \
+			printf "\033[33m○ Stopped\033[0m\n"; \
+		fi; \
 	fi
 
 # =============================================================================

@@ -361,6 +361,45 @@ dspy.Example(
 ).with_inputs("original_idea", "context")
 ```
 
+## 🔗 For External Consumers
+
+If you're integrating this API from another project (sub-agent, CLI, external service), see the dedicated guide:
+
+**→ [API for External Consumers](../api-external-consumers.md)**
+
+### Quick Integration
+
+```python
+import requests
+
+def improve_prompt(idea: str, context: str = "", mode: str = "legacy") -> dict:
+    """Improve a prompt using DSPy."""
+    response = requests.post(
+        "http://localhost:8000/api/v1/improve-prompt",
+        json={"idea": idea, "context": context, "mode": mode},
+        timeout=120
+    )
+    response.raise_for_status()
+    return response.json()
+
+# Usage
+result = improve_prompt("Implement caching for high-traffic API")
+print(result["improved_prompt"])
+```
+
+### Modes
+
+| Mode | Latency | Best For |
+|------|---------|----------|
+| `legacy` | ~2-5s | Quick improvements |
+| `nlac` | ~5-15s | Higher quality, complex ideas |
+
+### Health Check
+
+```bash
+curl http://localhost:8000/health
+```
+
 ## 📞 Support
 
 - **Documentation**: Check this README first

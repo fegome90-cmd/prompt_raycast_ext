@@ -193,6 +193,7 @@ interface EvalOptions {
   datasetPath: string;
   outputPath?: string;
   backend?: "ollama" | "dspy";
+  mode?: "legacy" | "nlac";
   repeat?: number;
   config?: {
     baseUrl?: string;
@@ -494,6 +495,7 @@ class Evaluator {
               timeoutMs: options.config?.timeoutMs || 30000,
               dspyBaseUrl: options.config?.dspyBaseUrl || "http://localhost:8000",
               dspyTimeoutMs: options.config?.dspyTimeoutMs,
+              mode: options.mode,
             },
             enableDSPyFallback: false,
           })
@@ -794,14 +796,16 @@ async function main() {
   const outputIdx = args.indexOf("--output");
   const verbose = args.includes("--verbose");
   const configIdx = args.indexOf("--config");
+  const modeIdx = args.indexOf("--mode");
 
   if (datasetIdx === -1) {
-    console.error("Usage: npm run eval -- --dataset <path> [--output <path>] [--verbose] [--config <json>]");
+    console.error("Usage: npm run eval -- --dataset <path> [--output <path>] [--verbose] [--mode legacy|nlac] [--config <json>]");
     process.exit(1);
   }
 
   const datasetPath = args[datasetIdx + 1];
   const outputPath = outputIdx !== -1 ? args[outputIdx + 1] : undefined;
+  const mode = modeIdx !== -1 ? (args[modeIdx + 1] as "legacy" | "nlac") : undefined;
 
   let config = undefined;
   if (configIdx !== -1) {
@@ -820,6 +824,8 @@ async function main() {
       outputPath,
       config,
       verbose,
+      mode,
+      backend: "dspy", // Default to dspy when using mode
     });
   } catch (error) {
     console.error("❌ Evaluation failed:", error);

@@ -18,6 +18,7 @@ from hemdov.domain.metrics.analyzers import (
     MetricsAnalyzer,
     TrendAnalysis,
 )
+from hemdov.domain.metrics.dimensions import PromptMetrics
 from hemdov.infrastructure.persistence.metrics_repository import (
     SQLiteMetricsRepository,
 )
@@ -28,7 +29,37 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/metrics", tags=["metrics"])
 
 
-def _calculate_averages(metrics: list) -> dict[str, float]:
+def _safe_percent(numerator: float, denominator: float) -> float | None:
+    """Calculate percentage safely.
+
+    Returns None if denominator is 0 (undefined).
+    """
+    return (numerator / denominator * 100) if denominator != 0 else None
+
+
+def _format_percent(value: float | None) -> str:
+    """Format percentage, showing N/A for undefined values."""
+    return f"{value:+.1f}%" if value is not None else "N/A"
+
+
+def _format_winner_recommendation(
+    winner_label: str,
+    overall_improvement: float | None,
+    quality_change: float | None,
+    performance_change: float | None,
+    impact_change: float | None,
+) -> str:
+    """Format winner recommendation with percentage changes."""
+    return (
+        f"✅ {winner_label} wins: "
+        f"{_format_percent(overall_improvement)} overall improvement "
+        f"(Q: {_format_percent(quality_change)}, "
+        f"P: {_format_percent(performance_change)}, "
+        f"I: {_format_percent(impact_change)})"
+    )
+
+
+def _calculate_averages(metrics: list[PromptMetrics]) -> dict[str, float]:
     """Calculate average metrics from list.
 
     Args:
@@ -55,10 +86,15 @@ async def get_metrics_repository() -> SQLiteMetricsRepository:
         SQLiteMetricsRepository instance
 
     Raises:
-        ValueError: If repository not registered in container
+        ConnectionError: If repository not registered in container
     """
-    repo = container.get(SQLiteMetricsRepository)
-    return repo
+    try:
+        repo = container.get(SQLiteMetricsRepository)
+        if repo is None:
+            raise ConnectionError("Metrics repository not available")
+        return repo
+    except ValueError as e:
+        raise ConnectionError(f"Repository not initialized: {e}") from e
 
 
 @router.get("/summary")
@@ -107,7 +143,11 @@ async def get_metrics_summary(
 
     # For calculation errors - log and re-raise
     except (AttributeError, TypeError, ZeroDivisionError) as e:
-        logger.error(f"Metrics calculation error in get_metrics_summary: {type(e).__name__}: {e}", exc_info=True)
+        logger.error(
+            f"Metrics calculation error in get_metrics_summary: "
+            f"{type(e).__name__}: {e}",
+            exc_info=True
+        )
         raise  # Global handler will convert to 500
 
     # For data errors - log and re-raise
@@ -117,7 +157,10 @@ async def get_metrics_summary(
 
     # For connection errors - log and re-raise
     except (ConnectionError, OSError, TimeoutError) as e:
-        logger.error(f"Repository error in get_metrics_summary: {type(e).__name__}: {e}", exc_info=True)
+        logger.error(
+            f"Repository error in get_metrics_summary: {type(e).__name__}: {e}",
+            exc_info=True
+        )
         raise  # Global handler will convert to 503
 
     # All other exceptions propagate (KeyboardInterrupt, SystemExit, etc.)
@@ -181,7 +224,10 @@ async def get_trends(
 
     # For calculation errors - log and re-raise
     except (AttributeError, TypeError, ZeroDivisionError) as e:
-        logger.error(f"Metrics calculation error in get_trends: {type(e).__name__}: {e}", exc_info=True)
+        logger.error(
+            f"Metrics calculation error in get_trends: {type(e).__name__}: {e}",
+            exc_info=True
+        )
         raise  # Global handler will convert to 500
 
     # For data errors - log and re-raise
@@ -221,7 +267,7 @@ async def compare_metrics(
         all_metrics = await repo.get_all(limit=5000)
 
         # Parse filters (simple key:value format)
-        def parse_filter(f: str) -> tuple:
+        def parse_filter(f: str) -> tuple[str, str]:
             parts = f.split(":", 1)
             if len(parts) != 2:
                 raise ValueError(f"Invalid filter format: {f}. Expected 'field:value'")
@@ -270,7 +316,10 @@ async def compare_metrics(
         if not group_a_metrics or not group_b_metrics:
             raise HTTPException(
                 status_code=404,
-                detail=f"One or both groups have no data. Group A: {len(group_a_metrics)}, Group B: {len(group_b_metrics)}"
+                detail=(
+                    f"One or both groups have no data. "
+                    f"Group A: {len(group_a_metrics)}, Group B: {len(group_b_metrics)}"
+                )
             )
 
         # Calculate averages using helper
@@ -294,21 +343,37 @@ async def compare_metrics(
         overall_a = (avg_quality_a * 0.5 + avg_performance_a * 0.25 + avg_impact_a * 0.25)
         overall_b = (avg_quality_b * 0.5 + avg_performance_b * 0.25 + avg_impact_b * 0.25)
 
+        # Calculate percentage changes safely (handles division by zero)
+        overall_improvement = _safe_percent(overall_b - overall_a, overall_a)
+        quality_change = _safe_percent(quality_delta, avg_quality_a)
+        performance_change = _safe_percent(performance_delta, avg_performance_a)
+        impact_change = _safe_percent(impact_delta, avg_impact_a)
+
+        # Check if metrics are valid for comparison
+        metrics_valid = avg_quality_a > 0 and avg_performance_a > 0 and avg_impact_a > 0
+
         if overall_b > overall_a + 0.05:
             winner = "group_b"
-            recommendation = (
-                f"✅ Group B wins: {((overall_b - overall_a) / overall_a * 100):+.1f}% overall improvement "
-                f"(Quality: {(quality_delta / avg_quality_a * 100):+.1f}%, "
-                f"Performance: {(performance_delta / avg_performance_a * 100):+.1f}%, "
-                f"Impact: {(impact_delta / avg_impact_a * 100):+.1f}%)"
+            recommendation = _format_winner_recommendation(
+                "Group B",
+                overall_improvement,
+                quality_change,
+                performance_change,
+                impact_change,
             )
         elif overall_a > overall_b + 0.05:
             winner = "group_a"
-            recommendation = (
-                f"✅ Group A wins: {((overall_a - overall_b) / overall_b * 100):+.1f}% overall improvement "
-                f"(Quality: {(-quality_delta / avg_quality_b * 100):+.1f}%, "
-                f"Performance: {(-performance_delta / avg_performance_b * 100):+.1f}%, "
-                f"Impact: {(-impact_delta / avg_impact_b * 100):+.1f}%)"
+            # Recalculate for Group A perspective
+            overall_improvement_a = _safe_percent(overall_a - overall_b, overall_b)
+            quality_change_a = _safe_percent(-quality_delta, avg_quality_b)
+            performance_change_a = _safe_percent(-performance_delta, avg_performance_b)
+            impact_change_a = _safe_percent(-impact_delta, avg_impact_b)
+            recommendation = _format_winner_recommendation(
+                "Group A",
+                overall_improvement_a,
+                quality_change_a,
+                performance_change_a,
+                impact_change_a,
             )
         else:
             winner = "inconclusive"
@@ -338,6 +403,7 @@ async def compare_metrics(
                 "impact_delta": round(impact_delta, 3),
                 "winner": winner,
                 "significance": "not_calculated",  # Could add t-test later
+                "metrics_valid": metrics_valid,
             },
             "recommendation": recommendation,
         }
@@ -346,7 +412,10 @@ async def compare_metrics(
         raise
     # For calculation errors - log and re-raise
     except (AttributeError, TypeError, ZeroDivisionError) as e:
-        logger.error(f"Metrics calculation error in compare_metrics: {type(e).__name__}: {e}", exc_info=True)
+        logger.error(
+            f"Metrics calculation error in compare_metrics: {type(e).__name__}: {e}",
+            exc_info=True
+        )
         raise  # Global handler will convert to 500
 
     # For data errors - log and re-raise

@@ -6,8 +6,10 @@ Provides consistent error mapping and logging across API endpoints.
 
 import json
 import logging
+from collections.abc import Awaitable, Callable
 
 from fastapi import Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 logger = logging.getLogger(__name__)
@@ -51,7 +53,10 @@ def _validate_exception_mapping() -> None:
 _validate_exception_mapping()
 
 
-def create_exception_handlers():
+def create_exception_handlers() -> dict[
+    type[Exception],
+    Callable[[Request, Exception], Awaitable[JSONResponse]]
+]:
     """Create FastAPI exception handlers following CLAUDE.md spec.
 
     Returns:
@@ -87,28 +92,40 @@ def create_exception_handlers():
         )
 
     async def runtime_error_handler(request: Request, exc: RuntimeError) -> JSONResponse:
-        logger.error(f"RuntimeError in {request.url.path}: {type(exc).__name__}: {exc}", exc_info=True)
+        logger.error(
+            f"RuntimeError in {request.url.path}: {type(exc).__name__}: {exc}",
+            exc_info=True
+        )
         return JSONResponse(
             status_code=500,
             content={"detail": "Internal server error. Please contact support."}
         )
 
     async def attribute_error_handler(request: Request, exc: AttributeError) -> JSONResponse:
-        logger.error(f"AttributeError in {request.url.path}: {type(exc).__name__}: {exc}", exc_info=True)
+        logger.error(
+            f"AttributeError in {request.url.path}: {type(exc).__name__}: {exc}",
+            exc_info=True
+        )
         return JSONResponse(
             status_code=500,
             content={"detail": "Internal server error. Please contact support."}
         )
 
     async def connection_error_handler(request: Request, exc: ConnectionError) -> JSONResponse:
-        logger.error(f"ConnectionError in {request.url.path}: {type(exc).__name__}: {exc}", exc_info=True)
+        logger.error(
+            f"ConnectionError in {request.url.path}: {type(exc).__name__}: {exc}",
+            exc_info=True
+        )
         return JSONResponse(
             status_code=503,
             content={"detail": "Service temporarily unavailable"}
         )
 
     async def os_error_handler(request: Request, exc: OSError) -> JSONResponse:
-        logger.error(f"OSError in {request.url.path}: {type(exc).__name__}: {exc}", exc_info=True)
+        logger.error(
+            f"OSError in {request.url.path}: {type(exc).__name__}: {exc}",
+            exc_info=True
+        )
         return JSONResponse(
             status_code=503,
             content={"detail": "Service temporarily unavailable"}
@@ -118,7 +135,10 @@ def create_exception_handlers():
         # 504 = Gateway Timeout (upstream/LLM provider timeout)
         # 503 = Service Unavailable (server itself is down)
         # For LLM timeouts, 504 is the correct status code
-        logger.error(f"TimeoutError in {request.url.path}: {type(exc).__name__}: {exc}", exc_info=True)
+        logger.error(
+            f"TimeoutError in {request.url.path}: {type(exc).__name__}: {exc}",
+            exc_info=True
+        )
         return JSONResponse(
             status_code=504,
             content={"detail": "Request timeout"}
@@ -131,6 +151,23 @@ def create_exception_handlers():
             content={"detail": "Calculation error: division by zero"}
         )
 
+    async def validation_error_handler(
+        request: Request, exc: RequestValidationError
+    ) -> JSONResponse:
+        """Convert Pydantic 422 validation errors to 400 Bad Request."""
+        errors = exc.errors()
+        first_error = errors[0] if errors else {}
+        field = ".".join(str(loc) for loc in first_error.get("loc", []))
+        message = first_error.get("msg", "Validation failed")
+
+        logger.warning(
+            f"Validation error in {request.url.path}: '{field}': {message}"
+        )
+        return JSONResponse(
+            status_code=400,
+            content={"detail": f"Validation error in '{field}': {message}"}
+        )
+
     return {
         ValueError: value_error_handler,
         KeyError: key_error_handler,
@@ -141,13 +178,14 @@ def create_exception_handlers():
         OSError: os_error_handler,
         TimeoutError: timeout_error_handler,
         ZeroDivisionError: zero_division_error_handler,
+        RequestValidationError: validation_error_handler,
     }
 
 
 def handle_file_operation_error(
     exc: Exception,
     component_name: str,
-    degradation_flags: dict,
+    degradation_flags: dict[str, bool],
     flag_key: str,
 ) -> None:
     """

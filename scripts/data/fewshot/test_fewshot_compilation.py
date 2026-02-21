@@ -12,6 +12,7 @@ Tests:
 import sys
 import time
 from pathlib import Path
+import pytest
 
 # Add paths
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -27,6 +28,52 @@ from hemdov.infrastructure.config import Settings
 from hemdov.infrastructure.adapters.litellm_dspy_adapter_prompt import create_deepseek_adapter
 from hemdov.interfaces import container
 import dspy
+
+
+class MockLM(dspy.BaseLM):
+    """Minimal DSPy LM for deterministic pytest execution."""
+
+    def __init__(self):
+        self.provider = "test"
+        self.model = "test-model"
+        self.kwargs = {}
+
+    def basic_request(self, prompt, **kwargs):
+        text = """Improved Prompt: Test improved prompt
+
+**[ROLE & PERSONA]**
+Software Engineer
+
+**[CORE DIRECTIVE]**
+Improve prompt quality
+
+**[EXECUTION FRAMEWORK]**
+chain-of-thought
+
+**[CONSTRAINTS & GUARDRAILS]**
+- Keep it concise
+
+**Reasoning**
+Mock reasoning.
+
+**Confidence**
+0.9"""
+        response = type("MockResponse", (), {})()
+        response.prompt = prompt
+        response.output = [text]
+        response.usage = type("Usage", (), {"prompt_tokens": 1, "completion_tokens": 1})()
+        return response
+
+    def __call__(self, *args, **kwargs):
+        prompt = args[0] if args else kwargs.get("prompt", "")
+        return self.basic_request(prompt, **kwargs)
+
+
+@pytest.fixture(autouse=True)
+def configure_mock_lm_for_pytest():
+    """Ensure pytest execution does not depend on external LM credentials."""
+    dspy.settings.configure(lm=MockLM())
+    yield
 
 
 def setup_dspy():
@@ -80,6 +127,25 @@ def test_compilation(trainset):
     return improver
 
 
+@pytest.fixture
+def trainset():
+    """Pytest fixture wrapper for the trainset used by compilation tests."""
+    return test_load_trainset()
+
+
+@pytest.fixture
+def compiled_improver(trainset):
+    """Pytest fixture wrapper for compiled few-shot improver."""
+    return test_compilation(trainset)
+
+
+@pytest.fixture
+def zero_shot_improver():
+    """Pytest fixture wrapper for zero-shot baseline improver."""
+    return PromptImprover()
+
+
+@pytest.mark.skip(reason="Manual integration check; requires real DSPy LM backend")
 def test_inference(compiled_improver, zero_shot_improver):
     """Test inference comparison."""
     print("\n🧪 Test 3: Inference comparison")
@@ -121,6 +187,7 @@ def test_inference(compiled_improver, zero_shot_improver):
             print(f"   - Confidence delta: N/A (non-numeric value)")
 
 
+@pytest.mark.skip(reason="Manual integration check; requires real DSPy LM backend")
 def test_error_handling():
     """Test error handling and fallback."""
     print("\n⚠️  Test 4: Error handling")

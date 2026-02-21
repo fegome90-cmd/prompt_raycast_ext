@@ -6,14 +6,17 @@ with the Raycast TypeScript frontend.
 """
 
 import logging
+import os
 from contextlib import asynccontextmanager
+from enum import Enum
 
 import dspy
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.exception_utils import create_exception_handlers
 from api.metrics_api import router as metrics_router
+from api.middleware import RequestIDMiddleware
 from api.prompt_improver_api import router as prompt_improver_router
 from hemdov.infrastructure.adapters.litellm_dspy_adapter_prompt import (
     create_anthropic_adapter,
@@ -23,6 +26,7 @@ from hemdov.infrastructure.adapters.litellm_dspy_adapter_prompt import (
     create_openai_adapter,
 )
 from hemdov.infrastructure.config import settings
+from hemdov.infrastructure.persistence.metrics_repository import SQLiteMetricsRepository
 from hemdov.interfaces import container
 
 # Global LM instance for DSPy
@@ -76,7 +80,11 @@ async def lifespan(app: FastAPI):
     elif provider == "anthropic":
         lm = create_anthropic_adapter(
             model=settings.LLM_MODEL,
-            api_key=settings.ANTHROPIC_API_KEY or settings.HEMDOV_ANTHROPIC_API_KEY or settings.LLM_API_KEY,
+            api_key=(
+                settings.ANTHROPIC_API_KEY
+                or settings.HEMDOV_ANTHROPIC_API_KEY
+                or settings.LLM_API_KEY
+            ),
             base_url=settings.LLM_BASE_URL,
             temperature=temp,  # Uses 0.0 from DEFAULT_TEMPERATURE
         )
@@ -85,6 +93,16 @@ async def lifespan(app: FastAPI):
 
     # Configure DSPy
     dspy.settings.configure(lm=lm)
+
+    # Register metrics repository for metrics endpoints
+    try:
+        metrics_db_path = "data/metrics.db"  # Separate from prompt_history.db
+        metrics_repo = SQLiteMetricsRepository(metrics_db_path)
+        await metrics_repo.initialize()  # Must call async initialize before use
+        container.register(SQLiteMetricsRepository, metrics_repo)
+        logger.info("SQLiteMetricsRepository registered in container")
+    except (ConnectionError, OSError, RuntimeError) as e:
+        logger.warning(f"Failed to initialize metrics repository: {type(e).__name__}: {e}")
 
     logger.info(f"DSPy configured with {settings.LLM_PROVIDER}/{settings.LLM_MODEL}")
 
@@ -103,13 +121,21 @@ app = FastAPI(
 )
 
 # Add CORS middleware
+cors_origins = (
+    ["*"]
+    if settings.CORS_ORIGINS == "*"
+    else [origin.strip() for origin in settings.CORS_ORIGINS.split(",")]
+)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify allowed origins
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add request ID middleware for tracing
+app.add_middleware(RequestIDMiddleware)
 
 # Include routers
 app.include_router(prompt_improver_router)
@@ -122,9 +148,44 @@ for exc_type, handler in exception_handlers.items():
 
 
 # Health check endpoint
+class HealthState(str, Enum):
+    HEALTHY = "healthy"
+    DEGRADED = "degraded"
+    UNAVAILABLE = "unavailable"
+
+
 @app.get("/health")
-async def health_check():
-    """Health check endpoint."""
+async def health_check(
+    simulate: HealthState = Query(
+        default=HealthState.HEALTHY,
+        description="Simulate health state for testing"
+    )
+):
+    """
+    Health check endpoint with state simulation for testing.
+
+    Security note: In production, consider rate limiting this endpoint
+    to prevent DoS attacks. Use nginx rate limiting or similar.
+    """
+    # Block simulation in production environment
+    if simulate != HealthState.HEALTHY and os.getenv("ENVIRONMENT") == "production":
+        raise HTTPException(
+            status_code=403,
+            detail="Simulation not allowed in production environment"
+        )
+
+    if simulate == HealthState.UNAVAILABLE:
+        raise HTTPException(status_code=503, detail="Service unavailable (simulated)")
+
+    if simulate == HealthState.DEGRADED:
+        return {
+            "status": "degraded",
+            "provider": settings.LLM_PROVIDER,
+            "model": settings.LLM_MODEL,
+            "dspy_configured": lm is not None,
+            "degradation_flags": {"knn_disabled": True}
+        }
+
     return {
         "status": "healthy",
         "provider": settings.LLM_PROVIDER,
@@ -166,12 +227,11 @@ if __name__ == "__main__":
             )
         if not settings.DEEPSEEK_API_KEY.startswith("sk-"):
             raise ValueError(
-                f"Invalid DEEPSEEK_API_KEY format. "
-                f"Expected 'sk-...', got: {settings.DEEPSEEK_API_KEY[:10]}..."
+                "Invalid DEEPSEEK_API_KEY format. "
+                "Expected 'sk-...' prefix."
             )
-        # Log key preview for verification
-        key_preview = settings.DEEPSEEK_API_KEY[:10] + "..." + settings.DEEPSEEK_API_KEY[-4:]
-        logger.info(f"✓ DeepSeek API Key configured: {key_preview}")
+        # Log key configured for verification (no key data exposed)
+        logger.info("DeepSeek API key configured: true")
 
     elif settings.LLM_PROVIDER.lower() == "gemini":
         if not settings.GEMINI_API_KEY and not settings.LLM_API_KEY:
@@ -186,7 +246,11 @@ if __name__ == "__main__":
             )
 
     elif settings.LLM_PROVIDER.lower() == "anthropic":
-        if not settings.ANTHROPIC_API_KEY and not settings.HEMDOV_ANTHROPIC_API_KEY and not settings.LLM_API_KEY:
+        if (
+            not settings.ANTHROPIC_API_KEY
+            and not settings.HEMDOV_ANTHROPIC_API_KEY
+            and not settings.LLM_API_KEY
+        ):
             raise ValueError(
                 "ANTHROPIC_API_KEY is required when LLM_PROVIDER=anthropic"
             )

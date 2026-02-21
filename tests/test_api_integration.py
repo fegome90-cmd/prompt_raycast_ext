@@ -297,6 +297,54 @@ class TestHealthCheck:
         assert "improve_prompt" in data["endpoints"]
         assert "docs" in data["endpoints"]
 
+    def test_health_simulate_unavailable_returns_503(self, client):
+        """Simulate=unavailable should return 503."""
+        response = client.get("/health?simulate=unavailable")
+
+        assert response.status_code == 503
+
+    def test_health_simulate_degraded_returns_degraded_status(self, client):
+        """Simulate=degraded should return degraded status with flags."""
+        response = client.get("/health?simulate=degraded")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "degraded"
+        assert "degradation_flags" in data
+
+    def test_health_simulate_healthy_returns_healthy(self, client):
+        """Simulate=healthy should return normal healthy status."""
+        response = client.get("/health?simulate=healthy")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "healthy"
+
+    def test_health_simulate_blocked_in_production(self, client, monkeypatch):
+        """Simulate parameter should be blocked in production environment."""
+        monkeypatch.setenv("ENVIRONMENT", "production")
+
+        response = client.get("/health?simulate=unavailable")
+
+        assert response.status_code == 403
+        assert "not allowed" in response.json()["detail"].lower()
+
+    def test_health_simulate_allowed_in_development(self, client, monkeypatch):
+        """Simulate parameter should be allowed in non-production."""
+        monkeypatch.setenv("ENVIRONMENT", "development")
+
+        response = client.get("/health?simulate=unavailable")
+
+        assert response.status_code == 503
+
+    def test_health_simulate_allowed_when_environment_not_set(self, client, monkeypatch):
+        """Simulate parameter should be allowed when ENVIRONMENT is not set."""
+        monkeypatch.delenv("ENVIRONMENT", raising=False)
+
+        response = client.get("/health?simulate=unavailable")
+
+        assert response.status_code == 503  # Simulation works, not blocked
+
 
 class TestPersistenceDisabled:
     """Test graceful degradation when persistence is disabled."""
@@ -423,11 +471,10 @@ class TestAPIErrorHandling:
         - Exceptions during prompt improvement return 500
         - Error message is included in response
         """
-        # Mock the PromptImprover to raise an exception
-        with patch('api.prompt_improver_api.get_prompt_improver') as mock_get_improver:
-            mock_improver = MagicMock()
-            mock_improver.side_effect = Exception("DSPy model error")
-            mock_get_improver.return_value = mock_improver
+        # Mock get_strategy_selector to raise an exception
+        # (This is the actual code path used by the endpoint)
+        with patch('api.prompt_improver_api.get_strategy_selector') as mock_get_selector:
+            mock_get_selector.side_effect = RuntimeError("DSPy model error")
 
             # Make request
             response = client.post(
@@ -442,7 +489,7 @@ class TestAPIErrorHandling:
             assert response.status_code == 500
             data = response.json()
             assert "detail" in data
-            assert "Prompt improvement failed" in data["detail"]
+            assert "Internal server error" in data["detail"]
 
 
 class TestResponseFormat:
@@ -515,6 +562,68 @@ class TestResponseFormat:
                 data = response.json()
                 assert "backend" in data
                 assert data["backend"] in ["SimpleStrategy", "ModerateStrategy", "ComplexStrategy"]
+
+
+class TestModeRoutingTripwire:
+    """Tripwire tests for mode propagation and effective backend routing."""
+
+    def test_legacy_mode_routes_to_legacy_selector(self, client, mock_dspy_result):
+        with patch('api.prompt_improver_api.get_strategy_selector') as mock_get_selector:
+            mock_strategy = MagicMock()
+            mock_strategy.name = "LegacyStrategy"
+            mock_strategy.improve.return_value = mock_dspy_result
+
+            mock_selector = MagicMock()
+            mock_selector.select.return_value = mock_strategy
+            mock_selector.get_complexity.return_value = MagicMock(value="low")
+            mock_selector.get_degradation_flags.return_value = {}
+            mock_get_selector.return_value = mock_selector
+
+            with patch('api.prompt_improver_api.get_repository', return_value=AsyncMock()):
+                response = client.post(
+                    "/api/v1/improve-prompt",
+                    json={
+                        "idea": "Design rollback plan",
+                        "context": "Need deterministic routing",
+                        "mode": "legacy",
+                    },
+                )
+
+            assert response.status_code == 200
+            data = response.json()
+            assert data["strategy"] == "LegacyStrategy"
+            assert data["strategy_meta"]["mode"] == "legacy"
+            mock_get_selector.assert_awaited_once()
+            assert mock_get_selector.call_args.kwargs["use_nlac"] is False
+
+    def test_nlac_mode_routes_to_nlac_selector(self, client, mock_dspy_result):
+        with patch('api.prompt_improver_api.get_strategy_selector') as mock_get_selector:
+            mock_strategy = MagicMock()
+            mock_strategy.name = "NLaCStrategy"
+            mock_strategy.improve.return_value = mock_dspy_result
+
+            mock_selector = MagicMock()
+            mock_selector.select.return_value = mock_strategy
+            mock_selector.get_complexity.return_value = MagicMock(value="high")
+            mock_selector.get_degradation_flags.return_value = {}
+            mock_get_selector.return_value = mock_selector
+
+            with patch('api.prompt_improver_api.get_repository', return_value=AsyncMock()):
+                response = client.post(
+                    "/api/v1/improve-prompt",
+                    json={
+                        "idea": "Design routing checks",
+                        "context": "Need mode-specific behavior",
+                        "mode": "nlac",
+                    },
+                )
+
+            assert response.status_code == 200
+            data = response.json()
+            assert data["strategy"] == "NLaCStrategy"
+            assert data["strategy_meta"]["mode"] == "nlac"
+            mock_get_selector.assert_awaited_once()
+            assert mock_get_selector.call_args.kwargs["use_nlac"] is True
 
 
 class TestNonBlockingSave:

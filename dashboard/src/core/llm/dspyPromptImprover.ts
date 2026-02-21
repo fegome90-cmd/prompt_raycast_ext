@@ -11,38 +11,40 @@ import { fetchWithTimeout } from "./fetchWrapper";
 export interface DSPyPromptImproverRequest {
   idea: string;
   context?: string;
-  /** @deprecated Mode is now hard-coded to "legacy" (CoT-based). Other modes not exposed until quality-validated. */
   mode?: "legacy" | "nlac";
 }
 
-export interface DSPyPromptImproverResponse {
-  improved_prompt: string;
-  role: string;
-  directive: string;
-  framework: string;
-  guardrails: string[];
-  reasoning?: string;
-  confidence?: number;
-}
-
-export interface DSPyBackendConfig {
-  baseUrl: string;
-  timeoutMs: number;
-}
+// Default confidence when DSPy returns null (common for CoT mode)
+// 0.8 chosen as reasonable default based on eval benchmarks
+const DEFAULT_CONFIDENCE = 0.8;
 
 /**
  * Zod schema for validating DSPy backend responses.
  * Prevents silent failures when backend returns malformed or unexpected data.
  */
-const DSPyResponseSchema = z.object({
+export const DSPyResponseSchema = z.object({
   improved_prompt: z.string().min(1, "improved_prompt cannot be empty"),
   role: z.string(),
   directive: z.string(),
   framework: z.string(),
   guardrails: z.array(z.string()),
-  reasoning: z.string().optional(),
-  confidence: z.number().optional(),
+  reasoning: z.string().nullish(),
+  // Backend DSPy returns null/undefined when not filled; transform to default
+  confidence: z
+    .number()
+    .min(0)
+    .max(1)
+    .nullish()
+    .transform((val) => val ?? DEFAULT_CONFIDENCE),
 });
+
+// Derive TypeScript type from Zod schema for type safety
+export type DSPyPromptImproverResponse = z.infer<typeof DSPyResponseSchema>;
+
+export interface DSPyBackendConfig {
+  baseUrl: string;
+  timeoutMs: number;
+}
 
 /**
  * Client for DSPy Prompt Improver backend API
@@ -79,11 +81,8 @@ export class DSPyPromptImproverClient {
     const url = `${this.config.baseUrl}/api/v1/improve-prompt`;
     console.log(`[DSPy improvePrompt] 🌐 Calling POST ${url}`);
 
-    // 🔒 HARD-CODED to "legacy" mode (CoT-based approach)
-    // Rationale: CoT has been validated to produce consistent high-quality results.
-    // Other modes (nlac) are not exposed until they demonstrate comparable quality.
-    // See: .claude/commands/improve-prompt.md for details.
-    const mode = "legacy";
+    // Contract: mode travels end-to-end; when omitted we keep legacy as safe default.
+    const mode = request.mode ?? "legacy";
 
     console.log(`[DSPy improvePrompt] 📤 Request payload:`, {
       idea_length: request.idea.length,
@@ -149,7 +148,9 @@ export class DSPyPromptImproverClient {
       console.error(`[DSPy improvePrompt] ❌ Schema validation failed:`, zodError);
       console.error(`[DSPy improvePrompt] 📄 Raw response:`, JSON.stringify(rawData, null, 2));
       throw new Error(
-        `Backend returned invalid response structure. ${zodError instanceof z.ZodError ? zodError.issues.map((i) => i.message).join(", ") : ""}`,
+        `Backend returned invalid response structure. ${
+          zodError instanceof z.ZodError ? zodError.issues.map((i) => i.message).join(", ") : ""
+        }`,
       );
     }
   }
@@ -229,15 +230,7 @@ export async function improvePromptWithDSPy(
   rawInput: string,
   preset: string = "default",
   context?: string,
-): Promise<{
-  improved_prompt: string;
-  role: string;
-  directive: string;
-  framework: string;
-  guardrails: string[];
-  reasoning?: string;
-  confidence?: number;
-}> {
+): Promise<DSPyPromptImproverResponse> {
   try {
     const client = createDSPyClient();
 

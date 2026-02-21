@@ -1,0 +1,52 @@
+[
+  {
+    "id": "TC001",
+    "title": "post api v1 improve prompt valid input",
+    "description": "Test the POST /api/v1/improve-prompt endpoint with a valid idea, context, and guardrails to verify it returns a 200 status with improved prompt, confidence score, quality gate data, and degradation flags."
+  },
+  {
+    "id": "TC002",
+    "title": "post api v1 improve prompt empty idea",
+    "description": "Test the POST /api/v1/improve-prompt endpoint with an empty idea string to verify it returns a 400 status with an error indicating invalid input."
+  },
+  {
+    "id": "TC003",
+    "title": "post api v1 improve prompt llm provider unavailable",
+    "description": "Test the POST /api/v1/improve-prompt endpoint when the LLM provider is not configured or the circuit breaker is open to verify it returns a 503 status with appropriate error message and degradation flags."
+  },
+  {
+    "id": "TC004",
+    "title": "get health check healthy status",
+    "description": "Test the GET /health endpoint when the server and DSPy/LLM provider are properly configured to verify it returns a 200 status with healthy status and provider details."
+  },
+  {
+    "id": "TC005",
+    "title": "get health check degraded status",
+    "description": "Test the GET /health endpoint when DSPy or LLM provider configuration is missing to verify it returns a 200 status with degraded status and null provider/model fields."
+  },
+  {
+    "id": "TC006",
+    "title": "get health check service unavailable",
+    "description": "Test the GET /health endpoint when the server fails to start or dependencies are unavailable to verify it returns a 503 status with service_unavailable error."
+  },
+  {
+    "id": "TC007",
+    "title": "get api v1 metrics summary success",
+    "description": "Test the GET /api/v1/metrics/summary endpoint to verify it returns a 200 status with total prompts, average quality, performance, impact, and grade distribution metrics."
+  },
+  {
+    "id": "TC008",
+    "title": "get api v1 metrics summary database missing",
+    "description": "Test the GET /api/v1/metrics/summary endpoint when SQLite persistence is not configured or database is missing to verify it returns a 503 status with metrics_unavailable error."
+  },
+  {
+    "id": "TC009",
+    "title": "get api v1 metrics trends valid days parameter",
+    "description": "Test the GET /api/v1/metrics/trends endpoint with a valid positive integer days parameter to verify it returns a 200 status with periods and trends data."
+  },
+  {
+    "id": "TC010",
+    "title": "get api v1 metrics trends invalid days parameter",
+    "description": "Test the GET /api/v1/metrics/trends endpoint with a negative days parameter to verify it returns a 400 status with invalid_parameter error."
+  }
+]

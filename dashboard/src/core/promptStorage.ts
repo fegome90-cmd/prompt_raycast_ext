@@ -24,6 +24,10 @@ const MAX_HISTORY = 20;
 
 const LOG_PREFIX = "[PromptStorage]";
 
+// Cleanup thresholds for orphaned temp files
+const ONE_HOUR_MS = 3_600_000; // 1 hour
+const GRACE_PERIOD_MS = 300_000; // 5 minutes (prevents race during active writes)
+
 /**
  * Check if error is ENOENT (file not found)
  */
@@ -32,11 +36,45 @@ function isENOENT(error: unknown): boolean {
 }
 
 /**
+ * Clean up orphaned .tmp files from interrupted atomic writes.
+ * Removes files older than 1 hour + 5 minute grace period.
+ */
+async function cleanupOrphanedTempFiles(): Promise<void> {
+  try {
+    const files = await fs.readdir(STORAGE_DIR);
+    const cleanupThreshold = ONE_HOUR_MS + GRACE_PERIOD_MS;
+
+    for (const file of files) {
+      if (file.endsWith(".tmp")) {
+        const filePath = join(STORAGE_DIR, file);
+        try {
+          const stat = await fs.stat(filePath);
+          if (Date.now() - stat.mtimeMs > cleanupThreshold) {
+            await fs.unlink(filePath);
+            console.log(`${LOG_PREFIX} Cleaned up orphaned temp file: ${file}`);
+          }
+        } catch (error) {
+          // Ignore errors on individual files (may have been cleaned up)
+          if (!isENOENT(error)) {
+            console.warn(`${LOG_PREFIX} Failed to check temp file ${file}:`, error);
+          }
+        }
+      }
+    }
+  } catch (error) {
+    // Don't throw on cleanup errors - just log
+    console.warn(`${LOG_PREFIX} Failed to cleanup temp files:`, error);
+  }
+}
+
+/**
  * Ensure storage directory exists
  */
 async function ensureStorageDir(): Promise<void> {
   try {
     await fs.mkdir(STORAGE_DIR, { recursive: true });
+    // Clean up orphaned temp files on initialization
+    await cleanupOrphanedTempFiles();
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`${LOG_PREFIX} Failed to create storage directory: ${message}`);

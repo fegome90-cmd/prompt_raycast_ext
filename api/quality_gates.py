@@ -58,7 +58,9 @@ class GateConfig:
     """Per-gate configuration with severity overrides"""
     gate_id: str
     default_severity: GateSeverity
-    severity_overrides: dict[str, GateSeverity] = field(default_factory=dict)  # template_id -> severity
+    severity_overrides: dict[str, GateSeverity] = field(
+        default_factory=dict
+    )  # template_id -> severity
 
     def get_severity(self, template_id: str) -> GateSeverity:
         """Get severity for a specific template"""
@@ -270,7 +272,9 @@ DEFAULT_TEMPLATES: dict[str, dict[str, Any]] = {
         "type": "procedure",
         "required_keys": [],
         "actionable": True,
-        "coverage_keywords": ["entrada", "input", "requisito", "precondición", "antes de", "necesitas"]
+        "coverage_keywords": [
+            "entrada", "input", "requisito", "precondición", "antes de", "necesitas"
+        ]
     },
     "checklist_md": {
         "id": "checklist_md",
@@ -299,7 +303,9 @@ DEFAULT_TEMPLATES: dict[str, dict[str, Any]] = {
 # v0.1 Gates (Format + Completeness) - HARD FAIL
 # ============================================================================
 
-def gate1_expected_format(output: str, template: TemplateSpec, thresholds: GateThresholds) -> GateResult:
+def gate1_expected_format(
+    output: str, template: TemplateSpec, thresholds: GateThresholds
+) -> GateResult:
     """
     v0.1 Gate 1: Formato Esperado
 
@@ -365,7 +371,9 @@ def gate1_expected_format(output: str, template: TemplateSpec, thresholds: GateT
         )
 
 
-def gate2_min_completeness(output: str, template: TemplateSpec, thresholds: GateThresholds) -> GateResult:
+def gate2_min_completeness(
+    output: str, template: TemplateSpec, thresholds: GateThresholds
+) -> GateResult:
     """
     v0.1 Gate 2: Completitud Mínima
 
@@ -375,6 +383,7 @@ def gate2_min_completeness(output: str, template: TemplateSpec, thresholds: Gate
         # JSON: must have at least 2 keys
         try:
             parsed = json.loads(output)
+            key_count: int | str  # Initialize before conditional
             if isinstance(parsed, dict):
                 key_count = len(parsed)
                 if key_count < 2:
@@ -384,11 +393,13 @@ def gate2_min_completeness(output: str, template: TemplateSpec, thresholds: Gate
                         status=GateSeverity.FAIL,
                         details={"reason": "JSON has <2 keys", "key_count": key_count}
                     )
+            else:
+                key_count = "N/A"
             return GateResult(
                 gate_id="v0.1_gate2_completeness",
                 gate_version="0.1",
                 status=GateSeverity.PASS,
-                details={"key_count": key_count if isinstance(parsed, dict) else "N/A"}
+                details={"key_count": key_count}
             )
         except json.JSONDecodeError:
             return GateResult(
@@ -469,7 +480,9 @@ def gate2_min_completeness(output: str, template: TemplateSpec, thresholds: Gate
 # v0.2 Gates (Starter Set) - WARN initially
 # ============================================================================
 
-def gate_a1_filler_detector(output: str, template: TemplateSpec, thresholds: GateThresholds) -> GateResult:
+def gate_a1_filler_detector(
+    output: str, template: TemplateSpec, thresholds: GateThresholds
+) -> GateResult:
     """
     v0.2 Gate A1: Placeholder / Filler Detector
 
@@ -501,7 +514,9 @@ def gate_a1_filler_detector(output: str, template: TemplateSpec, thresholds: Gat
     )
 
 
-def gate_a4_repetition_detector(output: str, template: TemplateSpec, thresholds: GateThresholds) -> GateResult:
+def gate_a4_repetition_detector(
+    output: str, template: TemplateSpec, thresholds: GateThresholds
+) -> GateResult:
     """
     v0.2 Gate A4: Repetition / Tautology
 
@@ -539,7 +554,9 @@ def gate_a4_repetition_detector(output: str, template: TemplateSpec, thresholds:
     )
 
 
-def gate_j1_empty_value_ratio(output: str, template: TemplateSpec, thresholds: GateThresholds) -> GateResult:
+def gate_j1_empty_value_ratio(
+    output: str, template: TemplateSpec, thresholds: GateThresholds
+) -> GateResult:
     """
     v0.2 Gate J1: Empty-Value Ratio
 
@@ -604,7 +621,9 @@ def gate_j1_empty_value_ratio(output: str, template: TemplateSpec, thresholds: G
     )
 
 
-def gate_p1_real_step_content(output: str, template: TemplateSpec, thresholds: GateThresholds) -> GateResult:
+def gate_p1_real_step_content(
+    output: str, template: TemplateSpec, thresholds: GateThresholds
+) -> GateResult:
     """
     v0.2 Gate P1: Real Step Content
 
@@ -658,7 +677,9 @@ def gate_p1_real_step_content(output: str, template: TemplateSpec, thresholds: G
     )
 
 
-def gate_c1_bullet_specificity(output: str, template: TemplateSpec, thresholds: GateThresholds) -> GateResult:
+def gate_c1_bullet_specificity(
+    output: str, template: TemplateSpec, thresholds: GateThresholds
+) -> GateResult:
     """
     v0.2 Gate C1: Bullet Specificity
 
@@ -710,7 +731,9 @@ def gate_c1_bullet_specificity(output: str, template: TemplateSpec, thresholds: 
     )
 
 
-def gate_e1_non_trivial_code(output: str, template: TemplateSpec, thresholds: GateThresholds) -> GateResult:
+def gate_e1_non_trivial_code(
+    output: str, template: TemplateSpec, thresholds: GateThresholds
+) -> GateResult:
     """
     v0.2 Gate E1: Code Fence + Non-Trivial Code
 
@@ -735,8 +758,13 @@ def gate_e1_non_trivial_code(output: str, template: TemplateSpec, thresholds: Ga
             details={"reason": "No code blocks found"}
         )
 
+    total_code_lines = 0  # Track total across all blocks
     for block in code_blocks:
-        lines = [l for l in block.split('\n') if l.strip() and not l.strip().startswith('#')]
+        lines = [
+            line for line in block.split('\n')
+            if line.strip() and not line.strip().startswith('#')
+        ]
+        total_code_lines += len(lines)
 
         # Check for minimum non-comment lines
         if len(lines) < thresholds.E1_MIN_CODE_LINES:
@@ -766,7 +794,7 @@ def gate_e1_non_trivial_code(output: str, template: TemplateSpec, thresholds: Ga
         score=1.0,  # Code is good
         details={
             "code_blocks": len(code_blocks),
-            "code_lines": len(lines)
+            "code_lines": total_code_lines
         }
     )
 
@@ -812,8 +840,12 @@ def evaluate_output(
     # Phase 1: v0.1 Gates (Format + Completeness) - HARD FAIL
     # ============================================================================
 
-    report.v0_1_gates["gate1_format"] = gate1_expected_format(output_text, template, thresholds)
-    report.v0_1_gates["gate2_completeness"] = gate2_min_completeness(output_text, template, thresholds)
+    report.v0_1_gates["gate1_format"] = gate1_expected_format(
+        output_text, template, thresholds
+    )
+    report.v0_1_gates["gate2_completeness"] = gate2_min_completeness(
+        output_text, template, thresholds
+    )
 
     # Early exit if v0.1 fails
     if not report.v0_1_pass:
@@ -824,8 +856,12 @@ def evaluate_output(
     # ============================================================================
 
     # Core gates
-    report.v0_2_gates["A1_filler"] = gate_a1_filler_detector(output_text, template, thresholds)
-    report.v0_2_gates["A4_repetition"] = gate_a4_repetition_detector(output_text, template, thresholds)
+    report.v0_2_gates["A1_filler"] = gate_a1_filler_detector(
+        output_text, template, thresholds
+    )
+    report.v0_2_gates["A4_repetition"] = gate_a4_repetition_detector(
+        output_text, template, thresholds
+    )
 
     # JSON gates
     if template.requires_json:
@@ -833,11 +869,15 @@ def evaluate_output(
 
     # Procedure gates
     if template.type == "procedure":
-        report.v0_2_gates["P1_steps"] = gate_p1_real_step_content(output_text, template, thresholds)
+        report.v0_2_gates["P1_steps"] = gate_p1_real_step_content(
+            output_text, template, thresholds
+        )
 
     # Checklist gates
     if template.type == "checklist":
-        report.v0_2_gates["C1_specific"] = gate_c1_bullet_specificity(output_text, template, thresholds)
+        report.v0_2_gates["C1_specific"] = gate_c1_bullet_specificity(
+            output_text, template, thresholds
+        )
 
     # Example gates
     if template.type == "example":
@@ -851,9 +891,11 @@ def evaluate_output(
 
             # Override status based on configuration
             if gate_result.status != GateSeverity.SKIP:
-                if configured_severity == GateSeverity.WARN and gate_result.status == GateSeverity.FAIL:
+                is_warn = configured_severity == GateSeverity.WARN
+                is_fail = configured_severity == GateSeverity.FAIL
+                if is_warn and gate_result.status == GateSeverity.FAIL:
                     gate_result.status = GateSeverity.WARN
-                elif configured_severity == GateSeverity.FAIL and gate_result.status != GateSeverity.PASS:
+                elif is_fail and gate_result.status != GateSeverity.PASS:
                     gate_result.status = GateSeverity.FAIL
 
     # Populate summary

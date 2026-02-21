@@ -187,13 +187,13 @@ Access via **Raycast → Extensions → Prompt Improver → Preferences**
 
 | Preference | Description | Default |
 |------------|-------------|---------|
-| **DSPy Enabled** | Enable DSPy backend (fallback to Ollama if disabled) | ✓ |
 | **DSPy Base URL** | Backend API endpoint | `http://localhost:8000` |
-| **Ollama Base URL** | Local Ollama endpoint | `http://localhost:11434` |
-| **Model** | Ollama model name (fallback) | `Novaeus-Promptist-7B` |
-| **Fallback Model** | Backup model if primary fails | `devstral:24b` |
+| **Execution Mode** | `legacy`/`nlac` use backend, `ollama` is local-only mode | `nlac` |
+| **Ollama Base URL** | Local Ollama endpoint (used only in `ollama` mode) | `http://localhost:11434` |
+| **Model** | Model used by local Ollama mode | `hf.co/mradermacher/Novaeus-Promptist-7B-Instruct-i1-GGUF:Q5_K_M` |
+| **Fallback Model** | Backup model for Ollama mode failures | `devstral:24b` |
 | **Preset** | Improvement style | `Structured` |
-| **Timeout (ms)** | Request timeout | `60000` |
+| **Timeout (ms)** | Request timeout | `120000` |
 
 ## Usage
 
