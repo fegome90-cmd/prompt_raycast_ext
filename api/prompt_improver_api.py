@@ -159,7 +159,7 @@ async def get_repository(settings: Settings) -> PromptRepository | None:
 class ImprovePromptRequest(BaseModel):
     idea: str = Field(..., min_length=5, description="User's raw idea (min 5 characters)")
     context: str = Field(default="", max_length=5000, description="Additional context")
-    mode: str = Field(..., description="Execution mode: 'legacy' (DSPy) or 'nlac' (NLaC pipeline)")
+    mode: str = Field(default="legacy", description="Execution mode: 'legacy' (DSPy) or 'nlac' (NLaC pipeline)")
 
     @field_validator("mode")
     @classmethod
@@ -246,10 +246,12 @@ def get_fewshot_improver(settings: Settings):
 
 
 # Initialize strategy selector (lazy loading)
-_strategy_selector: StrategySelector | None = None
+# Dict mapping mode ("legacy"/"nlac") to StrategySelector instance
+_strategy_selector: dict[str, StrategySelector] = {}
+_strategy_selector_lock = asyncio.Lock()
 
 
-def get_strategy_selector(settings: Settings, use_nlac: bool = False) -> StrategySelector:
+async def get_strategy_selector(settings: Settings, use_nlac: bool = False) -> StrategySelector:
     """
     Get or initialize StrategySelector with all three strategies.
 
@@ -262,20 +264,19 @@ def get_strategy_selector(settings: Settings, use_nlac: bool = False) -> Strateg
     # Create separate selectors for legacy and NLaC modes
     selector_key = "nlac" if use_nlac else "legacy"
 
-    if _strategy_selector is None:
-        _strategy_selector = {}
-
-    if selector_key not in _strategy_selector:
-        # Create selector with appropriate mode
-        selector = StrategySelector(
-            trainset_path=settings.DSPY_FEWSHOT_TRAINSET_PATH,
-            compiled_path=settings.DSPY_FEWSHOT_COMPILED_PATH,
-            fewshot_k=settings.DSPY_FEWSHOT_K,
-            use_nlac=use_nlac
-        )
-        _strategy_selector[selector_key] = selector
-        mode_name = "NLaC" if use_nlac else "legacy DSPy"
-        logger.info(f"StrategySelector initialized with {mode_name} mode")
+    # Use lock to prevent race condition during lazy initialization
+    async with _strategy_selector_lock:
+        if selector_key not in _strategy_selector:
+            # Create selector with appropriate mode
+            selector = StrategySelector(
+                trainset_path=settings.DSPY_FEWSHOT_TRAINSET_PATH,
+                compiled_path=settings.DSPY_FEWSHOT_COMPILED_PATH,
+                fewshot_k=settings.DSPY_FEWSHOT_K,
+                use_nlac=use_nlac
+            )
+            _strategy_selector[selector_key] = selector
+            mode_name = "NLaC" if use_nlac else "legacy DSPy"
+            logger.info(f"StrategySelector initialized with {mode_name} mode")
 
     return _strategy_selector[selector_key]
 
@@ -314,7 +315,7 @@ async def improve_prompt(request: ImprovePromptRequest):
     # Use StrategySelector for intelligent strategy routing
     # NLaC mode is enabled when request.mode == "nlac"
     use_nlac = request.mode == "nlac"
-    selector = get_strategy_selector(settings, use_nlac=use_nlac)
+    selector = await get_strategy_selector(settings, use_nlac=use_nlac)
     strategy = selector.select(request.idea, request.context)
     complexity = selector.get_complexity(request.idea, request.context)
 

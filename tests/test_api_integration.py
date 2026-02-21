@@ -297,6 +297,54 @@ class TestHealthCheck:
         assert "improve_prompt" in data["endpoints"]
         assert "docs" in data["endpoints"]
 
+    def test_health_simulate_unavailable_returns_503(self, client):
+        """Simulate=unavailable should return 503."""
+        response = client.get("/health?simulate=unavailable")
+
+        assert response.status_code == 503
+
+    def test_health_simulate_degraded_returns_degraded_status(self, client):
+        """Simulate=degraded should return degraded status with flags."""
+        response = client.get("/health?simulate=degraded")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "degraded"
+        assert "degradation_flags" in data
+
+    def test_health_simulate_healthy_returns_healthy(self, client):
+        """Simulate=healthy should return normal healthy status."""
+        response = client.get("/health?simulate=healthy")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "healthy"
+
+    def test_health_simulate_blocked_in_production(self, client, monkeypatch):
+        """Simulate parameter should be blocked in production environment."""
+        monkeypatch.setenv("ENVIRONMENT", "production")
+
+        response = client.get("/health?simulate=unavailable")
+
+        assert response.status_code == 403
+        assert "not allowed" in response.json()["detail"].lower()
+
+    def test_health_simulate_allowed_in_development(self, client, monkeypatch):
+        """Simulate parameter should be allowed in non-production."""
+        monkeypatch.setenv("ENVIRONMENT", "development")
+
+        response = client.get("/health?simulate=unavailable")
+
+        assert response.status_code == 503
+
+    def test_health_simulate_allowed_when_environment_not_set(self, client, monkeypatch):
+        """Simulate parameter should be allowed when ENVIRONMENT is not set."""
+        monkeypatch.delenv("ENVIRONMENT", raising=False)
+
+        response = client.get("/health?simulate=unavailable")
+
+        assert response.status_code == 503  # Simulation works, not blocked
+
 
 class TestPersistenceDisabled:
     """Test graceful degradation when persistence is disabled."""

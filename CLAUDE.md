@@ -111,3 +111,20 @@ See `docs/api-error-handling.md` for complete error handling patterns and exampl
 - `docs/backend/README.md` - DSPy architecture
 - `mcp-server/README.md` - MCP integration
 - `Makefile` - All available commands (`make help`)
+
+## PM2 Services
+
+| Port | Name | Type |
+|------|------|------|
+| 8000 | raycast-backend-8000 | FastAPI (Python) |
+
+**Terminal Commands:**
+```bash
+pm2 start ecosystem.config.cjs   # First time
+pm2 start all                    # After first time
+pm2 stop all / pm2 restart all
+pm2 start raycast-backend-8000 / pm2 stop raycast-backend-8000
+pm2 logs / pm2 status / pm2 monit
+pm2 save                         # Save process list
+pm2 resurrect                    # Restore saved list
+```

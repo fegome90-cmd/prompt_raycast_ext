@@ -55,10 +55,15 @@ async def get_metrics_repository() -> SQLiteMetricsRepository:
         SQLiteMetricsRepository instance
 
     Raises:
-        ValueError: If repository not registered in container
+        ConnectionError: If repository not registered in container
     """
-    repo = container.get(SQLiteMetricsRepository)
-    return repo
+    try:
+        repo = container.get(SQLiteMetricsRepository)
+        if repo is None:
+            raise ConnectionError("Metrics repository not available")
+        return repo
+    except ValueError as e:
+        raise ConnectionError(f"Repository not initialized: {e}") from e
 
 
 @router.get("/summary")

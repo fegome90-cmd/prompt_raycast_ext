@@ -1,5 +1,3 @@
-import { tokens } from "./tokens";
-
 /**
  * Typography utilities for the Prompt Improver
  * Raycast handles most UI typography, but we use these for:
@@ -8,28 +6,60 @@ import { tokens } from "./tokens";
  * - Metadata labels
  */
 
+// Confidence thresholds aligned with defaults.ts minConfidence (70%)
+const CONFIDENCE_THRESHOLDS = {
+  HIGH: 70, // Full circle = high confidence
+  MEDIUM: 40, // Half dot = medium
+} as const;
+
+// Count symbols for metadata display
+const COUNT_SYMBOLS = {
+  Questions: "?", // Question mark - direct, functional
+  Assumptions: "◐", // Half-filled circle = partial/assumption
+  Characters: "#", // Hash = count, technical
+  Words: "¶", // Pilcrow = paragraph, document symbol
+} as const;
+
 export class Typography {
   /**
+   * Convert 0-1 score to 0-100 percentage with clamping.
+   * Handles edge cases where score might be outside expected range.
+   *
+   * @param score - Confidence in 0-1 range
+   * @returns Percentage in 0-100 range (clamped)
+   */
+  private static toPercentage(score: number): number {
+    // Clamp to 0-1 range, then convert to percentage
+    const clamped = Math.max(0, Math.min(1, score));
+    return Math.round(clamped * 100);
+  }
+
+  /**
    * Format a confidence score with technical geometric symbols
-   * Uses circle fill level to indicate quality: ◉ (high), ◎ (medium), ○ (low)
+   * Uses circle fill level to indicate quality: ◉ (high >=70%), ◎ (medium 40-69%), ○ (low <40%)
+   *
+   * @param score - Confidence in 0-1 range (from DSPy backend)
+   * @returns Formatted string with icon and percentage (e.g., "◉ 70%")
    */
   static confidence(score: number): string {
-    const rounded = Math.round(score);
+    const rounded = Typography.toPercentage(score);
     // Technical geometric symbols - circle fill indicates quality
-    if (rounded >= 80) return `◉ ${rounded}%`; // Full circle = high confidence
-    if (rounded >= 60) return `◎ ${rounded}%`; // Half dot = medium
-    if (rounded >= 40) return `○ ${rounded}%`; // Empty = low
-    return `○ ${rounded}%`; // Same as low
+    if (rounded >= CONFIDENCE_THRESHOLDS.HIGH) return `◉ ${rounded}%`;
+    if (rounded >= CONFIDENCE_THRESHOLDS.MEDIUM) return `◎ ${rounded}%`;
+    return `○ ${rounded}%`;
   }
 
   /**
    * Get only the confidence icon symbol (for metadata display)
+   *
+   * @param score - Confidence in 0-1 range (from DSPy backend)
+   * @returns Icon symbol: ◉ (high >=70%), ◎ (medium 40-69%), ○ (low <40%)
    */
   static confidenceIcon(score: number): string {
-    const rounded = Math.round(score);
-    if (rounded >= 70) return "◉"; // High = full circle
-    if (rounded >= 40) return "◎"; // Medium = half dot
-    return "○"; // Low = empty circle
+    const rounded = Typography.toPercentage(score);
+    if (rounded >= CONFIDENCE_THRESHOLDS.HIGH) return "◉";
+    if (rounded >= CONFIDENCE_THRESHOLDS.MEDIUM) return "◎";
+    return "○";
   }
 
   /**
@@ -37,14 +67,7 @@ export class Typography {
    * Uses single-letter and geometric symbols instead of emojis
    */
   static count(label: string, count: number): string {
-    const symbols = {
-      Questions: "?", // Question mark - direct, functional
-      Assumptions: "◐", // Half-filled circle = partial/assumption
-      Characters: "#", // Hash = count, technical
-      Words: "¶", // Pilcrow = paragraph, document symbol
-    };
-
-    const symbol = symbols[label as keyof typeof symbols] || "•";
+    const symbol = COUNT_SYMBOLS[label as keyof typeof COUNT_SYMBOLS] || "•";
     return `${symbol} ${count}`;
   }
 
@@ -52,13 +75,7 @@ export class Typography {
    * Get only the count symbol (for metadata icon display)
    */
   static countSymbol(label: string): string {
-    const symbols = {
-      Questions: "?",
-      Assumptions: "◐",
-      Characters: "#",
-      Words: "¶",
-    };
-    return symbols[label as keyof typeof symbols] || "•";
+    return COUNT_SYMBOLS[label as keyof typeof COUNT_SYMBOLS] || "•";
   }
 
   /**

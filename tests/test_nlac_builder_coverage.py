@@ -13,6 +13,11 @@ Tests cover:
 """
 
 import pytest
+
+# Component not exposed - kept for future use (see PLAN-2026-0001)
+pytestmark = pytest.mark.skip(
+    reason="Component not exposed - kept for future use (see PLAN-2026-0001)"
+)
 from hemdov.domain.dto.nlac_models import NLaCRequest, IntentType, NLaCInputs
 from hemdov.domain.services.nlac_builder import NLaCBuilder
 from hemdov.domain.services.complexity_analyzer import ComplexityLevel

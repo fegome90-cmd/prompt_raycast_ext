@@ -8,6 +8,7 @@ import json
 import logging
 
 from fastapi import Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 logger = logging.getLogger(__name__)
@@ -131,6 +132,19 @@ def create_exception_handlers():
             content={"detail": "Calculation error: division by zero"}
         )
 
+    async def validation_error_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+        """Convert Pydantic 422 validation errors to 400 Bad Request."""
+        errors = exc.errors()
+        first_error = errors[0] if errors else {}
+        field = ".".join(str(loc) for loc in first_error.get("loc", []))
+        message = first_error.get("msg", "Validation failed")
+
+        logger.warning(f"Validation error in {request.url.path}: '{field}': {message}")
+        return JSONResponse(
+            status_code=400,
+            content={"detail": f"Validation error in '{field}': {message}"}
+        )
+
     return {
         ValueError: value_error_handler,
         KeyError: key_error_handler,
@@ -141,6 +155,7 @@ def create_exception_handlers():
         OSError: os_error_handler,
         TimeoutError: timeout_error_handler,
         ZeroDivisionError: zero_division_error_handler,
+        RequestValidationError: validation_error_handler,
     }
 
 

@@ -141,7 +141,7 @@ export async function improvePromptWithHybrid(args: {
         improved_prompt: dspyResult.improved_prompt,
         clarifying_questions: [], // DSPy doesn't provide these yet
         assumptions: [], // DSPy doesn't provide these yet
-        confidence: dspyResult.confidence || 0.8,
+        confidence: dspyResult.confidence, // Zod schema guarantees non-null (default 0.8)
         _metadata: {
           usedExtraction: false,
           usedRepair: false,
@@ -368,45 +368,39 @@ async function callImprover(args: {
         };
       } catch (validationError) {
         console.warn(
-          `[improvePrompt] Extracted JSON failed validation: ${validationError instanceof Error ? validationError.message : String(validationError)}`,
+          `[improvePrompt] Extracted JSON failed validation: ${
+            validationError instanceof Error ? validationError.message : String(validationError)
+          }`,
         );
       }
     }
 
-    throw new ImprovePromptError(
-      `Failed to generate valid response: could not parse JSON output`,
-      parseError,
-      {
-        wrapper: {
-          attempt: 1,
-          usedRepair: false,
-          usedExtraction: false,
-          failureReason: "json_parse_failed",
-          latencyMs,
-          validationError: parseError instanceof Error ? parseError.message : String(parseError),
-        },
-      }
-    );
+    throw new ImprovePromptError(`Failed to generate valid response: could not parse JSON output`, parseError, {
+      wrapper: {
+        attempt: 1,
+        usedRepair: false,
+        usedExtraction: false,
+        failureReason: "json_parse_failed",
+        latencyMs,
+        validationError: parseError instanceof Error ? parseError.message : String(parseError),
+      },
+    });
   }
 
   // At this point, rawJson is valid JSON - validate against schema
   try {
     parsed = improvePromptSchemaZod.parse(rawJson);
   } catch (validationError) {
-    throw new ImprovePromptError(
-      `Failed to generate valid response: JSON structure invalid`,
-      validationError,
-      {
-        wrapper: {
-          attempt: 1,
-          usedRepair: false,
-          usedExtraction: false,
-          failureReason: "schema_validation_failed",
-          latencyMs,
-          validationError: validationError instanceof Error ? validationError.message : String(validationError),
-        },
-      }
-    );
+    throw new ImprovePromptError(`Failed to generate valid response: JSON structure invalid`, validationError, {
+      wrapper: {
+        attempt: 1,
+        usedRepair: false,
+        usedExtraction: false,
+        failureReason: "schema_validation_failed",
+        latencyMs,
+        validationError: validationError instanceof Error ? validationError.message : String(validationError),
+      },
+    });
   }
 
   return {
@@ -435,7 +429,7 @@ function extractJsonFromResponse(response: string): unknown | null {
     const errorInfo = {
       errorType: e instanceof Error ? e.constructor.name : typeof e,
       errorMessage: e instanceof Error ? e.message : String(e),
-      jsonPreview: result.json?.substring(0, 100) || 'no match',
+      jsonPreview: result.json?.substring(0, 100) || "no match",
     };
     console.error(`[extractJson] JSON.parse failed:`, errorInfo);
     return null;

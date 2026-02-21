@@ -40,7 +40,7 @@ Commands (src/*.tsx) → Core Logic (src/core/) → External Services
 | Log with prefixes | `[PromptifyQuick]`, `[Fallback]` for filtering in Console.app |
 | Use Raycast components | `@raycast/api` for all UI elements |
 | Never duplicate types | Share types between Python backend via `types.ts` |
-| Handle offline gracefully | Ollama fallback when backend unavailable |
+| Handle backend outages gracefully | Show explicit backend-unavailable guidance (`make dev`, `make health`) |
 
 ## Design System
 
@@ -130,7 +130,7 @@ class FrontendError extends Error {
 | 400 | Show validation error |
 | 404 | Show "not found" with retry |
 | 422 | Show field-specific errors |
-| 503 | Enable Ollama fallback |
+| 503 | Show backend unavailable guidance |
 | 504 | Show timeout with retry |
 | 500 | Show generic error, log details |
 
@@ -157,14 +157,9 @@ class FrontendError extends Error {
 
 ### Fallback Strategy
 ```typescript
-// Hybrid approach
-try {
-  result = await callBackend();
-} catch (error) {
-  if (error instanceof ConnectionError) {
-    result = await useOllamaFallback();
-  }
-}
+// legacy/nlac modes require backend
+// (ollama mode is an explicit user-selected path)
+result = await callBackend();
 ```
 
 ### Model Selection

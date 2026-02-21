@@ -6,13 +6,17 @@ with the Raycast TypeScript frontend.
 """
 
 import logging
+import os
 from contextlib import asynccontextmanager
 
 import dspy
-from fastapi import FastAPI
+from enum import Enum
+
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.exception_utils import create_exception_handlers
+from api.middleware import RequestIDMiddleware
 from api.metrics_api import router as metrics_router
 from api.prompt_improver_api import router as prompt_improver_router
 from hemdov.infrastructure.adapters.litellm_dspy_adapter_prompt import (
@@ -23,6 +27,7 @@ from hemdov.infrastructure.adapters.litellm_dspy_adapter_prompt import (
     create_openai_adapter,
 )
 from hemdov.infrastructure.config import settings
+from hemdov.infrastructure.persistence.metrics_repository import SQLiteMetricsRepository
 from hemdov.interfaces import container
 
 # Global LM instance for DSPy
@@ -86,6 +91,16 @@ async def lifespan(app: FastAPI):
     # Configure DSPy
     dspy.settings.configure(lm=lm)
 
+    # Register metrics repository for metrics endpoints
+    try:
+        metrics_db_path = "data/metrics.db"  # Separate from prompt_history.db
+        metrics_repo = SQLiteMetricsRepository(metrics_db_path)
+        await metrics_repo.initialize()  # Must call async initialize before use
+        container.register(SQLiteMetricsRepository, metrics_repo)
+        logger.info("SQLiteMetricsRepository registered in container")
+    except (ConnectionError, OSError, RuntimeError) as e:
+        logger.warning(f"Failed to initialize metrics repository: {type(e).__name__}: {e}")
+
     logger.info(f"DSPy configured with {settings.LLM_PROVIDER}/{settings.LLM_MODEL}")
 
     yield
@@ -111,6 +126,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Add request ID middleware for tracing
+app.add_middleware(RequestIDMiddleware)
+
 # Include routers
 app.include_router(prompt_improver_router)
 app.include_router(metrics_router)
@@ -122,9 +140,36 @@ for exc_type, handler in exception_handlers.items():
 
 
 # Health check endpoint
+class HealthState(str, Enum):
+    HEALTHY = "healthy"
+    DEGRADED = "degraded"
+    UNAVAILABLE = "unavailable"
+
+
 @app.get("/health")
-async def health_check():
-    """Health check endpoint."""
+async def health_check(
+    simulate: HealthState = Query(default=HealthState.HEALTHY, description="Simulate health state for testing")
+):
+    """Health check endpoint with state simulation for testing."""
+    # Block simulation in production environment
+    if simulate != HealthState.HEALTHY and os.getenv("ENVIRONMENT") == "production":
+        raise HTTPException(
+            status_code=403,
+            detail="Simulation not allowed in production environment"
+        )
+
+    if simulate == HealthState.UNAVAILABLE:
+        raise HTTPException(status_code=503, detail="Service unavailable (simulated)")
+
+    if simulate == HealthState.DEGRADED:
+        return {
+            "status": "degraded",
+            "provider": settings.LLM_PROVIDER,
+            "model": settings.LLM_MODEL,
+            "dspy_configured": lm is not None,
+            "degradation_flags": {"knn_disabled": True}
+        }
+
     return {
         "status": "healthy",
         "provider": settings.LLM_PROVIDER,

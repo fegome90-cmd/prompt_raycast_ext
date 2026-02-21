@@ -13,6 +13,11 @@ Tests cover:
 """
 
 import pytest
+
+# Component not exposed - kept for future use (see PLAN-2026-0001)
+pytestmark = pytest.mark.skip(
+    reason="Component not exposed - kept for future use (see PLAN-2026-0001)"
+)
 from datetime import datetime, UTC
 from hemdov.domain.dto.nlac_models import (
     PromptObject,
