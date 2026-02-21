@@ -8,7 +8,7 @@ Tests cover:
 """
 
 import asyncio
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -311,3 +311,97 @@ class TestDegradationFlags:
             assert flags["metrics_failed"] is False
             assert flags["knn_disabled"] is False
             assert flags["complex_strategy_disabled"] is False
+            assert flags["persistence_failed"] is False
+
+    def test_request_id_is_forwarded_to_persistence_task(self, client):
+        """Request ID from middleware should be propagated to async persistence."""
+        with patch('api.prompt_improver_api._metrics_calculator') as mock_metrics, \
+             patch('api.prompt_improver_api.get_strategy_selector') as mock_selector, \
+             patch('api.prompt_improver_api._save_history_async', new_callable=AsyncMock) as mock_save:
+            # Mock metrics to succeed
+            mock_metrics.calculate_from_history = Mock(return_value=Mock(
+                overall_score=0.8,
+                grade="A",
+                quality=Mock(composite_score=0.8),
+                performance=Mock(performance_score=0.7, latency_ms=100),
+                impact=Mock(impact_score=0.9),
+            ))
+
+            # Mock selector and strategy
+            mock_selector_instance = Mock()
+            mock_strategy = Mock()
+            mock_strategy.name = "simple"
+            mock_strategy.improve = Mock(return_value=Mock(
+                improved_prompt="test improved prompt",
+                role="Software Architect",
+                directive="Design and implement",
+                framework="chain-of-thought",
+                guardrails="guard1\nguard2",
+                reasoning=None,
+                confidence=None,
+            ))
+            mock_selector_instance.select.return_value = mock_strategy
+            mock_selector_instance.get_complexity.return_value = Mock(value="simple")
+            mock_selector_instance.get_degradation_flags.return_value = {}
+            mock_selector.return_value = mock_selector_instance
+
+            # Capture and close coroutine to avoid unawaited warnings in test
+            def _capture_task(coro):
+                coro.close()
+                return None
+
+            with patch('api.prompt_improver_api.asyncio.create_task', side_effect=_capture_task):
+                response = client.post(
+                    "/api/v1/improve-prompt",
+                    json={
+                        "idea": "Test prompt idea",
+                        "mode": "legacy"
+                    },
+                    headers={"X-Request-ID": "trace-123"},
+                )
+
+            assert response.status_code == 200
+            assert mock_save.call_count == 1
+            assert mock_save.call_args.kwargs["request_id"] == "trace-123"
+            assert mock_save.call_args.kwargs["mode"] == "legacy"
+
+    def test_create_task_failure_degrades_without_breaking_response(self, client):
+        """Persistence scheduling failure should not fail API response."""
+        with patch('api.prompt_improver_api._metrics_calculator') as mock_metrics, \
+             patch('api.prompt_improver_api.get_strategy_selector') as mock_selector, \
+             patch('api.prompt_improver_api.asyncio.create_task', side_effect=RuntimeError("loop closed")):
+            mock_metrics.calculate_from_history = Mock(return_value=Mock(
+                overall_score=0.8,
+                grade="A",
+                quality=Mock(composite_score=0.8),
+                performance=Mock(performance_score=0.7, latency_ms=100),
+                impact=Mock(impact_score=0.9),
+            ))
+
+            mock_selector_instance = Mock()
+            mock_strategy = Mock()
+            mock_strategy.name = "simple"
+            mock_strategy.improve = Mock(return_value=Mock(
+                improved_prompt="test improved prompt",
+                role="Software Architect",
+                directive="Design and implement",
+                framework="chain-of-thought",
+                guardrails="guard1\nguard2",
+                reasoning=None,
+                confidence=None,
+            ))
+            mock_selector_instance.select.return_value = mock_strategy
+            mock_selector_instance.get_complexity.return_value = Mock(value="simple")
+            mock_selector_instance.get_degradation_flags.return_value = {}
+            mock_selector.return_value = mock_selector_instance
+
+            response = client.post(
+                "/api/v1/improve-prompt",
+                json={
+                    "idea": "Test prompt idea",
+                    "mode": "legacy"
+                },
+            )
+
+            assert response.status_code == 200
+            assert response.json()["degradation_flags"]["persistence_failed"] is True

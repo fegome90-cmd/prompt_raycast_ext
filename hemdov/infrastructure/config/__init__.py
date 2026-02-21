@@ -57,6 +57,7 @@ class Settings(BaseSettings):
     API_HOST: str = "0.0.0.0"
     API_PORT: int = 8000
     API_RELOAD: bool = True
+    CORS_ORIGINS: str = "*"  # Comma-separated list of allowed origins
 
     # Quality Settings
     MIN_CONFIDENCE_THRESHOLD: float = 0.7

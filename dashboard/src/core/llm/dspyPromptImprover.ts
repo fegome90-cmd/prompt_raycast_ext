@@ -11,7 +11,6 @@ import { fetchWithTimeout } from "./fetchWrapper";
 export interface DSPyPromptImproverRequest {
   idea: string;
   context?: string;
-  /** @deprecated Mode is now hard-coded to "legacy" (CoT-based). Other modes not exposed until quality-validated. */
   mode?: "legacy" | "nlac";
 }
 
@@ -29,7 +28,7 @@ export const DSPyResponseSchema = z.object({
   directive: z.string(),
   framework: z.string(),
   guardrails: z.array(z.string()),
-  reasoning: z.string().optional(),
+  reasoning: z.string().nullish(),
   // Backend DSPy returns null/undefined when not filled; transform to default
   confidence: z
     .number()
@@ -82,11 +81,8 @@ export class DSPyPromptImproverClient {
     const url = `${this.config.baseUrl}/api/v1/improve-prompt`;
     console.log(`[DSPy improvePrompt] 🌐 Calling POST ${url}`);
 
-    // 🔒 HARD-CODED to "legacy" mode (CoT-based approach)
-    // Rationale: CoT has been validated to produce consistent high-quality results.
-    // Other modes (nlac) are not exposed until they demonstrate comparable quality.
-    // See: .claude/commands/improve-prompt.md for details.
-    const mode = "legacy";
+    // Contract: mode travels end-to-end; when omitted we keep legacy as safe default.
+    const mode = request.mode ?? "legacy";
 
     console.log(`[DSPy improvePrompt] 📤 Request payload:`, {
       idea_length: request.idea.length,
@@ -234,15 +230,7 @@ export async function improvePromptWithDSPy(
   rawInput: string,
   preset: string = "default",
   context?: string,
-): Promise<{
-  improved_prompt: string;
-  role: string;
-  directive: string;
-  framework: string;
-  guardrails: string[];
-  reasoning?: string;
-  confidence?: number;
-}> {
+): Promise<DSPyPromptImproverResponse> {
   try {
     const client = createDSPyClient();
 

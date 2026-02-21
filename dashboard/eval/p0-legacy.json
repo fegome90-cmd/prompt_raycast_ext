@@ -1,0 +1,111 @@
+{
+  "timestamp": "2026-02-21T16:05:31.790Z",
+  "totalCases": 30,
+  "buckets": {
+    "good": {
+      "total": 10,
+      "jsonValidPass1": 0.7,
+      "copyableRate": 0.7,
+      "reviewRate": 0.4
+    },
+    "bad": {
+      "total": 10,
+      "jsonValidPass1": 0.4,
+      "copyableRate": 0.4,
+      "reviewRate": 0.1
+    },
+    "ambiguous": {
+      "total": 10,
+      "jsonValidPass1": 0.9,
+      "copyableRate": 0.9,
+      "reviewRate": 0.8
+    }
+  },
+  "jsonValidPass1": 0.6666666666666666,
+  "jsonValidPass2": 0,
+  "copyableRate": 0.6666666666666666,
+  "reviewRate": 0.43333333333333335,
+  "latencyP50": 3467,
+  "latencyP95": 5617,
+  "patternsDetected": 10,
+  "extractionUsedRate": 0,
+  "extractionMethodBreakdown": {
+    "fence": 0,
+    "tag": 0,
+    "scan": 0
+  },
+  "repairTriggerRate": 0.03333333333333333,
+  "repairSuccessRate": 0,
+  "repairJsonParseOkRate": 1,
+  "repairSchemaValidRate": 0,
+  "attempt2Rate": 0.03333333333333333,
+  "failureReasons": {
+    "invalidJson": 0,
+    "schemaMismatch": 0,
+    "emptyFinalPrompt": 1,
+    "unfilledPlaceholders": 2,
+    "chattyOutput": 0,
+    "bannedContent": 4,
+    "tooManyQuestions": 3,
+    "other": 0
+  },
+  "failures": [
+    {
+      "caseId": "good-004",
+      "reason": "Too many questions: 3 > 2",
+      "category": "tooManyQuestions"
+    },
+    {
+      "caseId": "good-006",
+      "reason": "Too many questions: 3 > 2",
+      "category": "tooManyQuestions"
+    },
+    {
+      "caseId": "good-008",
+      "reason": "Too many questions: 3 > 2",
+      "category": "tooManyQuestions"
+    },
+    {
+      "caseId": "bad-002",
+      "reason": "Contains banned pattern: \"Componente\"",
+      "category": "bannedContent"
+    },
+    {
+      "caseId": "bad-003",
+      "reason": "Contains unfilled placeholders",
+      "category": "unfilledPlaceholders"
+    },
+    {
+      "caseId": "bad-004",
+      "reason": "Contains banned pattern: \"servicio\"",
+      "category": "bannedContent"
+    },
+    {
+      "caseId": "bad-006",
+      "reason": "Final prompt too short: 48 < 50",
+      "category": "emptyFinalPrompt"
+    },
+    {
+      "caseId": "bad-007",
+      "reason": "Contains banned pattern: \"función\"",
+      "category": "bannedContent"
+    },
+    {
+      "caseId": "bad-010",
+      "reason": "Contains banned pattern: \"código\"",
+      "category": "bannedContent"
+    },
+    {
+      "caseId": "ambig-004",
+      "reason": "Contains unfilled placeholders",
+      "category": "unfilledPlaceholders"
+    }
+  ],
+  "ambiguity": {
+    "totalAmbiguousCases": 0,
+    "ambiguitySpread": 0,
+    "dominantSenseRate": 0,
+    "stabilityScore": 1
+  },
+  "skillUsed": "core"
+}

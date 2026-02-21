@@ -60,4 +60,7 @@ class CircuitBreaker:
                     f"disabled until {self._disabled_until.isoformat()}"
                 )
             else:
-                logger.warning(f"Circuit breaker failure count: {self._failure_count}/{self._max_failures}")
+                logger.warning(
+                    f"Circuit breaker failure count: "
+                    f"{self._failure_count}/{self._max_failures}"
+                )

@@ -9,7 +9,7 @@ import logging
 from dataclasses import dataclass
 from os import getenv
 from pathlib import Path
-from typing import Self
+from typing_extensions import Self
 
 logger = logging.getLogger(__name__)
 

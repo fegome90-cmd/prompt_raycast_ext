@@ -158,7 +158,7 @@ class TestPromptCacheEdgeCases:
     @pytest.mark.asyncio
     async def test_repository_exception_on_get(self, mock_repository):
         """Repository exception on get should fallback to memory."""
-        mock_repository.get_cached_prompt.side_effect = Exception("DB down")
+        mock_repository.get_cached_prompt.side_effect = ConnectionError("DB down")
 
         cache = PromptCache(repository=mock_repository)
         request = NLaCRequest(idea="Test", context="", mode="nlac")
@@ -170,7 +170,7 @@ class TestPromptCacheEdgeCases:
     @pytest.mark.asyncio
     async def test_repository_exception_on_put(self, mock_repository, sample_request, sample_prompt):
         """Repository exception on put should fallback to memory."""
-        mock_repository.cache_prompt.side_effect = Exception("Write failed")
+        mock_repository.cache_prompt.side_effect = ConnectionError("Write failed")
 
         cache = PromptCache(repository=mock_repository)
 
@@ -184,7 +184,7 @@ class TestPromptCacheEdgeCases:
     @pytest.mark.asyncio
     async def test_repository_exception_on_invalidate(self, mock_repository, sample_request, sample_prompt):
         """Repository exception on invalidate should try memory."""
-        mock_repository.delete_cached_prompt.side_effect = Exception("Delete failed")
+        mock_repository.delete_cached_prompt.side_effect = ConnectionError("Delete failed")
 
         cache = PromptCache(repository=mock_repository)
 
@@ -199,8 +199,8 @@ class TestPromptCacheEdgeCases:
     @pytest.mark.asyncio
     async def test_repository_exception_on_stats(self, mock_repository):
         """Repository exception on stats should fallback to memory stats."""
-        mock_repository.get_cache_stats.side_effect = Exception("Stats failed")
-        mock_repository.cache_prompt.side_effect = Exception("Write failed")
+        mock_repository.get_cache_stats.side_effect = ConnectionError("Stats failed")
+        mock_repository.cache_prompt.side_effect = ConnectionError("Write failed")
 
         cache = PromptCache(repository=mock_repository)
         request = NLaCRequest(idea="Test", context="", mode="nlac")
@@ -225,8 +225,8 @@ class TestPromptCacheEdgeCases:
     @pytest.mark.asyncio
     async def test_repository_exception_on_clear(self, mock_repository, sample_request, sample_prompt):
         """Repository exception on clear should still clear memory."""
-        mock_repository.clear_cache.side_effect = Exception("Clear failed")
-        mock_repository.cache_prompt.side_effect = Exception("Write failed")
+        mock_repository.clear_cache.side_effect = ConnectionError("Clear failed")
+        mock_repository.cache_prompt.side_effect = ConnectionError("Write failed")
 
         cache = PromptCache(repository=mock_repository)
 
@@ -466,7 +466,7 @@ class TestPromptCacheEdgeCases:
         self, mock_repository, sample_request, sample_prompt
     ):
         """When repository fails, operations should be consistent with memory."""
-        mock_repository.cache_prompt.side_effect = Exception("DB error")
+        mock_repository.cache_prompt.side_effect = ConnectionError("DB error")
 
         cache = PromptCache(repository=mock_repository)
 
@@ -499,20 +499,20 @@ class TestPromptCacheWithRealRepositoryFailures:
         async def flaky_get(*args, **kwargs):
             call_count["get"] += 1
             if call_count["get"] % 3 == 0:  # Fail every 3rd call
-                raise Exception("Connection timeout")
+                raise ConnectionError("Connection timeout")
             return None
 
         async def flaky_put(*args, **kwargs):
             call_count["put"] += 1
             if call_count["put"] % 2 == 0:  # Fail every 2nd call
-                raise Exception("Write timeout")
+                raise TimeoutError("Write timeout")
 
         repo.get_cached_prompt = flaky_get
         repo.cache_prompt = flaky_put
         repo.delete_cached_prompt = AsyncMock(return_value=False)
         repo.update_cache_access = AsyncMock()
-        repo.get_cache_stats = AsyncMock(side_effect=Exception("Stats error"))
-        repo.clear_cache = AsyncMock(side_effect=Exception("Clear error"))
+        repo.get_cache_stats = AsyncMock(side_effect=ConnectionError("Stats error"))
+        repo.clear_cache = AsyncMock(side_effect=ConnectionError("Clear error"))
 
         return repo
 

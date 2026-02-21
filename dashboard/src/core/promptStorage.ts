@@ -68,13 +68,6 @@ async function cleanupOrphanedTempFiles(): Promise<void> {
 }
 
 /**
- * Check if error is ENOENT (file not found)
- */
-function isENOENT(error: unknown): boolean {
-  return error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "ENOENT";
-}
-
-/**
  * Ensure storage directory exists
  */
 async function ensureStorageDir(): Promise<void> {

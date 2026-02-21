@@ -178,6 +178,29 @@ rm data/prompt_history.db
 make restart
 ```
 
+### Persistence Degradation (`persistence_failed`)
+
+**Symptom:** Prompt improvement responde `200`, pero la persistencia no escribe historial.
+
+**Detection:**
+```bash
+# Structured persistence failure events
+rg -n "event=persistence_failed" .logs/backend.log
+
+# Last 20 failures with context
+rg -n "event=persistence_failed" .logs/backend.log | tail -20
+```
+
+**Expected context in each event:**
+- `request_id`
+- `backend`
+- `mode`
+- `latency_ms`
+- `error_type` (when exception exists)
+
+**Operational note:**
+- Si no hay infraestructura de contadores dedicada, `event=persistence_failed` en logs es la fuente oficial para medición operativa.
+
 ### Timeout Errors
 
 **Symptom:** `Error: timed out` after 120s

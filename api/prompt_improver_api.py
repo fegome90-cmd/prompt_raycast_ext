@@ -13,21 +13,12 @@ import uuid
 from enum import Enum
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field, field_validator
-
-from eval.src.dspy_prompt_improver import PromptImprover
-
-
-class DegradationFlag(str, Enum):
-    """Well-defined degradation flags to prevent typos."""
-    METRICS_FAILED = "metrics_failed"
-    KNN_DISABLED = "knn_disabled"
-    COMPLEX_STRATEGY_DISABLED = "complex_strategy_disabled"
-
 
 from api.circuit_breaker import CircuitBreaker
 from api.quality_gates import GateReport, evaluate_output, get_template_summary
+from eval.src.dspy_prompt_improver import PromptImprover
 from eval.src.strategy_selector import StrategySelector
 from hemdov.domain.entities.prompt_history import PromptHistory
 from hemdov.domain.metrics.evaluators import (
@@ -40,6 +31,15 @@ from hemdov.infrastructure.persistence.sqlite_prompt_repository import SQLitePro
 from hemdov.interfaces import container
 
 logger = logging.getLogger(__name__)
+
+
+class DegradationFlag(str, Enum):
+    """Well-defined degradation flags to prevent typos."""
+    METRICS_FAILED = "metrics_failed"
+    KNN_DISABLED = "knn_disabled"
+    COMPLEX_STRATEGY_DISABLED = "complex_strategy_disabled"
+    PERSISTENCE_FAILED = "persistence_failed"
+
 
 # Custom exceptions for better error handling
 class QualityGateEvaluationError(Exception):
@@ -88,6 +88,38 @@ def _extract_confidence(result: Any) -> float | None:
                 return None
         return None
     return None
+
+
+def normalize_framework_for_history(framework_raw: str) -> tuple[str, bool]:
+    """Normalize model framework output to PromptHistory-allowed enum values.
+
+    Returns:
+        tuple[framework, used_fallback]:
+            - framework: normalized enum value for PromptHistory
+            - used_fallback: True when heuristic matching failed and safe default was used
+    """
+    normalized = framework_raw.strip().lower()
+    valid_frameworks = {
+        "chain-of-thought",
+        "tree-of-thoughts",
+        "decomposition",
+        "role-playing",
+    }
+
+    if normalized in valid_frameworks:
+        return normalized, False
+
+    if "decomp" in normalized:
+        return "decomposition", False
+    if "chain" in normalized or "cot" in normalized:
+        return "chain-of-thought", False
+    if "tree" in normalized or "tot" in normalized:
+        return "tree-of-thoughts", False
+    if "role" in normalized:
+        return "role-playing", False
+
+    # Safe default that preserves write path stability for unknown framework variants.
+    return "decomposition", True
 
 
 router = APIRouter(prefix="/api/v1", tags=["prompts"])
@@ -159,7 +191,10 @@ async def get_repository(settings: Settings) -> PromptRepository | None:
 class ImprovePromptRequest(BaseModel):
     idea: str = Field(..., min_length=5, description="User's raw idea (min 5 characters)")
     context: str = Field(default="", max_length=5000, description="Additional context")
-    mode: str = Field(default="legacy", description="Execution mode: 'legacy' (DSPy) or 'nlac' (NLaC pipeline)")
+    mode: str = Field(
+        default="legacy",
+        description="Execution mode: 'legacy' (DSPy) or 'nlac' (NLaC pipeline)"
+    )
 
     @field_validator("mode")
     @classmethod
@@ -180,12 +215,24 @@ class ImprovePromptResponse(BaseModel):
     confidence: float | None = None
     backend: str | None = None  # "zero-shot" or "few-shot"
     # Additional fields for test compatibility
-    prompt_id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique prompt identifier")
+    prompt_id: str = Field(
+        default_factory=lambda: str(uuid.uuid4()),
+        description="Unique prompt identifier"
+    )
     strategy: str = Field(default="simple", description="Strategy used for improvement")
-    intent: str = Field(default="generate", description="Intent classification (debug, refactor, generate, explain)")
-    strategy_meta: dict[str, Any] = Field(default_factory=dict, description="Additional strategy metadata")
+    intent: str = Field(
+        default="generate",
+        description="Intent classification (debug, refactor, generate, explain)"
+    )
+    strategy_meta: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Additional strategy metadata"
+    )
     # Degradation and warning fields
-    metrics_warning: str | None = Field(default=None, description="Warning message if metrics calculation failed")
+    metrics_warning: str | None = Field(
+        default=None,
+        description="Warning message if metrics calculation failed"
+    )
     degradation_flags: dict[str, bool] = Field(
         default_factory=dict,
         description="Degradation flags indicating optional feature failures"
@@ -282,7 +329,7 @@ async def get_strategy_selector(settings: Settings, use_nlac: bool = False) -> S
 
 
 @router.post("/improve-prompt", response_model=ImprovePromptResponse)
-async def improve_prompt(request: ImprovePromptRequest):
+async def improve_prompt(request: ImprovePromptRequest, http_request: Request):
     """
     Improve a raw idea into a high-quality structured prompt.
 
@@ -321,11 +368,8 @@ async def improve_prompt(request: ImprovePromptRequest):
 
     # Log strategy selection for observability
     logger.info(
-        f"Mode: {request.mode} | "
-        f"Strategy: {strategy.name} | "
-        f"Complexity: {complexity.value} | "
-        f"Idea length: {len(request.idea)} | "
-        f"Context length: {len(request.context)}"
+        f"Mode: {request.mode} | Strategy: {strategy.name} | "
+        f"Complexity: {complexity.value} | Idea: {len(request.idea)} chars"
     )
 
     # Start timer for latency
@@ -339,7 +383,11 @@ async def improve_prompt(request: ImprovePromptRequest):
     try:
         # Run synchronous strategy.improve in thread with timeout
         result = await asyncio.wait_for(
-            asyncio.to_thread(strategy.improve, original_idea=request.idea, context=request.context),
+            asyncio.to_thread(
+                strategy.improve,
+                original_idea=request.idea,
+                context=request.context
+            ),
             timeout=STRATEGY_TIMEOUT_SECONDS
         )
 
@@ -386,11 +434,10 @@ async def improve_prompt(request: ImprovePromptRequest):
 
             # Log metrics for monitoring
             logger.info(
-                f"Metrics calculated in {metrics_duration_ms}ms: "
+                f"Metrics ({metrics_duration_ms}ms): "
                 f"overall={metrics.overall_score:.2f} ({metrics.grade}), "
                 f"quality={metrics.quality.composite_score:.2f}, "
-                f"performance={metrics.performance.performance_score:.2f}, "
-                f"latency={metrics.performance.latency_ms}ms"
+                f"perf={metrics.performance.performance_score:.2f}"
             )
 
             # Store metrics if SQLite is enabled
@@ -398,9 +445,11 @@ async def improve_prompt(request: ImprovePromptRequest):
                 try:
                     metrics_repo = await get_repository(settings)
                     if metrics_repo and hasattr(metrics_repo, 'save'):
-                        # Note: We need a metrics repository, not prompt repository
+                        # Note: We need a metrics repository, not prompt repo
                         # For now, just log that we would save it
-                        logger.debug("Metrics calculated successfully (persistence to be implemented)")
+                        logger.debug(
+                            "Metrics calculated (persistence to be implemented)"
+                        )
                 except (ConnectionError, OSError) as e:
                     metrics_warnings.append(f"Metrics persistence failed: {type(e).__name__}")
                     logger.error(f"Failed to save metrics: {type(e).__name__}: {e}")
@@ -434,6 +483,42 @@ async def improve_prompt(request: ImprovePromptRequest):
         # Classify intent for response (used by tests)
         intent = _classify_intent(request.idea, request.context)
 
+        prompt_id = _generate_stable_prompt_id(
+            request.idea, request.context, request.mode
+        )
+        request_id = (
+            getattr(http_request.state, "request_id", None)
+            or prompt_id
+        )
+        persistence_failed = False
+
+        history_task_coro = _save_history_async(
+            settings=settings,
+            original_idea=request.idea,
+            context=request.context,
+            result=result,
+            backend=strategy.name,  # Use strategy name instead of backend
+            latency_ms=latency_ms,
+            mode=request.mode,
+            request_id=request_id,
+        )
+        try:
+            # Fire-and-forget persistence, never block request completion.
+            asyncio.create_task(history_task_coro)
+        except RuntimeError as e:
+            # If scheduling fails, close coroutine to avoid unawaited warnings.
+            history_task_coro.close()
+            persistence_failed = True
+            logger.warning(
+                "event=persistence_failed reason=schedule_failed error_type=%s "
+                "request_id=%s backend=%s mode=%s latency_ms=%s",
+                type(e).__name__,
+                request_id,
+                strategy.name,
+                request.mode,
+                latency_ms,
+            )
+
         response = ImprovePromptResponse(
             improved_prompt=result.improved_prompt,
             role=result.role,
@@ -443,7 +528,7 @@ async def improve_prompt(request: ImprovePromptRequest):
             reasoning=getattr(result, "reasoning", None),
             confidence=_extract_confidence(result),
             backend=strategy.name,  # Use strategy name instead of backend
-            prompt_id=_generate_stable_prompt_id(request.idea, request.context, request.mode),
+            prompt_id=prompt_id,
             strategy=strategy.name,
             intent=intent,
             strategy_meta={
@@ -457,21 +542,14 @@ async def improve_prompt(request: ImprovePromptRequest):
                 DegradationFlag.KNN_DISABLED.value: selector.get_degradation_flags().get(
                     DegradationFlag.KNN_DISABLED.value, False
                 ),
-                DegradationFlag.COMPLEX_STRATEGY_DISABLED.value: selector.get_degradation_flags().get(
-                    DegradationFlag.COMPLEX_STRATEGY_DISABLED.value, False
+                DegradationFlag.COMPLEX_STRATEGY_DISABLED.value: (
+                    selector.get_degradation_flags().get(
+                        DegradationFlag.COMPLEX_STRATEGY_DISABLED.value, False
+                    )
                 ),
+                DegradationFlag.PERSISTENCE_FAILED.value: persistence_failed,
             },
         )
-
-        # Save history asynchronously (non-blocking)
-        asyncio.create_task(_save_history_async(
-            settings=settings,
-            original_idea=request.idea,
-            context=request.context,
-            result=result,
-            backend=strategy.name,  # Use strategy name instead of backend
-            latency_ms=latency_ms
-        ))
 
         return response
 
@@ -483,19 +561,19 @@ async def improve_prompt(request: ImprovePromptRequest):
         raise HTTPException(
             status_code=504,  # Gateway Timeout
             detail="Prompt improvement took too long. Please try with a shorter prompt."
-        )
+        ) from None
     except (ConnectionError, OSError) as e:
         logger.error(f"Connection/IO error during prompt improvement: {type(e).__name__}: {e}")
         raise HTTPException(
             status_code=503,  # Service Unavailable
             detail="Service temporarily unavailable. Please try again."
-        )
+        ) from None
     except (ValueError, TypeError, AttributeError) as e:
         logger.error(f"Invalid input or data error: {type(e).__name__}: {e}")
         raise HTTPException(
             status_code=400,  # Bad Request
             detail=f"Invalid request: {type(e).__name__}"
-        )
+        ) from None
 
 
 class EvaluateQualityRequest(BaseModel):
@@ -513,11 +591,17 @@ class EvaluateQualityRequest(BaseModel):
     )
     template_id: str = Field(
         default="json",
-        description="Template ID to use for evaluation. Must be one of: json, procedure_md, checklist_md, example_md."
+        description=(
+            "Template ID to use for evaluation. "
+            "Must be one of: json, procedure_md, checklist_md, example_md."
+        )
     )
     template_spec: dict[str, Any] | None = Field(
         default=None,
-        description="Optional template specification override. If not provided, uses DEFAULT_TEMPLATES."
+        description=(
+            "Optional template specification override. "
+            "If not provided, uses DEFAULT_TEMPLATES."
+        )
     )
 
     @field_validator("output")
@@ -552,10 +636,14 @@ class EvaluateQualityResponse(BaseModel):
     v0_1_pass: bool = Field(description="Whether all v0.1 gates (format+completeness) passed.")
     v0_2_fail_count: int = Field(description="Number of v0.2 gates that FAILED.")
     v0_2_warn_count: int = Field(description="Number of v0.2 gates that WARNED.")
-    overall_pass: bool = Field(description="Overall pass status (v0.1 must pass AND v0.2 must have 0 FAILs).")
+    overall_pass: bool = Field(
+        description="Overall pass (v0.1 must pass AND v0.2 must have 0 FAILs)."
+    )
     overall_status: str = Field(description="Overall status: PASS, WARN, or FAIL.")
     summary: str = Field(description="Human-readable summary of evaluation results.")
-    gates: dict[str, dict[str, Any]] = Field(description="Complete gate results with details for each gate.")
+    gates: dict[str, dict[str, Any]] = Field(
+        description="Complete gate results with details for each gate."
+    )
 
 
 @router.post("/evaluate-quality", response_model=EvaluateQualityResponse)
@@ -664,7 +752,9 @@ async def _save_history_async(
     context: str,
     result,
     backend: str,
-    latency_ms: int
+    latency_ms: int,
+    mode: str = "legacy",
+    request_id: str | None = None,
 ):
     """
     Save prompt improvement history to SQLite with circuit breaker protection.
@@ -675,10 +765,21 @@ async def _save_history_async(
     success = False
 
     try:
+        if not settings.SQLITE_ENABLED:
+            logger.debug("Persistence disabled by configuration")
+            return
+
         # Get repository with circuit breaker
         repo = await get_repository(settings)
         if repo is None:
-            logger.debug("Persistence disabled or circuit breaker open")
+            logger.warning(
+                "event=persistence_failed reason=circuit_breaker_open "
+                "request_id=%s backend=%s mode=%s latency_ms=%s",
+                request_id or "unknown",
+                backend,
+                mode,
+                latency_ms,
+            )
             return
 
         # Extract model and provider from settings
@@ -692,13 +793,20 @@ async def _save_history_async(
         confidence_value = _extract_confidence(result)
 
         # Create PromptHistory entity
+        framework_for_history, used_framework_fallback = normalize_framework_for_history(result.framework)
+        if used_framework_fallback:
+            logger.warning(
+                "event=framework_normalization_fallback framework_raw=%r framework_normalized=%s",
+                result.framework,
+                framework_for_history,
+            )
         history = PromptHistory(
             original_idea=original_idea,
             context=context,
             improved_prompt=result.improved_prompt,
             role=result.role,
             directive=result.directive,
-            framework=result.framework,
+            framework=framework_for_history,
             guardrails=guardrails_list,
             backend=backend,
             model=model,
@@ -716,15 +824,32 @@ async def _save_history_async(
     except (ConnectionError, OSError, TimeoutError) as e:
         # Record failure on circuit breaker
         await _circuit_breaker.record_failure()
-        logger.error(f"Database error saving history: {type(e).__name__}: {e}")
+        logger.error(
+            "event=persistence_failed error_type=%s request_id=%s backend=%s mode=%s "
+            "latency_ms=%s error=%s",
+            type(e).__name__,
+            request_id or "unknown",
+            backend,
+            mode,
+            latency_ms,
+            str(e),
+        )
     except (ValueError, KeyError, TypeError) as e:
         # Record failure on circuit breaker
         await _circuit_breaker.record_failure()
-        logger.warning(f"Data error saving history: {type(e).__name__}: {e}")
+        logger.warning(
+            "event=persistence_failed error_type=%s request_id=%s backend=%s mode=%s "
+            "latency_ms=%s error=%s",
+            type(e).__name__,
+            request_id or "unknown",
+            backend,
+            mode,
+            latency_ms,
+            str(e),
+        )
     # Let unexpected errors propagate - don't silently swallow them
 
     finally:
         # Record success OUTSIDE try-except to prevent paradox
         if success:
             await _circuit_breaker.record_success()
-

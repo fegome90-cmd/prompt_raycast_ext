@@ -131,7 +131,7 @@ export async function improvePromptWithHybrid(args: {
       const dspyResult = await dspyClient.improvePrompt({
         idea: args.rawInput,
         context: "", // Could be added as parameter in future
-        mode: args.options.mode || "legacy",
+        mode: args.options.mode,
       });
 
       const latencyMs = Date.now() - startTime;

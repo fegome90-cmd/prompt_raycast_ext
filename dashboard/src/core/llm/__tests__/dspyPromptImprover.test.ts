@@ -7,8 +7,8 @@
  * - range validation (0-1)
  */
 
-import { describe, it, expect } from "vitest";
-import { DSPyResponseSchema } from "../dspyPromptImprover";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { DSPyPromptImproverClient, DSPyResponseSchema } from "../dspyPromptImprover";
 
 describe("DSPyResponseSchema", () => {
   // Valid response factory
@@ -99,5 +99,82 @@ describe("DSPyResponseSchema", () => {
       const result = DSPyResponseSchema.parse(validResponse);
       expect(result.reasoning).toBeUndefined();
     });
+
+    it("should handle null reasoning field", () => {
+      const result = DSPyResponseSchema.parse({
+        ...validResponse,
+        reasoning: null,
+      });
+      expect(result.reasoning).toBeNull();
+    });
+  });
+});
+
+describe("DSPyPromptImproverClient mode propagation", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("sends mode=nlac in DSPy request payload", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        improved_prompt: "Improved output",
+        role: "Architect",
+        directive: "Do the thing",
+        framework: "chain-of-thought",
+        guardrails: ["Stay accurate"],
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = new DSPyPromptImproverClient({
+      baseUrl: "http://localhost:8000",
+      timeoutMs: 5000,
+    });
+
+    await client.improvePrompt({
+      idea: "Design API",
+      context: "Need mode routing",
+      mode: "nlac",
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [, requestInit] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(requestInit.body).toBeDefined();
+    const payload = JSON.parse(String(requestInit.body));
+    expect(payload.mode).toBe("nlac");
+  });
+
+  it("defaults mode to legacy when mode is omitted", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        improved_prompt: "Improved output",
+        role: "Architect",
+        directive: "Do the thing",
+        framework: "chain-of-thought",
+        guardrails: ["Stay accurate"],
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = new DSPyPromptImproverClient({
+      baseUrl: "http://localhost:8000",
+      timeoutMs: 5000,
+    });
+
+    await client.improvePrompt({
+      idea: "Design API",
+      context: "Need mode routing",
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [, requestInit] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(requestInit.body).toBeDefined();
+    const payload = JSON.parse(String(requestInit.body));
+    expect(payload.mode).toBe("legacy");
   });
 });
