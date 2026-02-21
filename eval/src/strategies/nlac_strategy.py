@@ -211,12 +211,20 @@ class NLaCStrategy(PromptImproverStrategy):
         Returns:
             dspy.Prediction with standard fields
         """
+        guardrails = prompt_obj.strategy_meta.get("guardrails")
+        if not guardrails:
+            guardrails = [
+                "Provide concrete, actionable steps.",
+                "State assumptions and constraints explicitly.",
+                "Define clear success criteria.",
+            ]
+
         return dspy.Prediction(
             improved_prompt=prompt_obj.template,
             role=prompt_obj.strategy_meta.get("role", "Assistant"),
             directive=prompt_obj.strategy_meta.get("directive", "Help with the request"),
             framework=prompt_obj.strategy_meta.get("framework", "General"),
-            guardrails=prompt_obj.strategy_meta.get("guardrails", []),
+            guardrails=guardrails,
         )
 
     @property

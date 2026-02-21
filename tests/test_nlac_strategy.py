@@ -150,6 +150,36 @@ class TestNLaCStrategy:
         # Note: guardrails from strategy_meta.get('guardrails', [])
         assert isinstance(result.guardrails, list)
 
+    def test_to_prediction_provides_non_empty_guardrails_by_default(self, nlac_strategy):
+        """NLaC output must include at least one guardrail for persistence invariants."""
+        from datetime import UTC, datetime
+
+        from hemdov.domain.dto.nlac_models import IntentType, PromptObject
+
+        prompt_obj = PromptObject(
+            id="test-guardrails",
+            version="1.0",
+            intent_type=IntentType.GENERATE,
+            template="Test template",
+            strategy_meta={
+                "role": "TestRole",
+                "strategy": "test_strategy",
+                "intent": "generate",
+                "complexity": "simple",
+                # guardrails intentionally omitted
+            },
+            constraints={
+                "max_tokens": 100,
+                "include_examples": True,
+            },
+            created_at=datetime.now(UTC).isoformat(),
+            updated_at=datetime.now(UTC).isoformat(),
+        )
+
+        result = nlac_strategy._to_prediction(prompt_obj)
+        assert isinstance(result.guardrails, list)
+        assert len(result.guardrails) > 0
+
 
 class TestStrategySelectorNLaC:
     """Test StrategySelector with NLaC mode."""
