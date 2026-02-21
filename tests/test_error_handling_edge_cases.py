@@ -44,16 +44,14 @@ class TestKNNProviderErrorHandling:
             provider = KNNProvider(catalog_path=Path("/nonexistent/path.json"))
 
     def test_knn_provider_with_zero_k(self):
-        """KNNProvider returns all examples when k=0 (current behavior)."""
+        """KNNProvider should raise ValueError when k=0 (validation)."""
         provider = KNNProvider(catalog_path=Path("datasets/exports/unified-fewshot-pool-v2.json"))
-        examples = provider.find_examples(
-            intent="debug",
-            complexity="simple",
-            k=0
-        )
-        # Current behavior: returns all available examples when k=0
-        # (Note: this could be considered a bug, but test documents current behavior)
-        assert len(examples) > 0
+        with pytest.raises(ValueError, match="k must be positive"):
+            provider.find_examples(
+                intent="debug",
+                complexity="simple",
+                k=0
+            )
 
     def test_knn_provider_with_large_k(self):
         """KNNProvider should handle k larger than catalog size."""

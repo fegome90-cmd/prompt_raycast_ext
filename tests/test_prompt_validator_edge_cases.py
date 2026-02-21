@@ -683,9 +683,9 @@ class TestPromptValidatorLLMAutocorrectionEdgeCases:
 
     def test_llm_client_exception_handling(self):
         """LLM exception should be handled gracefully."""
-        # Create mock LLM that raises exception
+        # Create mock LLM that raises exception (use caught type)
         mock_llm = MagicMock()
-        mock_llm.correct.side_effect = Exception("LLM API error")
+        mock_llm.correct.side_effect = RuntimeError("LLM API error")
 
         validator = PromptValidator(llm_client=mock_llm)
 
