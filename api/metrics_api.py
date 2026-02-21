@@ -18,6 +18,7 @@ from hemdov.domain.metrics.analyzers import (
     MetricsAnalyzer,
     TrendAnalysis,
 )
+from hemdov.domain.metrics.dimensions import PromptMetrics
 from hemdov.infrastructure.persistence.metrics_repository import (
     SQLiteMetricsRepository,
 )
@@ -41,7 +42,24 @@ def _format_percent(value: float | None) -> str:
     return f"{value:+.1f}%" if value is not None else "N/A"
 
 
-def _calculate_averages(metrics: list) -> dict[str, float]:
+def _format_winner_recommendation(
+    winner_label: str,
+    overall_improvement: float | None,
+    quality_change: float | None,
+    performance_change: float | None,
+    impact_change: float | None,
+) -> str:
+    """Format winner recommendation with percentage changes."""
+    return (
+        f"✅ {winner_label} wins: "
+        f"{_format_percent(overall_improvement)} overall improvement "
+        f"(Q: {_format_percent(quality_change)}, "
+        f"P: {_format_percent(performance_change)}, "
+        f"I: {_format_percent(impact_change)})"
+    )
+
+
+def _calculate_averages(metrics: list[PromptMetrics]) -> dict[str, float]:
     """Calculate average metrics from list.
 
     Args:
@@ -249,7 +267,7 @@ async def compare_metrics(
         all_metrics = await repo.get_all(limit=5000)
 
         # Parse filters (simple key:value format)
-        def parse_filter(f: str) -> tuple:
+        def parse_filter(f: str) -> tuple[str, str]:
             parts = f.split(":", 1)
             if len(parts) != 2:
                 raise ValueError(f"Invalid filter format: {f}. Expected 'field:value'")
@@ -336,12 +354,12 @@ async def compare_metrics(
 
         if overall_b > overall_a + 0.05:
             winner = "group_b"
-            recommendation = (
-                f"✅ Group B wins: "
-                f"{_format_percent(overall_improvement)} overall improvement "
-                f"(Q: {_format_percent(quality_change)}, "
-                f"P: {_format_percent(performance_change)}, "
-                f"I: {_format_percent(impact_change)})"
+            recommendation = _format_winner_recommendation(
+                "Group B",
+                overall_improvement,
+                quality_change,
+                performance_change,
+                impact_change,
             )
         elif overall_a > overall_b + 0.05:
             winner = "group_a"
@@ -350,12 +368,12 @@ async def compare_metrics(
             quality_change_a = _safe_percent(-quality_delta, avg_quality_b)
             performance_change_a = _safe_percent(-performance_delta, avg_performance_b)
             impact_change_a = _safe_percent(-impact_delta, avg_impact_b)
-            recommendation = (
-                f"✅ Group A wins: "
-                f"{_format_percent(overall_improvement_a)} overall improvement "
-                f"(Q: {_format_percent(quality_change_a)}, "
-                f"P: {_format_percent(performance_change_a)}, "
-                f"I: {_format_percent(impact_change_a)})"
+            recommendation = _format_winner_recommendation(
+                "Group A",
+                overall_improvement_a,
+                quality_change_a,
+                performance_change_a,
+                impact_change_a,
             )
         else:
             winner = "inconclusive"

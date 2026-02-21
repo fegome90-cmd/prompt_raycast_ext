@@ -383,6 +383,7 @@ def gate2_min_completeness(
         # JSON: must have at least 2 keys
         try:
             parsed = json.loads(output)
+            key_count: int | str  # Initialize before conditional
             if isinstance(parsed, dict):
                 key_count = len(parsed)
                 if key_count < 2:
@@ -392,11 +393,13 @@ def gate2_min_completeness(
                         status=GateSeverity.FAIL,
                         details={"reason": "JSON has <2 keys", "key_count": key_count}
                     )
+            else:
+                key_count = "N/A"
             return GateResult(
                 gate_id="v0.1_gate2_completeness",
                 gate_version="0.1",
                 status=GateSeverity.PASS,
-                details={"key_count": key_count if isinstance(parsed, dict) else "N/A"}
+                details={"key_count": key_count}
             )
         except json.JSONDecodeError:
             return GateResult(
@@ -755,11 +758,13 @@ def gate_e1_non_trivial_code(
             details={"reason": "No code blocks found"}
         )
 
+    total_code_lines = 0  # Track total across all blocks
     for block in code_blocks:
         lines = [
             line for line in block.split('\n')
             if line.strip() and not line.strip().startswith('#')
         ]
+        total_code_lines += len(lines)
 
         # Check for minimum non-comment lines
         if len(lines) < thresholds.E1_MIN_CODE_LINES:
@@ -789,7 +794,7 @@ def gate_e1_non_trivial_code(
         score=1.0,  # Code is good
         details={
             "code_blocks": len(code_blocks),
-            "code_lines": len(lines)
+            "code_lines": total_code_lines
         }
     )
 
