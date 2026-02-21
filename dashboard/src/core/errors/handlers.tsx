@@ -5,6 +5,19 @@ import { tokens } from "../design/tokens";
 // Start command for the backend
 const BACKEND_START_COMMAND = "make dev  # Run from project root";
 
+/** Shared action for copying backend start command */
+function CopyStartCommandAction() {
+  return (
+    <Action
+      title="Copy Start Command"
+      onAction={async () => {
+        await Clipboard.copy(BACKEND_START_COMMAND);
+        await showHUD("✓ Command copied! Paste in terminal");
+      }}
+    />
+  );
+}
+
 export function handleBackendError(error: unknown) {
   // Timeout errors
   if (error instanceof Error && error.name === "AbortError") {
@@ -13,13 +26,7 @@ export function handleBackendError(error: unknown) {
         markdown={`## ${tokens.semantic.error.icon} Request Timed Out\n\nThe backend took too long to respond.\n\n**Try:**\n- Use \`mode:"legacy"\` for faster results\n- Shorten your prompt\n- Check if the backend is overloaded\n\n**Current timeout:** 120s`}
         actions={
           <ActionPanel>
-            <Action
-              title="Copy Start Command"
-              onAction={async () => {
-                await Clipboard.copy(BACKEND_START_COMMAND);
-                await showHUD("✓ Command copied! Paste in terminal");
-              }}
-            />
+            <CopyStartCommandAction />
             <Action.OpenInBrowser title="Open Documentation" url="https://developers.raycast.com" />
           </ActionPanel>
         }
@@ -39,13 +46,7 @@ export function handleBackendError(error: unknown) {
         markdown={`## ${tokens.semantic.error.icon} Backend Not Running\n\nStart the backend from the project root:\n\`\`\`bash\nmake dev\n\`\`\`\n\nThen verify:\n\`\`\`bash\ncurl http://localhost:8000/health\n\`\`\``}
         actions={
           <ActionPanel>
-            <Action
-              title="Copy Start Command"
-              onAction={async () => {
-                await Clipboard.copy(BACKEND_START_COMMAND);
-                await showHUD("✓ Command copied! Paste in terminal");
-              }}
-            />
+            <CopyStartCommandAction />
             <Action.OpenInBrowser title="Open Documentation" url="https://developers.raycast.com" />
           </ActionPanel>
         }
@@ -78,13 +79,7 @@ export function handleBackendError(error: unknown) {
           markdown={`## ${tokens.semantic.error.icon} Backend Timeout\n\nThe backend request timed out.\n\n**Try:**\n- Use \`mode:"legacy"\` for faster results\n- Shorten your prompt\n- Check backend logs: \`make logs\``}
           actions={
             <ActionPanel>
-              <Action
-                title="Copy Start Command"
-                onAction={async () => {
-                  await Clipboard.copy(BACKEND_START_COMMAND);
-                  await showHUD("✓ Command copied! Paste in terminal");
-                }}
-              />
+              <CopyStartCommandAction />
               <Action.OpenInBrowser title="Open Documentation" url="https://developers.raycast.com" />
             </ActionPanel>
           }
