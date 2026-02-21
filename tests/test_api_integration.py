@@ -337,6 +337,14 @@ class TestHealthCheck:
 
         assert response.status_code == 503
 
+    def test_health_simulate_allowed_when_environment_not_set(self, client, monkeypatch):
+        """Simulate parameter should be allowed when ENVIRONMENT is not set."""
+        monkeypatch.delenv("ENVIRONMENT", raising=False)
+
+        response = client.get("/health?simulate=unavailable")
+
+        assert response.status_code == 503  # Simulation works, not blocked
+
 
 class TestPersistenceDisabled:
     """Test graceful degradation when persistence is disabled."""

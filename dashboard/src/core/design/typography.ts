@@ -1,5 +1,3 @@
-import { tokens } from "./tokens";
-
 /**
  * Typography utilities for the Prompt Improver
  * Raycast handles most UI typography, but we use these for:
@@ -7,6 +5,20 @@ import { tokens } from "./tokens";
  * - Toast messages
  * - Metadata labels
  */
+
+// Confidence thresholds aligned with defaults.ts minConfidence (70%)
+const CONFIDENCE_THRESHOLDS = {
+  HIGH: 70, // Full circle = high confidence
+  MEDIUM: 40, // Half dot = medium
+} as const;
+
+// Count symbols for metadata display
+const COUNT_SYMBOLS = {
+  Questions: "?", // Question mark - direct, functional
+  Assumptions: "◐", // Half-filled circle = partial/assumption
+  Characters: "#", // Hash = count, technical
+  Words: "¶", // Pilcrow = paragraph, document symbol
+} as const;
 
 export class Typography {
   /**
@@ -24,18 +36,17 @@ export class Typography {
 
   /**
    * Format a confidence score with technical geometric symbols
-   * Uses circle fill level to indicate quality: ◉ (high), ◎ (medium), ○ (low)
+   * Uses circle fill level to indicate quality: ◉ (high >=70%), ◎ (medium 40-69%), ○ (low <40%)
    *
    * @param score - Confidence in 0-1 range (from DSPy backend)
-   * @returns Formatted string with icon and percentage (e.g., "◉ 80%")
+   * @returns Formatted string with icon and percentage (e.g., "◉ 70%")
    */
   static confidence(score: number): string {
     const rounded = Typography.toPercentage(score);
     // Technical geometric symbols - circle fill indicates quality
-    if (rounded >= 80) return `◉ ${rounded}%`; // Full circle = high confidence
-    if (rounded >= 60) return `◎ ${rounded}%`; // Half dot = medium
-    if (rounded >= 40) return `○ ${rounded}%`; // Empty = low
-    return `○ ${rounded}%`; // Same as low
+    if (rounded >= CONFIDENCE_THRESHOLDS.HIGH) return `◉ ${rounded}%`;
+    if (rounded >= CONFIDENCE_THRESHOLDS.MEDIUM) return `◎ ${rounded}%`;
+    return `○ ${rounded}%`;
   }
 
   /**
@@ -46,9 +57,9 @@ export class Typography {
    */
   static confidenceIcon(score: number): string {
     const rounded = Typography.toPercentage(score);
-    if (rounded >= 70) return "◉"; // High = full circle
-    if (rounded >= 40) return "◎"; // Medium = half dot
-    return "○"; // Low = empty circle
+    if (rounded >= CONFIDENCE_THRESHOLDS.HIGH) return "◉";
+    if (rounded >= CONFIDENCE_THRESHOLDS.MEDIUM) return "◎";
+    return "○";
   }
 
   /**
@@ -56,14 +67,7 @@ export class Typography {
    * Uses single-letter and geometric symbols instead of emojis
    */
   static count(label: string, count: number): string {
-    const symbols = {
-      Questions: "?", // Question mark - direct, functional
-      Assumptions: "◐", // Half-filled circle = partial/assumption
-      Characters: "#", // Hash = count, technical
-      Words: "¶", // Pilcrow = paragraph, document symbol
-    };
-
-    const symbol = symbols[label as keyof typeof symbols] || "•";
+    const symbol = COUNT_SYMBOLS[label as keyof typeof COUNT_SYMBOLS] || "•";
     return `${symbol} ${count}`;
   }
 
@@ -71,13 +75,7 @@ export class Typography {
    * Get only the count symbol (for metadata icon display)
    */
   static countSymbol(label: string): string {
-    const symbols = {
-      Questions: "?",
-      Assumptions: "◐",
-      Characters: "#",
-      Words: "¶",
-    };
-    return symbols[label as keyof typeof symbols] || "•";
+    return COUNT_SYMBOLS[label as keyof typeof COUNT_SYMBOLS] || "•";
   }
 
   /**

@@ -24,6 +24,10 @@ const MAX_HISTORY = 20;
 
 const LOG_PREFIX = "[PromptStorage]";
 
+// Cleanup thresholds for orphaned temp files
+const ONE_HOUR_MS = 3_600_000; // 1 hour
+const GRACE_PERIOD_MS = 300_000; // 5 minutes (prevents race during active writes)
+
 /**
  * Check if error is ENOENT (file not found)
  */
@@ -33,20 +37,19 @@ function isENOENT(error: unknown): boolean {
 
 /**
  * Clean up orphaned .tmp files from interrupted atomic writes.
- * Removes files older than 1 hour.
+ * Removes files older than 1 hour + 5 minute grace period.
  */
 async function cleanupOrphanedTempFiles(): Promise<void> {
   try {
     const files = await fs.readdir(STORAGE_DIR);
-    const ONE_HOUR_MS = 3600000;
+    const cleanupThreshold = ONE_HOUR_MS + GRACE_PERIOD_MS;
 
     for (const file of files) {
       if (file.endsWith(".tmp")) {
         const filePath = join(STORAGE_DIR, file);
         try {
           const stat = await fs.stat(filePath);
-          // Remove files older than 1 hour
-          if (Date.now() - stat.mtimeMs > ONE_HOUR_MS) {
+          if (Date.now() - stat.mtimeMs > cleanupThreshold) {
             await fs.unlink(filePath);
             console.log(`${LOG_PREFIX} Cleaned up orphaned temp file: ${file}`);
           }

@@ -3,29 +3,29 @@ import { Typography } from "../typography";
 
 describe("Typography.confidence", () => {
   it("should format 0-1 range as percentage (multiply by 100)", () => {
-    expect(Typography.confidence(0.8)).toBe("◉ 80%");
-    expect(Typography.confidence(0.65)).toBe("◎ 65%");
+    expect(Typography.confidence(0.7)).toBe("◉ 70%");
+    expect(Typography.confidence(0.5)).toBe("◎ 50%");
     expect(Typography.confidence(0.3)).toBe("○ 30%");
   });
 
   it("should handle edge cases", () => {
     expect(Typography.confidence(0)).toBe("○ 0%");
     expect(Typography.confidence(1)).toBe("◉ 100%");
-    expect(Typography.confidence(0.799)).toBe("◉ 80%"); // 79.9 rounds to 80, hits high threshold
+    expect(Typography.confidence(0.699)).toBe("◉ 70%"); // 69.9 rounds to 70, hits high threshold
   });
 
-  it("should show high confidence icon for >=80%", () => {
-    expect(Typography.confidence(0.8)).toContain("◉");
+  it("should show high confidence icon for >=70%", () => {
+    expect(Typography.confidence(0.7)).toContain("◉");
     expect(Typography.confidence(0.95)).toContain("◉");
   });
 
-  it("should show medium confidence icon for 60-79%", () => {
-    expect(Typography.confidence(0.6)).toContain("◎");
-    expect(Typography.confidence(0.7)).toContain("◎");
+  it("should show medium confidence icon for 40-69%", () => {
+    expect(Typography.confidence(0.4)).toContain("◎");
+    expect(Typography.confidence(0.5)).toContain("◎");
   });
 
-  it("should show low confidence icon for <60%", () => {
-    expect(Typography.confidence(0.5)).toContain("○");
+  it("should show low confidence icon for <40%", () => {
+    expect(Typography.confidence(0.3)).toContain("○");
     expect(Typography.confidence(0.1)).toContain("○");
   });
 
