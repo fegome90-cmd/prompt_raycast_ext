@@ -297,6 +297,29 @@ class TestHealthCheck:
         assert "improve_prompt" in data["endpoints"]
         assert "docs" in data["endpoints"]
 
+    def test_health_simulate_unavailable_returns_503(self, client):
+        """Simulate=unavailable should return 503."""
+        response = client.get("/health?simulate=unavailable")
+
+        assert response.status_code == 503
+
+    def test_health_simulate_degraded_returns_degraded_status(self, client):
+        """Simulate=degraded should return degraded status with flags."""
+        response = client.get("/health?simulate=degraded")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "degraded"
+        assert "degradation_flags" in data
+
+    def test_health_simulate_healthy_returns_healthy(self, client):
+        """Simulate=healthy should return normal healthy status."""
+        response = client.get("/health?simulate=healthy")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "healthy"
+
 
 class TestPersistenceDisabled:
     """Test graceful degradation when persistence is disabled."""
