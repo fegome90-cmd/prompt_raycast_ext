@@ -471,11 +471,10 @@ class TestAPIErrorHandling:
         - Exceptions during prompt improvement return 500
         - Error message is included in response
         """
-        # Mock the PromptImprover to raise an exception
-        with patch('api.prompt_improver_api.get_prompt_improver') as mock_get_improver:
-            mock_improver = MagicMock()
-            mock_improver.side_effect = Exception("DSPy model error")
-            mock_get_improver.return_value = mock_improver
+        # Mock get_strategy_selector to raise an exception
+        # (This is the actual code path used by the endpoint)
+        with patch('api.prompt_improver_api.get_strategy_selector') as mock_get_selector:
+            mock_get_selector.side_effect = RuntimeError("DSPy model error")
 
             # Make request
             response = client.post(
@@ -490,7 +489,7 @@ class TestAPIErrorHandling:
             assert response.status_code == 500
             data = response.json()
             assert "detail" in data
-            assert "Prompt improvement failed" in data["detail"]
+            assert "Internal server error" in data["detail"]
 
 
 class TestResponseFormat:
@@ -563,6 +562,68 @@ class TestResponseFormat:
                 data = response.json()
                 assert "backend" in data
                 assert data["backend"] in ["SimpleStrategy", "ModerateStrategy", "ComplexStrategy"]
+
+
+class TestModeRoutingTripwire:
+    """Tripwire tests for mode propagation and effective backend routing."""
+
+    def test_legacy_mode_routes_to_legacy_selector(self, client, mock_dspy_result):
+        with patch('api.prompt_improver_api.get_strategy_selector') as mock_get_selector:
+            mock_strategy = MagicMock()
+            mock_strategy.name = "LegacyStrategy"
+            mock_strategy.improve.return_value = mock_dspy_result
+
+            mock_selector = MagicMock()
+            mock_selector.select.return_value = mock_strategy
+            mock_selector.get_complexity.return_value = MagicMock(value="low")
+            mock_selector.get_degradation_flags.return_value = {}
+            mock_get_selector.return_value = mock_selector
+
+            with patch('api.prompt_improver_api.get_repository', return_value=AsyncMock()):
+                response = client.post(
+                    "/api/v1/improve-prompt",
+                    json={
+                        "idea": "Design rollback plan",
+                        "context": "Need deterministic routing",
+                        "mode": "legacy",
+                    },
+                )
+
+            assert response.status_code == 200
+            data = response.json()
+            assert data["strategy"] == "LegacyStrategy"
+            assert data["strategy_meta"]["mode"] == "legacy"
+            mock_get_selector.assert_awaited_once()
+            assert mock_get_selector.call_args.kwargs["use_nlac"] is False
+
+    def test_nlac_mode_routes_to_nlac_selector(self, client, mock_dspy_result):
+        with patch('api.prompt_improver_api.get_strategy_selector') as mock_get_selector:
+            mock_strategy = MagicMock()
+            mock_strategy.name = "NLaCStrategy"
+            mock_strategy.improve.return_value = mock_dspy_result
+
+            mock_selector = MagicMock()
+            mock_selector.select.return_value = mock_strategy
+            mock_selector.get_complexity.return_value = MagicMock(value="high")
+            mock_selector.get_degradation_flags.return_value = {}
+            mock_get_selector.return_value = mock_selector
+
+            with patch('api.prompt_improver_api.get_repository', return_value=AsyncMock()):
+                response = client.post(
+                    "/api/v1/improve-prompt",
+                    json={
+                        "idea": "Design routing checks",
+                        "context": "Need mode-specific behavior",
+                        "mode": "nlac",
+                    },
+                )
+
+            assert response.status_code == 200
+            data = response.json()
+            assert data["strategy"] == "NLaCStrategy"
+            assert data["strategy_meta"]["mode"] == "nlac"
+            mock_get_selector.assert_awaited_once()
+            assert mock_get_selector.call_args.kwargs["use_nlac"] is True
 
 
 class TestNonBlockingSave:
