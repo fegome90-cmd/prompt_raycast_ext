@@ -10,11 +10,27 @@ import { tokens } from "./tokens";
 
 export class Typography {
   /**
+   * Convert 0-1 score to 0-100 percentage with clamping.
+   * Handles edge cases where score might be outside expected range.
+   *
+   * @param score - Confidence in 0-1 range
+   * @returns Percentage in 0-100 range (clamped)
+   */
+  private static toPercentage(score: number): number {
+    // Clamp to 0-1 range, then convert to percentage
+    const clamped = Math.max(0, Math.min(1, score));
+    return Math.round(clamped * 100);
+  }
+
+  /**
    * Format a confidence score with technical geometric symbols
    * Uses circle fill level to indicate quality: ◉ (high), ◎ (medium), ○ (low)
+   *
+   * @param score - Confidence in 0-1 range (from DSPy backend)
+   * @returns Formatted string with icon and percentage (e.g., "◉ 80%")
    */
   static confidence(score: number): string {
-    const rounded = Math.round(score);
+    const rounded = Typography.toPercentage(score);
     // Technical geometric symbols - circle fill indicates quality
     if (rounded >= 80) return `◉ ${rounded}%`; // Full circle = high confidence
     if (rounded >= 60) return `◎ ${rounded}%`; // Half dot = medium
@@ -24,9 +40,12 @@ export class Typography {
 
   /**
    * Get only the confidence icon symbol (for metadata display)
+   *
+   * @param score - Confidence in 0-1 range (from DSPy backend)
+   * @returns Icon symbol: ◉ (high >=70%), ◎ (medium 40-69%), ○ (low <40%)
    */
   static confidenceIcon(score: number): string {
-    const rounded = Math.round(score);
+    const rounded = Typography.toPercentage(score);
     if (rounded >= 70) return "◉"; // High = full circle
     if (rounded >= 40) return "◎"; // Medium = half dot
     return "○"; // Low = empty circle
