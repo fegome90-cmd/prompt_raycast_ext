@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt History Viewer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <header class="mb-8">
+            <h1 class="text-2xl font-bold">Prompt History</h1>
+            <div class="flex gap-4 mt-4">
+                <input type="text" id="search" placeholder="Buscar prompts..."
+                    class="flex-1 px-4 py-2 bg-gray-800 rounded border border-gray-700 focus:outline-none focus:border-blue-500">
+                <button onclick="search()" class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700">Buscar</button>
+                <button onclick="loadPrompts()" class="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600">Reset</button>
+            </div>
+        </header>
+
+        <div id="stats" class="mb-6 p-4 bg-gray-800 rounded-lg"></div>
+        <div id="prompts" class="space-y-4"></div>
+        <div id="loading" class="hidden text-center py-8 text-gray-400">Cargando...</div>
+        <div id="error" class="hidden p-4 bg-red-900/50 rounded-lg text-red-300"></div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin + '/api/v1/history';
+
+        /**
+         * Fetch JSON from URL with proper error handling.
+         * Extracts error detail from response body when available.
+         * @param {string} url - URL to fetch
+         * @returns {Promise<object>} - Parsed JSON response
+         */
+        async function fetchJson(url) {
+            const res = await fetch(url);
+            if (!res.ok) {
+                let detail = `HTTP ${res.status}: ${res.statusText}`;
+                try {
+                    const body = await res.json();
+                    if (body.detail) {
+                        detail = body.detail;
+                    }
+                } catch (parseError) {
+                    // Response body wasn't JSON, use status text
+                }
+                throw new Error(detail);
+            }
+            return res.json();
+        }
+
+        /**
+         * Handle errors with network vs HTTP distinction.
+         * @param {Error} e - The caught error
+         * @param {string} context - Context for the error message
+         */
+        function handleError(e, context) {
+            console.error(`${context}:`, e);
+            // Distinguish network errors from HTTP errors
+            if (e instanceof TypeError && e.message.includes('fetch')) {
+                showError('Cannot connect to server. Check that backend is running on port 8000.');
+            } else {
+                showError(`${context}: ${e.message}`);
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('error').textContent = message;
+            document.getElementById('error').classList.remove('hidden');
+            document.getElementById('loading').classList.add('hidden');
+        }
+
+        function hideError() {
+            document.getElementById('error').classList.add('hidden');
+        }
+
+        async function loadStats() {
+            try {
+                hideError();
+                const data = await fetchJson(`${API_BASE}/stats`);
+                document.getElementById('stats').innerHTML = `
+                    <div class="grid grid-cols-4 gap-4 text-center">
+                        <div><div class="text-2xl font-bold">${data.total_count}</div><div class="text-gray-400">Total</div></div>
+                        <div><div class="text-2xl font-bold">${(data.average_confidence * 100).toFixed(1)}%</div><div class="text-gray-400">Avg Conf</div></div>
+                        <div><div class="text-2xl font-bold">${data.average_latency_ms.toFixed(0)}ms</div><div class="text-gray-400">Avg Latency</div></div>
+                        <div><div class="text-2xl font-bold">${Object.keys(data.backend_distribution).length}</div><div class="text-gray-400">Backends</div></div>
+                    </div>
+                `;
+            } catch (e) {
+                handleError(e, 'Failed to load stats');
+                document.getElementById('stats').innerHTML = `<p class="text-gray-400">Stats unavailable</p>`;
+            }
+        }
+
+        async function loadPrompts(offset = 0) {
+            const loading = document.getElementById('loading');
+            const container = document.getElementById('prompts');
+
+            try {
+                hideError();
+                loading.classList.remove('hidden');
+                container.innerHTML = '';
+
+                const data = await fetchJson(`${API_BASE}/?limit=20&offset=${offset}`);
+                renderPrompts(data.prompts);
+            } catch (e) {
+                handleError(e, 'Failed to load prompts');
+            } finally {
+                loading.classList.add('hidden');
+            }
+        }
+
+        async function search() {
+            const q = document.getElementById('search').value.trim();
+            if (!q) {
+                loadPrompts();
+                return;
+            }
+
+            const loading = document.getElementById('loading');
+            const container = document.getElementById('prompts');
+
+            try {
+                hideError();
+                loading.classList.remove('hidden');
+                container.innerHTML = '';
+
+                const data = await fetchJson(`${API_BASE}/search?q=${encodeURIComponent(q)}`);
+                renderPrompts(data.prompts);
+            } catch (e) {
+                handleError(e, 'Search failed');
+            } finally {
+                loading.classList.add('hidden');
+            }
+        }
+
+        function renderPrompts(prompts) {
+            const container = document.getElementById('prompts');
+            if (!prompts.length) {
+                container.innerHTML = '<p class="text-gray-400">No prompts found</p>';
+                return;
+            }
+            container.innerHTML = prompts.map(p => `
+                <div class="bg-gray-800 rounded-lg p-4 border border-gray-700 hover:border-gray-600">
+                    <div class="flex justify-between text-sm text-gray-400 mb-2">
+                        <span>${p.provider || 'N/A'} / ${p.model || 'N/A'}</span>
+                        <span>${p.confidence != null ? (p.confidence * 100).toFixed(0) + '%' : 'N/A'}</span>
+                    </div>
+                    <div class="text-sm text-gray-300 mb-2">${escapeHtml(p.original_idea.slice(0, 150))}${p.original_idea.length > 150 ? '...' : ''}</div>
+                    <details class="text-sm">
+                        <summary class="cursor-pointer text-blue-400 hover:text-blue-300">Ver prompt mejorado</summary>
+                        <pre class="mt-2 p-2 bg-gray-900 rounded text-xs overflow-x-auto whitespace-pre-wrap">${escapeHtml(p.improved_prompt)}</pre>
+                    </details>
+                    <div class="mt-2 text-xs text-gray-500">
+                        ${p.created_at ? new Date(p.created_at).toLocaleString('es-CL') : 'N/A'}
+                        ${p.latency_ms ? ` · ${p.latency_ms}ms` : ''}
+                        ${p.backend ? ` · ${p.backend}` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Load on page load
+        loadStats();
+        loadPrompts();
+
+        // Enter key search
+        document.getElementById('search').addEventListener('keypress', e => {
+            if (e.key === 'Enter') search();
+        });
+    </script>
+</body>
+</html>

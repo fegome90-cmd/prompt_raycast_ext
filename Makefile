@@ -2,6 +2,7 @@
 .PHONY: dataset normalize merge regen-all
 .PHONY: test test-fewshot test-backend eval eval-full
 .PHONY: ray-dev ray-status ray-check ray-logs
+.PHONY: viewer history-api history-stats history-search
 .PHONY: clean
 
 SHELL := /bin/bash
@@ -54,6 +55,12 @@ help: ## Show this help message
 	@echo ""
 	@echo "Utils:"
 	@echo "  make clean          - Clean generated files"
+	@echo ""
+	@echo "Prompt Viewer:"
+	@echo "  make viewer         - Open prompt viewer in browser"
+	@echo "  make history-api    - Test history API (list)"
+	@echo "  make history-stats  - Get history statistics"
+	@echo "  make history-search - Search prompts (usage: make history-search Q=query)"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make dev            # Start backend in background"
@@ -273,6 +280,26 @@ clean: ## Clean generated files
 	@rm -rf models/*.json
 	@rm -f eval/quality-gates-comparison*.json
 	@printf "\033[32m✓ Cleaned\033[0m\n"
+
+# =============================================================================
+# Prompt Viewer
+# =============================================================================
+
+viewer: ## Open prompt viewer in browser
+	@printf "\033[34m→ Opening prompt viewer...\033[0m\n"
+	@open http://localhost:$(BACKEND_PORT)/static/viewer.html
+
+history-api: ## Test history API endpoint (list)
+	@printf "\033[34m→ Testing history API...\033[0m\n"
+	@curl -s http://localhost:$(BACKEND_PORT)/api/v1/history/ | python3 -m json.tool 2>/dev/null || printf "\033[33m⚠️  API not responding\033[0m\n"
+
+history-stats: ## Get history statistics
+	@printf "\033[34m→ Getting history stats...\033[0m\n"
+	@curl -s http://localhost:$(BACKEND_PORT)/api/v1/history/stats | python3 -m json.tool 2>/dev/null || printf "\033[33m⚠️  API not responding\033[0m\n"
+
+history-search: ## Search prompts (usage: make history-search Q=query)
+	@printf "\033[34m→ Searching prompts for '$(Q)'...\033[0m\n"
+	@curl -s "http://localhost:$(BACKEND_PORT)/api/v1/history/search?q=$(Q)" | python3 -m json.tool 2>/dev/null || printf "\033[33m⚠️  API not responding\033[0m\n"
 
 # Default target
 .DEFAULT_GOAL := help
