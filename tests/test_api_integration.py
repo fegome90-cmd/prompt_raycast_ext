@@ -320,6 +320,23 @@ class TestHealthCheck:
         data = response.json()
         assert data["status"] == "healthy"
 
+    def test_health_simulate_blocked_in_production(self, client, monkeypatch):
+        """Simulate parameter should be blocked in production environment."""
+        monkeypatch.setenv("ENVIRONMENT", "production")
+
+        response = client.get("/health?simulate=unavailable")
+
+        assert response.status_code == 403
+        assert "not allowed" in response.json()["detail"].lower()
+
+    def test_health_simulate_allowed_in_development(self, client, monkeypatch):
+        """Simulate parameter should be allowed in non-production."""
+        monkeypatch.setenv("ENVIRONMENT", "development")
+
+        response = client.get("/health?simulate=unavailable")
+
+        assert response.status_code == 503
+
 
 class TestPersistenceDisabled:
     """Test graceful degradation when persistence is disabled."""

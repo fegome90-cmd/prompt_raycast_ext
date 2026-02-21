@@ -6,6 +6,7 @@ with the Raycast TypeScript frontend.
 """
 
 import logging
+import os
 from contextlib import asynccontextmanager
 
 import dspy
@@ -150,6 +151,13 @@ async def health_check(
     simulate: HealthState = Query(default=HealthState.HEALTHY, description="Simulate health state for testing")
 ):
     """Health check endpoint with state simulation for testing."""
+    # Block simulation in production environment
+    if simulate != HealthState.HEALTHY and os.getenv("ENVIRONMENT") == "production":
+        raise HTTPException(
+            status_code=403,
+            detail="Simulation not allowed in production environment"
+        )
+
     if simulate == HealthState.UNAVAILABLE:
         raise HTTPException(status_code=503, detail="Service unavailable (simulated)")
 
