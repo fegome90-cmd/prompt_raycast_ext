@@ -199,11 +199,13 @@ class SQLitePromptRepository(PromptRepository):
         async with self._lock:
             conn = await self._get_connection()
 
-            pattern = f"%{query}%"
+            escaped_query = query.replace("%", "\\%").replace("_", "\\_")
+            pattern = f"%{escaped_query}%"
             async with conn.execute(
                 """
                 SELECT * FROM prompt_history
-                WHERE original_idea LIKE ? OR improved_prompt LIKE ?
+                WHERE original_idea LIKE ? ESCAPE '\\'
+                   OR improved_prompt LIKE ? ESCAPE '\\'
                 ORDER BY created_at DESC
                 LIMIT ?
                 """,
@@ -377,7 +379,7 @@ class SQLitePromptRepository(PromptRepository):
                 )
                 await conn.commit()
                 return True
-            except (aiosqlite.Error, ConnectionError, TimeoutError, json.JSONDecodeError) as e:
+            except (aiosqlite.Error, ConnectionError, TimeoutError) as e:
                 logger.error(f"Failed to cache prompt: {type(e).__name__}: {e}")
                 return False
 

@@ -13,10 +13,17 @@ from enum import Enum
 import dspy
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from fastapi.staticfiles import StaticFiles
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+
+from api.rate_limiter import limiter
 
 from api.exception_utils import create_exception_handlers
 from api.metrics_api import router as metrics_router
 from api.middleware import RequestIDMiddleware
+from api.prompt_history_api import router as history_router
 from api.prompt_improver_api import router as prompt_improver_router
 from hemdov.infrastructure.adapters.litellm_dspy_adapter_prompt import (
     create_anthropic_adapter,
@@ -120,6 +127,13 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Rate limiting setup
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, lambda req, exc: HTTPException(
+    status_code=429, detail="Rate limit exceeded. Please try again later."
+))
+app.add_middleware(SlowAPIMiddleware)
+
 # Add CORS middleware
 cors_origins = (
     ["*"]
@@ -137,9 +151,34 @@ app.add_middleware(
 # Add request ID middleware for tracing
 app.add_middleware(RequestIDMiddleware)
 
+
+class CSPMiddleware(BaseHTTPMiddleware):
+    """Add Content-Security-Policy headers for static files."""
+
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        if request.url.path.startswith("/static/"):
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'self'; "
+                "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; "
+                "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com;"
+            )
+        return response
+
+
+app.add_middleware(CSPMiddleware)
+
 # Include routers
 app.include_router(prompt_improver_router)
 app.include_router(metrics_router)
+app.include_router(history_router)
+
+# Mount static files for prompt viewer UI (with existence check)
+static_dir = "static"
+if os.path.isdir(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+else:
+    logger.warning(f"Static directory '{static_dir}' not found, viewer will be unavailable")
 
 # Register global exception handlers
 exception_handlers = create_exception_handlers()
@@ -203,9 +242,11 @@ async def root():
         "endpoints": {
             "health": "/health",
             "improve_prompt": "/api/v1/improve-prompt",
-            "metrics_summary": "/api/v1/metrics/summary",
-            "metrics_trends": "/api/v1/metrics/trends",
-            "metrics_compare": "/api/v1/metrics/compare",
+            "evaluate_quality": "/api/v1/evaluate-quality",
+            "history": "/api/v1/history/",
+            "history_search": "/api/v1/history/search",
+            "history_stats": "/api/v1/history/stats",
+            "viewer": "/static/viewer.html",
             "docs": "/docs",
         },
     }
