@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { SessionManager } from "../SessionManager";
-import type { ChatSession } from "../types";
 import { promises as fs } from "fs";
 import { join } from "path";
 import { homedir } from "os";
@@ -12,7 +11,9 @@ describe("SessionManager", () => {
     // Clean up test sessions
     try {
       await fs.rmdir(TEST_SESSIONS_DIR, { recursive: true });
-    } catch {}
+    } catch {
+      // Expected: directory may not exist
+    }
   });
 
   describe("createSession", () => {

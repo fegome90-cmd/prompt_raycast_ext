@@ -51,9 +51,9 @@ export const DEFAULTS = {
   dspy: {
     /**
      * Base URL for DSPy backend
-     * Default: localhost:8000 (FastAPI)
+     * Default: localhost:8001 (FastAPI)
      */
-    baseUrl: "http://localhost:8000",
+    baseUrl: "http://localhost:8001",
 
     /**
      * 🔴 CRITICAL: Default request timeout (ms) - SYNCHRONIZED ACROSS 3 LAYERS
