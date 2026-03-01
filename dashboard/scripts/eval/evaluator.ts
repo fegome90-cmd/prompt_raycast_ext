@@ -493,7 +493,7 @@ class Evaluator {
               baseUrl: options.config?.baseUrl || "http://localhost:11434",
               model: options.config?.model || "qwen3-coder:30b",
               timeoutMs: options.config?.timeoutMs || 30000,
-              dspyBaseUrl: options.config?.dspyBaseUrl || "http://localhost:8000",
+              dspyBaseUrl: options.config?.dspyBaseUrl || "http://localhost:8001",
               dspyTimeoutMs: options.config?.dspyTimeoutMs,
               mode: options.mode,
             },
