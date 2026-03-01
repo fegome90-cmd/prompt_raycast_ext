@@ -78,27 +78,22 @@ class PromptValidator:
 
         # 2. Check format constraints
         format_req = constraints.get("format", "")
-        if "json_only" in format_req.lower():
-            if not self._is_json_ready(template):
-                warnings.append("Template is not valid JSON")
+        if "json_only" in format_req.lower() and not self._is_json_ready(template):
+            warnings.append("Template is not valid JSON")
 
         # Check for markdown constraint (but not if no_markdown is set)
-        if "markdown" in format_req.lower() and "no_markdown" not in format_req.lower():
-            if "```" not in template:
+        if "markdown" in format_req.lower() and "no_markdown" not in format_req.lower() and "```" not in template:
                 warnings.append("Template missing markdown formatting (required)")
 
-        if "no_markdown" in format_req.lower():
-            if "```" in template:
-                warnings.append("Template contains markdown code blocks (prohibited)")
+        if "no_markdown" in format_req.lower() and "```" in template:
+            warnings.append("Template contains markdown code blocks (prohibited)")
 
         # 3. Check include_examples constraint
-        if constraints.get("include_examples", False):
-            if not self._has_examples(template):
-                warnings.append("Template missing examples (required by constraint)")
+        if constraints.get("include_examples", False) and not self._has_examples(template):
+            warnings.append("Template missing examples (required by constraint)")
 
         # 4. Check include_explanation constraint
-        if constraints.get("include_explanation", False):
-            if not self._has_explanation(template):
+        if constraints.get("include_explanation", False) and not self._has_explanation(template):
                 warnings.append("Template missing explanation (required by constraint)")
 
         # 5. Basic quality checks
@@ -200,21 +195,18 @@ class PromptValidator:
         corrected = False
 
         # Fix 1: Add missing role if missing
-        if any("missing role" in w.lower() for w in warnings):
-            if "role" not in template.lower() and "you are" not in template.lower():
+        if any("missing role" in w.lower() for w in warnings) and "role" not in template.lower() and "you are" not in template.lower():
                 template = "# Role\nYou are an expert assistant.\n\n" + template
                 corrected = True
 
         # Fix 2: Add code block markers if format requires markdown
-        if any("markdown" in w.lower() and "missing" in w.lower() for w in warnings):
-            if "def " in template or "function " in template:
+        if any("markdown" in w.lower() and "missing" in w.lower() for w in warnings) and ("def " in template or "function " in template):
                 # Add code blocks around function definitions
                 lines = template.split("\n")
                 in_code_block = False
                 new_lines = []
                 for line in lines:
-                    if line.strip().startswith(("def ", "function ", "class ")):
-                        if not in_code_block:
+                    if line.strip().startswith(("def ", "function ", "class ")) and not in_code_block:
                             new_lines.append("```python")
                             in_code_block = True
                     new_lines.append(line)

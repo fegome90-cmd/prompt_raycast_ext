@@ -254,9 +254,10 @@ class QualityEvaluator:
 
         # Bonus for capturing action verbs
         action_verbs = {"write", "create", "generate", "build", "implement", "design", "develop"}
-        if any(verb in original.lower() for verb in action_verbs):
-            if any(verb in improved_lower for verb in action_verbs):
-                relevance += 0.10
+        if any(verb in original.lower() for verb in action_verbs) and any(
+            verb in improved_lower for verb in action_verbs
+        ):
+            relevance += 0.10
 
         return min(1.0, relevance)
 
@@ -274,9 +275,8 @@ class QualityEvaluator:
             score += 0.25
 
         # Has framework (if not default)
-        if framework != "chain-of-thought":
-            if framework.lower() in prompt.lower():
-                score += 0.15
+        if framework != "chain-of-thought" and framework.lower() in prompt.lower():
+            score += 0.15
 
         # Has guardrails section
         if any(re.search(p, prompt, re.IGNORECASE) for p in cls.GUARDRAIL_PATTERNS):

@@ -96,12 +96,9 @@ class OPROOptimizer:
 
         for i in range(1, self.MAX_ITERATIONS + 1):
             # Generate candidate variation
-            if i == 1:
-                # First iteration uses original prompt
-                candidate = prompt_obj
-            else:
-                # Subsequent iterations generate variations
-                candidate = self._generate_variation(prompt_obj, trajectory)
+            candidate = (
+                prompt_obj if i == 1 else self._generate_variation(prompt_obj, trajectory)
+            )
 
             # Evaluate candidate
             score, feedback = self._evaluate(candidate)
@@ -386,10 +383,7 @@ class OPROOptimizer:
         score = passed / total if total > 0 else 0.0
 
         # Build feedback message
-        if warnings:
-            feedback = f"Issues: {', '.join(warnings)}"
-        else:
-            feedback = "All constraints passed"
+        feedback = f"Issues: {', '.join(warnings)}" if warnings else "All constraints passed"
 
         return score, feedback
 

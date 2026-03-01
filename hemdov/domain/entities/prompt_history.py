@@ -58,9 +58,8 @@ class PromptHistory:
             )
 
         # Validate confidence range
-        if self.confidence is not None:
-            if not (0.0 <= self.confidence <= 1.0):
-                raise ValueError(f"Confidence must be 0-1, got {self.confidence}")
+        if self.confidence is not None and not (0.0 <= self.confidence <= 1.0):
+            raise ValueError(f"Confidence must be 0-1, got {self.confidence}")
 
         # Validate latency is non-negative
         if self.latency_ms is not None and self.latency_ms < 0:
