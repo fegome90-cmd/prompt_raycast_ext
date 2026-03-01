@@ -1,11 +1,4 @@
-import {
-  List,
-  Action,
-  ActionPanel,
-  Form,
-  Clipboard,
-  getPreferenceValues,
-} from "@raycast/api";
+import { List, Action, ActionPanel, Form, Clipboard, getPreferenceValues } from "@raycast/api";
 import { useState, useEffect } from "react";
 import { SessionManager } from "./core/conversation/SessionManager";
 import { improvePromptWithWizard, continueWizard } from "./core/llm/improvePromptWithWizard";
@@ -31,7 +24,7 @@ type Preferences = {
 const getConfig = (prefs: Preferences) => ({
   baseUrl: prefs.ollamaBaseUrl ?? "http://localhost:11434",
   model: prefs.model ?? DEFAULT_MODEL,
-  dspyBaseUrl: prefs.dspyBaseUrl ?? "http://localhost:8000",
+  dspyBaseUrl: prefs.dspyBaseUrl ?? "http://localhost:8001",
   dspyTimeoutMs: Number.parseInt(prefs.dspyTimeoutMs ?? "120000", 10),
   preset: prefs.preset ?? "structured",
 });
