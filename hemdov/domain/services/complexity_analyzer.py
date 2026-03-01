@@ -7,12 +7,14 @@ Analyzes prompt complexity using multi-dimensional scoring:
 - Structure analysis (20% weight)
 - Context presence (10% weight)
 """
+
 import re
 from enum import Enum
 
 
 class ComplexityLevel(Enum):
     """Complexity levels for prompt classification."""
+
     SIMPLE = "simple"
     MODERATE = "moderate"
     COMPLEX = "complex"
@@ -47,10 +49,24 @@ class ComplexityAnalyzer:
 
     # Technical terms that indicate complexity (multilingual: Spanish/English)
     TECHNICAL_TERMS = [
-        "framework", "arquitectura", "patrón", "diseño",
-        "metrics", "metrica", "evaluación", "calidad", "optimización",
-        "sistema", "componente", "integración", "pipeline", "api",
-        "repositorio", "adaptador", "dominio", "infraestructura"
+        "framework",
+        "arquitectura",
+        "patrón",
+        "diseño",
+        "metrics",
+        "metrica",
+        "evaluación",
+        "calidad",
+        "optimización",
+        "sistema",
+        "componente",
+        "integración",
+        "pipeline",
+        "api",
+        "repositorio",
+        "adaptador",
+        "dominio",
+        "infraestructura",
     ]
 
     def analyze(self, original_idea: str, context: str) -> ComplexityLevel:
@@ -87,12 +103,14 @@ class ComplexityAnalyzer:
 
         # 2. Technical term detection (0-1 terms=0.0, 2+ terms=1.0, weighted at 30%)
         # Uses word boundary matching to avoid substring false positives
-        word_pattern = r'\b(' + '|'.join(re.escape(term) for term in self.TECHNICAL_TERMS) + r')\b'
+        word_pattern = r"\b(" + "|".join(re.escape(term) for term in self.TECHNICAL_TERMS) + r")\b"
         technical_count = len(re.findall(word_pattern, combined_text))
         technical_score = min(technical_count * self.TECHNICAL_TERM_MULTIPLIER, 1.0)
 
         # 3. Structure analysis (0.1 per punctuation mark, max 1.0, weighted at 20%)
-        sentence_count = combined_text.count('.') + combined_text.count(',') + combined_text.count(';')
+        sentence_count = (
+            combined_text.count(".") + combined_text.count(",") + combined_text.count(";")
+        )
         structure_score = min(sentence_count * self.STRUCTURE_PUNCTUATION_WEIGHT, 1.0)
 
         # 4. Context provided (binary scoring: 1.0 or 0.0, weighted at 10%)
@@ -100,10 +118,10 @@ class ComplexityAnalyzer:
 
         # Combine weighted scores
         total_score = (
-            length_score * self.WEIGHT_LENGTH +
-            technical_score * self.WEIGHT_TECHNICAL +
-            structure_score * self.WEIGHT_STRUCTURE +
-            context_score * self.WEIGHT_CONTEXT
+            length_score * self.WEIGHT_LENGTH
+            + technical_score * self.WEIGHT_TECHNICAL
+            + structure_score * self.WEIGHT_STRUCTURE
+            + context_score * self.WEIGHT_CONTEXT
         )
 
         # Map to complexity levels

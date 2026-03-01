@@ -212,7 +212,7 @@ export class DSPyPromptImproverClient {
  */
 export function createDSPyClient(overrideConfig?: Partial<DSPyBackendConfig>): DSPyPromptImproverClient {
   const defaultConfig: DSPyBackendConfig = {
-    baseUrl: "http://localhost:8000",
+    baseUrl: "http://localhost:8001",
     // ⚡ INVARIANT: Default timeout MUST match frontend preference (120s)
     // See: dashboard/src/core/config/defaults.ts:58-80 for three-layer sync invariant
     // If caller doesn't specify timeoutMs, use 120s to prevent AbortError
@@ -228,19 +228,15 @@ export function createDSPyClient(overrideConfig?: Partial<DSPyBackendConfig>): D
  */
 export async function improvePromptWithDSPy(
   rawInput: string,
-  preset: string = "default",
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _preset: string = "default",
   context?: string,
 ): Promise<DSPyPromptImproverResponse> {
   try {
     const client = createDSPyClient();
 
     // Check if backend is healthy
-    try {
-      await client.healthCheck();
-    } catch (error) {
-      // DSPy backend not available - let caller handle fallback
-      throw error;
-    }
+    await client.healthCheck();
 
     // Call DSPy backend
     const result = await client.improvePrompt({

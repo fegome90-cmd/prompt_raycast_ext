@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Vectorizer port for domain layer - hexagonal architecture."""
+
 from typing import Protocol
 
 import numpy as np

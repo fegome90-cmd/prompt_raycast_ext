@@ -45,7 +45,9 @@ class OPROOptimizer:
     MAX_ITERATIONS = 3  # Fixed iterations (latency control per user decision: 5-10 LLM calls)
     QUALITY_THRESHOLD = 1.0  # Early stopping if 100% pass
 
-    def __init__(self, llm_client: LLMClient | None = None, knn_provider: KNNProvider | None = None):
+    def __init__(
+        self, llm_client: LLMClient | None = None, knn_provider: KNNProvider | None = None
+    ):
         """
         Initialize optimizer.
 
@@ -94,20 +96,15 @@ class OPROOptimizer:
 
         for i in range(1, self.MAX_ITERATIONS + 1):
             # Generate candidate variation
-            if i == 1:
-                # First iteration uses original prompt
-                candidate = prompt_obj
-            else:
-                # Subsequent iterations generate variations
-                candidate = self._generate_variation(prompt_obj, trajectory)
+            candidate = (
+                prompt_obj if i == 1 else self._generate_variation(prompt_obj, trajectory)
+            )
 
             # Evaluate candidate
             score, feedback = self._evaluate(candidate)
 
             logger.debug(
-                f"Iteration {i}/{self.MAX_ITERATIONS} | "
-                f"score={score:.2f} | "
-                f"feedback={feedback}"
+                f"Iteration {i}/{self.MAX_ITERATIONS} | score={score:.2f} | feedback={feedback}"
             )
 
             # Track best candidate
@@ -126,7 +123,7 @@ class OPROOptimizer:
                         "failed": True,
                         "failure_count": len(self._knn_failures),
                         "errors": self._knn_failures,
-                        "last_error": self._knn_failures[-1] if self._knn_failures else None
+                        "last_error": self._knn_failures[-1] if self._knn_failures else None,
                     }
 
                 return self._build_response(
@@ -140,13 +137,15 @@ class OPROOptimizer:
                 )
 
             # Store trajectory entry
-            trajectory.append(OPROIteration(
-                iteration_number=i,
-                meta_prompt_used=self._build_meta_prompt(candidate, trajectory),
-                generated_instruction=candidate.template,
-                score=score,
-                feedback=feedback,
-            ))
+            trajectory.append(
+                OPROIteration(
+                    iteration_number=i,
+                    meta_prompt_used=self._build_meta_prompt(candidate, trajectory),
+                    generated_instruction=candidate.template,
+                    score=score,
+                    feedback=feedback,
+                )
+            )
 
         # Return best from history
         logger.info(f"Completed {self.MAX_ITERATIONS} iterations | best_score={best_score:.2f}")
@@ -158,7 +157,7 @@ class OPROOptimizer:
                 "failed": True,
                 "failure_count": len(self._knn_failures),
                 "errors": self._knn_failures,
-                "last_error": self._knn_failures[-1] if self._knn_failures else None
+                "last_error": self._knn_failures[-1] if self._knn_failures else None,
             }
 
         return self._build_response(
@@ -171,7 +170,9 @@ class OPROOptimizer:
             knn_failure=knn_failure,
         )
 
-    def _generate_variation(self, original: PromptObject, trajectory: list[OPROIteration]) -> PromptObject:
+    def _generate_variation(
+        self, original: PromptObject, trajectory: list[OPROIteration]
+    ) -> PromptObject:
         """
         Generate candidate variation using meta-prompt + trajectory.
 
@@ -211,7 +212,9 @@ class OPROOptimizer:
         # If previous iteration had low score, add clarity
         if trajectory:
             last_feedback = trajectory[-1].feedback
-            if last_feedback and ("unclear" in last_feedback.lower() or "vague" in last_feedback.lower()):
+            if last_feedback and (
+                "unclear" in last_feedback.lower() or "vague" in last_feedback.lower()
+            ):
                 template = "# Clarified Request\n\n" + template
 
             # If format issues, add formatting instructions
@@ -222,7 +225,9 @@ class OPROOptimizer:
 
         return template
 
-    def _llm_generate_variation(self, prompt_obj: PromptObject, trajectory: list[OPROIteration]) -> str:
+    def _llm_generate_variation(
+        self, prompt_obj: PromptObject, trajectory: list[OPROIteration]
+    ) -> str:
         """
         Generate variation using LLM (production implementation).
 
@@ -246,10 +251,12 @@ class OPROOptimizer:
         if not trajectory:
             base_prompt = f"Improve this prompt: {candidate.template[:100]}..."
         else:
-            history = "\n".join([
-                f"Iteration {t.iteration_number}: score={t.score:.2f}, feedback={t.feedback}"
-                for t in trajectory[-2:]  # Last 2 iterations
-            ])
+            history = "\n".join(
+                [
+                    f"Iteration {t.iteration_number}: score={t.score:.2f}, feedback={t.feedback}"
+                    for t in trajectory[-2:]  # Last 2 iterations
+                ]
+            )
             base_prompt = f"Previous attempts:\n{history}\n\nGenerate improved version."
 
         # Add few-shot examples if KNNProvider available
@@ -263,37 +270,43 @@ class OPROOptimizer:
                     intent=intent_str,
                     complexity=complexity_str,
                     k=2,  # Use 2 examples for meta-prompt (keep it concise)
-                    user_input=candidate.template  # Use template for semantic matching
+                    user_input=candidate.template,  # Use template for semantic matching
                 )
             except (KNNProviderError, ConnectionError, TimeoutError) as e:
                 # Track transient failure with metadata
-                self._knn_failures.append({
-                    "error_type": type(e).__name__,
-                    "error_message": str(e)[:200],
-                    "timestamp": datetime.now(UTC).isoformat(),
-                    "intent": intent_str,
-                    "complexity": complexity_str,
-                    "is_transient": True
-                })
+                self._knn_failures.append(
+                    {
+                        "error_type": type(e).__name__,
+                        "error_message": str(e)[:200],
+                        "timestamp": datetime.now(UTC).isoformat(),
+                        "intent": intent_str,
+                        "complexity": complexity_str,
+                        "is_transient": True,
+                    }
+                )
                 handle_knn_failure(logger, "OPROOptimizer._build_meta_prompt", e)
                 fewshot_examples = []
             except (RuntimeError, KeyError, TypeError, ValueError) as e:
                 # Track code bug before propagating
-                self._knn_failures.append({
-                    "error_type": type(e).__name__,
-                    "error_message": str(e)[:200],
-                    "timestamp": datetime.now(UTC).isoformat(),
-                    "intent": intent_str,
-                    "complexity": complexity_str,
-                    "is_bug": True
-                })
+                self._knn_failures.append(
+                    {
+                        "error_type": type(e).__name__,
+                        "error_message": str(e)[:200],
+                        "timestamp": datetime.now(UTC).isoformat(),
+                        "intent": intent_str,
+                        "complexity": complexity_str,
+                        "is_bug": True,
+                    }
+                )
                 logger.exception(
                     f"Unexpected KNN error (code bug) in OPROOptimizer: {type(e).__name__}"
                 )
                 raise
 
             if fewshot_examples:
-                examples_section = "\n\n## Reference Examples\nThese examples show good prompt patterns:\n\n"
+                examples_section = (
+                    "\n\n## Reference Examples\nThese examples show good prompt patterns:\n\n"
+                )
                 for i, ex in enumerate(fewshot_examples, 1):
                     examples_section += f"### Example {i}\n"
                     examples_section += f"**Input:** {ex.input_idea}\n"
@@ -352,7 +365,9 @@ class OPROOptimizer:
         # 4. Check include_explanation constraint
         if constraints.get("include_explanation", False):
             total += 1
-            if any(word in prompt_obj.template.lower() for word in ["explain", "reasoning", "because"]):
+            if any(
+                word in prompt_obj.template.lower() for word in ["explain", "reasoning", "because"]
+            ):
                 passed += 1
             else:
                 warnings.append("Missing explanation as required")
@@ -368,10 +383,7 @@ class OPROOptimizer:
         score = passed / total if total > 0 else 0.0
 
         # Build feedback message
-        if warnings:
-            feedback = f"Issues: {', '.join(warnings)}"
-        else:
-            feedback = "All constraints passed"
+        feedback = f"Issues: {', '.join(warnings)}" if warnings else "All constraints passed"
 
         return score, feedback
 

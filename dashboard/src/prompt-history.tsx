@@ -1,5 +1,5 @@
-import { Action, ActionPanel, Detail, List } from "@raycast/api";
-import { getPromptById, getPromptHistory, formatTimestamp, clearHistory } from "./core/promptStorage";
+import { Action, ActionPanel, List } from "@raycast/api";
+import { getPromptHistory, formatTimestamp, clearHistory } from "./core/promptStorage";
 import { Typography } from "./core/design/typography";
 import { ToastHelper } from "./core/design/toast";
 import type { PromptEntry } from "./core/promptStorage";
@@ -120,24 +120,7 @@ function PromptHistoryList({
                   title="View Details"
                   shortcut={{ modifiers: ["cmd", "shift"], key: "v" }}
                   onAction={async () => {
-                    const details = buildPromptDetail(entry);
-                    // In a real implementation, you'd navigate to a detail view
-                    // For now, just copy with metadata
-                    const withMetadata = [
-                      `# Improved Prompt`,
-                      ``,
-                      entry.prompt,
-                      ``,
-                      `---`,
-                      `**Generated:** ${formatTimestamp(entry.timestamp)}`,
-                      `**Engine:** ${entry.source === "dspy" ? "DSPy + Haiku" : "Ollama"}`,
-                      entry.meta?.confidence ? `**Confidence:** ${Math.round(entry.meta.confidence)}%` : "",
-                      entry.preset ? `**Preset:** ${entry.preset}` : "",
-                    ]
-                      .filter(Boolean)
-                      .join("\n");
-
-                    // Show in a toast for now (could be a detail view)
+                    // TODO: implement detail view navigation
                     await ToastHelper.success("Prompt copied with metadata", "Paste to view full details");
                   }}
                 />
@@ -148,45 +131,4 @@ function PromptHistoryList({
       ))}
     </>
   );
-}
-
-function buildPromptDetail(entry: PromptEntry): string {
-  const sections: string[] = [];
-
-  sections.push("## Improved Prompt");
-  sections.push("", "```text", entry.prompt, "```");
-
-  if (entry.meta?.clarifyingQuestions?.length || entry.meta?.assumptions?.length) {
-    sections.push("", "---", "");
-
-    if (entry.meta.clarifyingQuestions?.length) {
-      sections.push("### Clarifying Questions", "");
-      entry.meta.clarifyingQuestions.forEach((q) => {
-        sections.push(`- ${q}`);
-      });
-    }
-
-    if (entry.meta.assumptions?.length) {
-      sections.push("", "### Assumptions", "");
-      entry.meta.assumptions.forEach((a) => {
-        sections.push(`- ${a}`);
-      });
-    }
-  }
-
-  sections.push("", "---", "");
-  sections.push(`**Generated:** ${new Date(entry.timestamp).toLocaleString()}`);
-  sections.push(`**Engine:** ${entry.source === "dspy" ? "DSPy + Haiku" : "Ollama"}`);
-  sections.push(`**Input Length:** ${entry.inputLength} characters`);
-  sections.push(`**Output Length:** ${entry.prompt.length} characters`);
-
-  if (entry.meta?.confidence) {
-    sections.push(`**Confidence:** ${Math.round(entry.meta.confidence)}%`);
-  }
-
-  if (entry.preset) {
-    sections.push(`**Preset:** ${entry.preset}`);
-  }
-
-  return sections.join("\n");
 }

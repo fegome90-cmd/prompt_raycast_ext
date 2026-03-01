@@ -70,7 +70,7 @@ class LiteLLMDSPyAdapter(dspy.LM):
             return response.choices[0].message.content
 
         except (ConnectionError, TimeoutError, ValueError, RuntimeError) as e:
-            raise dspy.LMError(f"LiteLLM request failed: {type(e).__name__}: {e}")
+            raise dspy.LMError(f"LiteLLM request failed: {type(e).__name__}: {e}") from e
 
     def __call__(self, prompt: str, **kwargs) -> str:
         """Main entry point for DSPy."""

@@ -27,9 +27,11 @@ logger = logging.getLogger(__name__)
 # TREND ANALYSIS
 # ============================================================================
 
+
 @dataclass
 class TrendPoint:
     """Single data point in a trend."""
+
     timestamp: datetime
     value: float
     count: int = 1
@@ -38,6 +40,7 @@ class TrendPoint:
 @dataclass
 class TrendMetrics:
     """Statistical summary of a trend."""
+
     mean: float
     median: float
     std_dev: float
@@ -166,7 +169,7 @@ class TrendAnalyzer:
 
         # Calculate trend direction using linear regression on last N points
         if len(values) >= 3:
-            recent = values[-min(len(values), self.window_size):]
+            recent = values[-min(len(values), self.window_size) :]
             # Simple slope: (last - first) / (n - 1)
             change_rate = (recent[-1] - recent[0]) / (len(recent) - 1) if len(recent) > 1 else 0
 
@@ -213,9 +216,7 @@ class TrendAnalyzer:
 
         # Performance recommendations
         if performance_trend.trend == "declining":
-            recommendations.append(
-                "⚠️ Performance declining: Check API latency and token usage"
-            )
+            recommendations.append("⚠️ Performance declining: Check API latency and token usage")
         elif performance_trend.mean < 0.50:
             recommendations.append(
                 "📉 Performance below target: Consider faster model or optimization"
@@ -227,9 +228,7 @@ class TrendAnalyzer:
                 "⚠️ User impact declining: Gather user feedback to identify issues"
             )
         elif impact_trend.mean < 0.50:
-            recommendations.append(
-                "📉 User satisfaction low: Review prompt quality and relevance"
-            )
+            recommendations.append("📉 User satisfaction low: Review prompt quality and relevance")
 
         # Overall recommendations
         if overall_trend.trend == "improving" and overall_trend.change_rate > 0.05:
@@ -279,9 +278,11 @@ class TrendAnalyzer:
 # COMPARISON REPORT
 # ============================================================================
 
+
 @dataclass
 class ComparisonResult:
     """Result of comparing two metric sets."""
+
     metric_name: str
     baseline_value: float
     current_value: float
@@ -366,17 +367,27 @@ class ComparisonAnalyzer:
             ComparisonReport with analysis
         """
         if len(baseline_metrics) < self.min_sample_size:
-            raise ValueError(f"Baseline has insufficient samples ({len(baseline_metrics)} < {self.min_sample_size})")
+            raise ValueError(
+                f"Baseline has insufficient samples "
+                f"({len(baseline_metrics)} < {self.min_sample_size})"
+            )
 
         if len(treatment_metrics) < self.min_sample_size:
-            raise ValueError(f"Treatment has insufficient samples ({len(treatment_metrics)} < {self.min_sample_size})")
+            raise ValueError(
+                f"Treatment has insufficient samples "
+                f"({len(treatment_metrics)} < {self.min_sample_size})"
+            )
 
         # Calculate averages
         baseline_quality = statistics.mean([m.quality.composite_score for m in baseline_metrics])
         treatment_quality = statistics.mean([m.quality.composite_score for m in treatment_metrics])
 
-        baseline_performance = statistics.mean([m.performance.performance_score for m in baseline_metrics])
-        treatment_performance = statistics.mean([m.performance.performance_score for m in treatment_metrics])
+        baseline_performance = statistics.mean(
+            [m.performance.performance_score for m in baseline_metrics]
+        )
+        treatment_performance = statistics.mean(
+            [m.performance.performance_score for m in treatment_metrics]
+        )
 
         baseline_impact = statistics.mean([m.impact.impact_score for m in baseline_metrics])
         treatment_impact = statistics.mean([m.impact.impact_score for m in treatment_metrics])
@@ -523,7 +534,7 @@ class ComparisonAnalyzer:
 
         # Calculate standard error
         n_b, n_t = len(baseline), len(treatment)
-        se = ((std_b ** 2) / n_b + (std_t ** 2) / n_t) ** 0.5
+        se = ((std_b**2) / n_b + (std_t**2) / n_t) ** 0.5
 
         if se == 0:
             return False
@@ -600,6 +611,7 @@ class ComparisonAnalyzer:
 # MAIN ANALYZER
 # ============================================================================
 
+
 class MetricsAnalyzer:
     """
     Main analyzer providing high-level analysis interface.
@@ -673,7 +685,9 @@ class MetricsAnalyzer:
             "performance": {
                 "mean": statistics.mean(performance_scores),
                 "median": statistics.median(performance_scores),
-                "std_dev": statistics.stdev(performance_scores) if len(performance_scores) > 1 else 0,
+                "std_dev": statistics.stdev(performance_scores)
+                if len(performance_scores) > 1
+                else 0,
             },
             "impact": {
                 "mean": statistics.mean(impact_scores),

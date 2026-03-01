@@ -7,6 +7,7 @@ Async repository implementation using aiosqlite with:
 - Graceful error handling
 - Prompt caching with SHA256 keys
 """
+
 import asyncio
 import json
 import logging
@@ -136,8 +137,7 @@ class SQLitePromptRepository(PromptRepository):
             conn = await self._get_connection()
 
             async with conn.execute(
-                "SELECT * FROM prompt_history WHERE id = ?",
-                (history_id,)
+                "SELECT * FROM prompt_history WHERE id = ?", (history_id,)
             ) as cursor:
                 row = await cursor.fetchone()
                 if row:
@@ -199,11 +199,13 @@ class SQLitePromptRepository(PromptRepository):
         async with self._lock:
             conn = await self._get_connection()
 
-            pattern = f"%{query}%"
+            escaped_query = query.replace("%", "\\%").replace("_", "\\_")
+            pattern = f"%{escaped_query}%"
             async with conn.execute(
                 """
                 SELECT * FROM prompt_history
-                WHERE original_idea LIKE ? OR improved_prompt LIKE ?
+                WHERE original_idea LIKE ? ESCAPE '\\'
+                   OR improved_prompt LIKE ? ESCAPE '\\'
                 ORDER BY created_at DESC
                 LIMIT ?
                 """,
@@ -226,7 +228,8 @@ class SQLitePromptRepository(PromptRepository):
             conn = await self._get_connection()
 
             cursor = await conn.execute(
-                "DELETE FROM prompt_history WHERE created_at < datetime('now', '-' || ? || ' days')",
+                "DELETE FROM prompt_history "
+                "WHERE created_at < datetime('now', '-' || ? || ' days')",
                 (days,),
             )
             await conn.commit()
@@ -248,9 +251,7 @@ class SQLitePromptRepository(PromptRepository):
         async with self._lock:
             conn = await self._get_connection()
 
-            async with conn.execute(
-                "SELECT COUNT(*) as total FROM prompt_history"
-            ) as cursor:
+            async with conn.execute("SELECT COUNT(*) as total FROM prompt_history") as cursor:
                 total = (await cursor.fetchone())["total"]
 
             async with conn.execute(
@@ -329,7 +330,7 @@ class SQLitePromptRepository(PromptRepository):
             cursor = await conn.execute(
                 "SELECT prompt_id, improved_prompt, hit_count, created_at, last_accessed "
                 "FROM prompt_cache WHERE cache_key = ?",
-                (cache_key,)
+                (cache_key,),
             )
             row = await cursor.fetchone()
 
@@ -344,12 +345,7 @@ class SQLitePromptRepository(PromptRepository):
                 }
             return None
 
-    async def cache_prompt(
-        self,
-        cache_key: str,
-        prompt_id: str,
-        improved_prompt: str
-    ) -> bool:
+    async def cache_prompt(self, cache_key: str, prompt_id: str, improved_prompt: str) -> bool:
         """
         Store prompt in cache.
 
@@ -373,11 +369,11 @@ class SQLitePromptRepository(PromptRepository):
                     "ON CONFLICT(cache_key) DO UPDATE SET "
                     "improved_prompt = excluded.improved_prompt, "
                     "last_accessed = excluded.last_accessed",
-                    (cache_key, prompt_id, improved_prompt, now, now)
+                    (cache_key, prompt_id, improved_prompt, now, now),
                 )
                 await conn.commit()
                 return True
-            except (aiosqlite.Error, ConnectionError, TimeoutError, json.JSONDecodeError) as e:
+            except (aiosqlite.Error, ConnectionError, TimeoutError) as e:
                 logger.error(f"Failed to cache prompt: {type(e).__name__}: {e}")
                 return False
 
@@ -400,7 +396,7 @@ class SQLitePromptRepository(PromptRepository):
                     "UPDATE prompt_cache "
                     "SET hit_count = hit_count + 1, last_accessed = ? "
                     "WHERE cache_key = ?",
-                    (now, cache_key)
+                    (now, cache_key),
                 )
                 await conn.commit()
                 return True
@@ -422,8 +418,7 @@ class SQLitePromptRepository(PromptRepository):
             conn = await self._get_connection()
 
             cursor = await conn.execute(
-                "DELETE FROM prompt_cache WHERE cache_key = ?",
-                (cache_key,)
+                "DELETE FROM prompt_cache WHERE cache_key = ?", (cache_key,)
             )
             await conn.commit()
             return cursor.rowcount > 0

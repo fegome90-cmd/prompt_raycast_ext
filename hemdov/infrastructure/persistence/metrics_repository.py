@@ -116,21 +116,13 @@ class SQLiteMetricsRepository:
         )
 
         # Create indexes for common queries
-        await conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_prompt_id ON prompt_metrics(prompt_id)"
-        )
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_prompt_id ON prompt_metrics(prompt_id)")
         await conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_measured_at ON prompt_metrics(measured_at DESC)"
         )
-        await conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_framework ON prompt_metrics(framework)"
-        )
-        await conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_provider ON prompt_metrics(provider)"
-        )
-        await conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_backend ON prompt_metrics(backend)"
-        )
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_framework ON prompt_metrics(framework)")
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_provider ON prompt_metrics(provider)")
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_backend ON prompt_metrics(backend)")
 
         await conn.commit()
 
@@ -204,8 +196,7 @@ class SQLiteMetricsRepository:
                 raise RuntimeError("Repository not initialized. Call initialize() first.")
 
             async with conn.execute(
-                "SELECT * FROM prompt_metrics WHERE prompt_id = ?",
-                (prompt_id,)
+                "SELECT * FROM prompt_metrics WHERE prompt_id = ?", (prompt_id,)
             ) as cursor:
                 row = await cursor.fetchone()
                 if row:
@@ -244,10 +235,7 @@ class SQLiteMetricsRepository:
                 return [self._row_to_metrics(row) for row in rows]
 
     async def get_by_date_range(
-        self,
-        start_date: datetime,
-        end_date: datetime,
-        limit: int = 5000
+        self, start_date: datetime, end_date: datetime, limit: int = 5000
     ) -> list[PromptMetrics]:
         """Get metrics within date range (indexed query).
 
@@ -270,7 +258,9 @@ class SQLiteMetricsRepository:
                 ORDER BY measured_at DESC
                 LIMIT ?
             """
-            async with conn.execute(query, (start_date.isoformat(), end_date.isoformat(), limit)) as cursor:
+            async with conn.execute(
+                query, (start_date.isoformat(), end_date.isoformat(), limit)
+            ) as cursor:
                 rows = await cursor.fetchall()
                 return [self._row_to_metrics(row) for row in rows]
 
@@ -299,7 +289,9 @@ class SQLiteMetricsRepository:
         try:
             metrics_dict = json.loads(row["metrics_json"])
         except (json.JSONDecodeError, TypeError) as e:
-            logger.error(f"Failed to deserialize metrics JSON for prompt_id={row['prompt_id']}: {e}")
+            logger.error(
+                f"Failed to deserialize metrics JSON for prompt_id={row['prompt_id']}: {e}"
+            )
             raise ValueError(f"Invalid metrics JSON: {e}") from e
 
         # Validate and extract metadata

@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 class MetricGrade(Enum):
     """Letter grades for metric scores."""
+
     A_PLUS = "A+"
     A = "A"
     A_MINUS = "A-"
@@ -32,6 +33,7 @@ class MetricGrade(Enum):
 @dataclass(frozen=True)
 class MetricThreshold:
     """Threshold configuration for a metric."""
+
     min_acceptable: float
     target: float
     excellent: float
@@ -52,8 +54,8 @@ class MetricThreshold:
 DEFAULT_THRESHOLDS = {
     "quality": MetricThreshold(
         min_acceptable=0.60,  # C grade
-        target=0.80,          # B grade
-        excellent=0.90,       # A grade
+        target=0.80,  # B grade
+        excellent=0.90,  # A grade
     ),
     "performance": MetricThreshold(
         min_acceptable=0.40,
@@ -76,6 +78,7 @@ DEFAULT_THRESHOLDS = {
 @dataclass(frozen=True)
 class MetricDefinition:
     """Metadata about a metric."""
+
     name: str
     description: str
     unit: str  # "score", "ms", "tokens", "usd", etc.

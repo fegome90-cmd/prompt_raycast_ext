@@ -18,9 +18,11 @@ from hemdov.domain.dto.nlac_models import NLaCRequest, PromptObject
 
 class CacheStats(TypedDict):
     """Type-safe cache statistics dictionary."""
+
     total_entries: int
     total_hits: int
     avg_hit_count: float
+
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +88,9 @@ class PromptCache:
                     logger.debug(f"Cache hit: {cache_key[:8]}...")
                     return cached
             except (aiosqlite.Error, ConnectionError, TimeoutError, json.JSONDecodeError) as e:
-                logger.warning(f"Cache lookup failed: {type(e).__name__}: {e}, falling back to memory")
+                logger.warning(
+                    f"Cache lookup failed: {type(e).__name__}: {e}, falling back to memory"
+                )
 
         # Fallback to in-memory cache
         if cache_key in self._memory_cache:

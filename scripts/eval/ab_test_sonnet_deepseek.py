@@ -55,7 +55,7 @@ class ImprovementResult:
 # Test Configuration
 # ============================================================================
 
-API_BASE = "http://localhost:8000"
+API_BASE = "http://localhost:8001"
 
 TEST_CASES = [
     TestCase(id="good-001", input="Documenta una función en TypeScript",

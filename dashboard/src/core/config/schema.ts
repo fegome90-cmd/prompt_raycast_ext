@@ -60,7 +60,7 @@ export const OllamaConfigSchema = z
  */
 export const DspyConfigSchema = z
   .object({
-    baseUrl: z.string().url("dspy.baseUrl must be a valid URL (e.g., http://localhost:8000)"),
+    baseUrl: z.string().url("dspy.baseUrl must be a valid URL (e.g., http://localhost:8001)"),
     timeoutMs: z
       .number()
       .int()

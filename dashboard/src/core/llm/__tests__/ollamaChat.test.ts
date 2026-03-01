@@ -4,16 +4,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { callOllamaChat, ollamaHealthCheckChat, type OllamaMessage } from "../ollamaChat";
-
-// Helper to check if Ollama is running
-async function isOllamaAvailable(): Promise<boolean> {
-  const health = await ollamaHealthCheckChat({
-    baseUrl: "http://localhost:11434",
-    timeoutMs: 2000,
-  });
-  return health.ok;
-}
+import { callOllamaChat, type OllamaMessage } from "../ollamaChat";
 
 describe("ollamaChat - Integration Tests", () => {
   describe.skip("with Ollama running (requires Ollama service)", () => {

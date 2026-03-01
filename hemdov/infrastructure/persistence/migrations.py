@@ -102,12 +102,16 @@ NLAC_INDEXES_SQL = [
     # opro_trajectory table indexes
     "CREATE INDEX IF NOT EXISTS idx_opro_prompt_id ON opro_trajectory(prompt_id);",
     "CREATE INDEX IF NOT EXISTS idx_opro_iteration ON opro_trajectory(iteration_number);",
-    "CREATE INDEX IF NOT EXISTS idx_opro_prompt_iteration ON opro_trajectory(prompt_id, iteration_number);",
+    (
+        "CREATE INDEX IF NOT EXISTS idx_opro_prompt_iteration "
+        "ON opro_trajectory(prompt_id, iteration_number);"
+    ),
     "CREATE INDEX IF NOT EXISTS idx_opro_score ON opro_trajectory(score DESC);",
     # prompt_cache table indexes
     "CREATE INDEX IF NOT EXISTS idx_cache_last_accessed ON prompt_cache(last_accessed DESC);",
     "CREATE INDEX IF NOT EXISTS idx_cache_hit_count ON prompt_cache(hit_count DESC);",
 ]
+
 
 async def run_migrations(conn):
     """Run database migrations to latest version."""
@@ -126,9 +130,5 @@ async def run_migrations(conn):
         await conn.execute(index_sql)
 
     # Store schema version
-    await conn.execute(
-        "CREATE TABLE IF NOT EXISTS schema_info (version INTEGER PRIMARY KEY)"
-    )
-    await conn.execute(
-        f"INSERT OR REPLACE INTO schema_info (version) VALUES ({SCHEMA_VERSION})"
-    )
+    await conn.execute("CREATE TABLE IF NOT EXISTS schema_info (version INTEGER PRIMARY KEY)")
+    await conn.execute(f"INSERT OR REPLACE INTO schema_info (version) VALUES ({SCHEMA_VERSION})")

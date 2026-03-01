@@ -64,7 +64,6 @@ interface ParseAttempt {
  * 2 attempts máximo, telemetría completa
  */
 export async function ollamaGenerateStructured<T>(request: StructuredRequest<T>): Promise<StructuredResult<T>> {
-  const start = Date.now();
   const { schema, prompt, mode, baseUrl, model, timeoutMs, temperature } = request;
 
   // Attempt 1: Direct call to Ollama

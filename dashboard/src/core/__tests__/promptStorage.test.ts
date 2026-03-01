@@ -8,6 +8,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { promises as fs } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
+import type { PromptEntry } from "../promptStorage";
 
 // Mock os module before importing promptStorage
 vi.mock("os", async () => {
@@ -21,10 +22,9 @@ vi.mock("os", async () => {
 describe("promptStorage", () => {
   const TEST_TIMESTAMP = Date.now();
   const TEMP_STORAGE_DIR = join(tmpdir(), `raycast-test-${TEST_TIMESTAMP}`);
-  const TEMP_HISTORY_FILE = join(TEMP_STORAGE_DIR, "history.jsonl");
 
-  let storageModule: any;
-  let osModule: any;
+  let storageModule: typeof import("../promptStorage");
+  let osModule: { homedir: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     // Clear entire temp directory before each test
@@ -144,7 +144,7 @@ describe("promptStorage", () => {
       expect(history).toHaveLength(20); // Should be capped at MAX_HISTORY
 
       // Oldest entries should be removed
-      const promptNumbers = history.map((entry: any) => parseInt(entry.prompt.split(" ")[1], 10));
+      const promptNumbers = history.map((entry: PromptEntry) => parseInt(entry.prompt.split(" ")[1], 10));
       expect(Math.min(...promptNumbers)).toBeGreaterThanOrEqual(5); // Prompts 0-4 should be trimmed
       expect(Math.max(...promptNumbers)).toBe(24); // Most recent should be kept
     });

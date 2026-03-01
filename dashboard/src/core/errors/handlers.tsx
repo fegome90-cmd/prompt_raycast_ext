@@ -43,7 +43,7 @@ export function handleBackendError(error: unknown) {
   ) {
     return (
       <Detail
-        markdown={`## ${tokens.semantic.error.icon} Backend Not Running\n\nStart the backend from the project root:\n\`\`\`bash\nmake dev\n\`\`\`\n\nThen verify:\n\`\`\`bash\ncurl http://localhost:8000/health\n\`\`\``}
+        markdown={`## ${tokens.semantic.error.icon} Backend Not Running\n\nStart the backend from the project root:\n\`\`\`bash\nmake dev\n\`\`\`\n\nThen verify:\n\`\`\`bash\ncurl http://localhost:8001/health\n\`\`\``}
         actions={
           <ActionPanel>
             <CopyStartCommandAction />
@@ -58,7 +58,7 @@ export function handleBackendError(error: unknown) {
   if (error instanceof Error && (error.message.includes("ENOTFOUND") || error.message.includes("ERR_CONNECTION"))) {
     return (
       <Detail
-        markdown={`## ${tokens.semantic.error.icon} Network Error\n\nCannot reach the backend server.\n\n**Troubleshooting:**\n- Check your internet connection\n- Verify localhost is resolving\n- Check if a firewall is blocking port 8000\n\n**Error:** \`${error.message}\``}
+        markdown={`## ${tokens.semantic.error.icon} Network Error\n\nCannot reach the backend server.\n\n**Troubleshooting:**\n- Check your internet connection\n- Verify localhost is resolving\n- Check if a firewall is blocking port 8001\n\n**Error:** \`${error.message}\``}
         actions={
           <ActionPanel>
             <Action.OpenInBrowser title="Open Documentation" url="https://developers.raycast.com" />

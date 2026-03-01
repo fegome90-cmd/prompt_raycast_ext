@@ -55,6 +55,10 @@ class Container:
 
         raise ValueError(f"No service registered for {interface}")
 
+    def add_cleanup_hook(self, hook: Callable) -> None:
+        """Register a cleanup hook for shutdown."""
+        self._cleanup_hooks.append(hook)
+
     async def shutdown(self):
         """Cleanup resources on application shutdown."""
         for hook in reversed(self._cleanup_hooks):

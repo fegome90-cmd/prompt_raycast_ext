@@ -2,7 +2,7 @@
 
 > Development workflow for DSPy Prompt Improver
 
-**Last Updated:** 2026-02-14
+**Last Updated:** 2026-02-21
 
 ## Quick Start
 
@@ -106,6 +106,8 @@ Copy `.env.example` to `.env` and configure:
 | `GEMINI_API_KEY` | `LLM_PROVIDER=gemini` |
 | `OPENAI_API_KEY` | `LLM_PROVIDER=openai` |
 | `LANGCHAIN_API_KEY` | LangChain Hub integration |
+| `LANGCHAIN_TRACING_V2` | Enable LangSmith tracing |
+| `LLM_API_KEY` | Generic fallback for any provider |
 
 ### SQLite Persistence
 
@@ -124,6 +126,7 @@ Copy `.env.example` to `.env` and configure:
 |----------|-------------|---------|
 | `DSPY_MAX_BOOTSTRAPPED_DEMOS` | Max few-shot examples | `5` |
 | `DSPY_MAX_LABELED_DEMOS` | Max labeled examples | `3` |
+| `DSPY_COMPILED_PATH` | Compiled model save path | (empty) |
 | `USE_KNN_FEWSHOT` | Enable KNN few-shot | `true` |
 | `DSPY_FEWSHOT_K` | KNN neighbors count | `3` |
 | `DSPY_FEWSHOT_TRAINSET_PATH` | Training set path | `datasets/exports/unified-fewshot-pool.json` |

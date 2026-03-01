@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Cache port for domain layer - hexagonal architecture."""
+
 from typing import Any, Protocol
 
 

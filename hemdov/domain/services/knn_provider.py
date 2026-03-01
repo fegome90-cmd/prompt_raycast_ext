@@ -20,7 +20,7 @@ Design Decisions:
 - frozenset for VALID_INTENTS/VALID_COMPLEXITIES: Immutability prevents runtime modification
 - TYPE_CHECKING for forward references: Avoids runtime import errors
 - _find_examples_impl(): DRY principle - single implementation for both APIs
-- Single Source of Truth: VALID_INTENTS/VALID_COMPLEXITIES derived from enums (IntentType, ComplexityLevel)
+- Single Source of Truth: VALID_INTENTS/VALID_COMPLEXITIES from enums
 """
 
 import logging
@@ -47,6 +47,7 @@ class KNNProviderError(RuntimeError):
     Provides consistent error type for all KNN-related failures,
     allowing callers to catch and handle KNN errors specifically.
     """
+
     pass
 
 
@@ -65,14 +66,14 @@ class FixedVocabularyVectorizer:
         """
         self.vocabulary = vocabulary or []
 
-    def fit(self, texts: list[str]) -> 'FixedVocabularyVectorizer':
+    def fit(self, texts: list[str]) -> "FixedVocabularyVectorizer":
         """Build vocabulary from texts."""
         ngrams = set()
         for text in texts:
             text = text.lower()
             # Character bigrams
             for i in range(len(text) - 1):
-                ngrams.add(text[i:i+2])
+                ngrams.add(text[i : i + 2])
         self.vocabulary = list(ngrams)
         return self
 
@@ -84,7 +85,7 @@ class FixedVocabularyVectorizer:
             # Count character bigrams
             counts: dict[str, int] = {}
             for i in range(len(text) - 1):
-                ngram = text[i:i+2]
+                ngram = text[i : i + 2]
                 counts[ngram] = counts.get(ngram, 0) + 1
             # Create vector using fixed vocabulary
             vector = np.array([counts.get(ngram, 0) for ngram in self.vocabulary], dtype=np.float32)
@@ -114,6 +115,7 @@ class FixedVocabularyVectorizer:
 @dataclass
 class FewShotExample:
     """Single few-shot example from ComponentCatalog."""
+
     input_idea: str
     input_context: str
     improved_prompt: str
@@ -132,6 +134,7 @@ class FindExamplesResult:
     Provides similarity metadata when no examples match threshold,
     allowing callers to understand why no examples were returned.
     """
+
     examples: list[FewShotExample]
     highest_similarity: float
     threshold_used: float
@@ -152,9 +155,7 @@ class FindExamplesResult:
 
         # total_candidates cannot be negative
         if self.total_candidates < 0:
-            raise ValueError(
-                f"total_candidates cannot be negative, got {self.total_candidates}"
-            )
+            raise ValueError(f"total_candidates cannot be negative, got {self.total_candidates}")
 
         # Consistency check: met_threshold=True requires non-empty examples
         if self.met_threshold and not self.examples:
@@ -183,8 +184,8 @@ class KNNProvider:
         self,
         catalog_path: str | os.PathLike[str] | None = None,
         catalog_data: list[dict] | None = None,
-        repository: Optional['CatalogRepositoryInterface'] = None,
-        k: int = 3
+        repository: Optional["CatalogRepositoryInterface"] = None,
+        k: int = 3,
     ):
         """
         Initialize KNNProvider with ComponentCatalog.
@@ -225,7 +226,7 @@ class KNNProvider:
         elif repository is not None:
             # Use provided repository
             examples_data = repository.load_catalog()
-            self.catalog_path = getattr(repository, 'catalog_path', None)
+            self.catalog_path = getattr(repository, "catalog_path", None)
         elif catalog_path is not None:
             # Legacy behavior: create repository (backward compatible)
             # Import Path locally to avoid domain layer coupling
@@ -234,6 +235,7 @@ class KNNProvider:
             from hemdov.infrastructure.repositories.catalog_repository import (
                 FileSystemCatalogRepository,
             )
+
             # Convert str/os.PathLike to Path for repository
             path_obj = Path(catalog_path) if not isinstance(catalog_path, Path) else catalog_path
             repo = FileSystemCatalogRepository(path_obj)
@@ -257,44 +259,44 @@ class KNNProvider:
         skipped_count = 0
         for idx, ex in enumerate(examples_data):
             try:
-                inputs = ex['inputs']
-                outputs = ex['outputs']
-                metadata = ex.get('metadata', {})
+                inputs = ex["inputs"]
+                outputs = ex["outputs"]
+                metadata = ex.get("metadata", {})
 
                 # Check if example has expected_output (CRITICAL for REFACTOR)
                 # Metadata may contain 'has_expected_output' flag
-                has_expected = metadata.get('has_expected_output', False)
+                has_expected = metadata.get("has_expected_output", False)
 
                 example = FewShotExample(
-                    input_idea=inputs['original_idea'],
-                    input_context=inputs.get('context', ''),
-                    improved_prompt=outputs['improved_prompt'],
-                    role=outputs.get('role', ''),
-                    directive=outputs.get('directive', ''),
-                    framework=outputs.get('framework', ''),
-                    guardrails=outputs.get('guardrails', []),
-                    expected_output=outputs.get('expected_output') if has_expected else None,
-                    metadata=metadata
+                    input_idea=inputs["original_idea"],
+                    input_context=inputs.get("context", ""),
+                    improved_prompt=outputs["improved_prompt"],
+                    role=outputs.get("role", ""),
+                    directive=outputs.get("directive", ""),
+                    framework=outputs.get("framework", ""),
+                    guardrails=outputs.get("guardrails", []),
+                    expected_output=outputs.get("expected_output") if has_expected else None,
+                    metadata=metadata,
                 )
 
                 self.catalog.append(example)
 
                 # Also create DSPy Example for KNNFewShot
                 dspy_ex = dspy.Example(
-                    original_idea=inputs['original_idea'],
-                    context=inputs.get('context', ''),
-                    improved_prompt=outputs['improved_prompt'],
-                    role=outputs.get('role', ''),
-                    directive=outputs.get('directive', ''),
-                    framework=outputs.get('framework', ''),
-                    guardrails=outputs.get('guardrails', []),
-                ).with_inputs('original_idea', 'context')
+                    original_idea=inputs["original_idea"],
+                    context=inputs.get("context", ""),
+                    improved_prompt=outputs["improved_prompt"],
+                    role=outputs.get("role", ""),
+                    directive=outputs.get("directive", ""),
+                    framework=outputs.get("framework", ""),
+                    guardrails=outputs.get("guardrails", []),
+                ).with_inputs("original_idea", "context")
 
                 self._dspy_examples.append(dspy_ex)
             except KeyError as e:
                 # Enhance error context with expected vs available keys
-                available_keys = set(ex.keys()) if hasattr(ex, 'keys') else set()
-                expected_keys = {'original_idea', 'improved_prompt'}
+                available_keys = set(ex.keys()) if hasattr(ex, "keys") else set()
+                expected_keys = {"original_idea", "improved_prompt"}
                 logger.error(
                     f"Skipping example {idx} due to missing key: {e}. "
                     f"Expected keys: {expected_keys}. "
@@ -336,8 +338,9 @@ class KNNProvider:
             # CRITICAL threshold at 20%
             if skip_rate >= self.SKIP_RATE_CRITICAL_THRESHOLD:
                 raise ValueError(
-                    f"Catalog data quality issue: {skip_rate:.1%} of examples ({skipped_count}/{len(examples_data)}) "
-                    f"failed validation. This may indicate a schema mismatch or data corruption. "
+                    f"Catalog data quality issue: {skip_rate:.1%} of examples "
+                    f"({skipped_count}/{len(examples_data)}) failed validation. "
+                    f"This may indicate a schema mismatch or data corruption. "
                     f"Check logs for details."
                 )
 
@@ -383,7 +386,7 @@ class KNNProvider:
     # Catalog quality thresholds
     # At 5% skip rate, log ERROR (proactive monitoring for schema drift)
     # At 20% skip rate, raise ValueError (critical data quality issue)
-    SKIP_RATE_ERROR_THRESHOLD: float = 0.05   # 5% - log ERROR
+    SKIP_RATE_ERROR_THRESHOLD: float = 0.05  # 5% - log ERROR
     SKIP_RATE_CRITICAL_THRESHOLD: float = 0.2  # 20% - raise ValueError
 
     # Vector computation constants
@@ -462,7 +465,7 @@ class KNNProvider:
                     highest_similarity=0.0,
                     threshold_used=min_similarity,
                     total_candidates=0,
-                    met_threshold=False
+                    met_threshold=False,
                 )
             return []
 
@@ -479,7 +482,7 @@ class KNNProvider:
                     highest_similarity=1.0,  # No filtering done, assume max
                     threshold_used=min_similarity,
                     total_candidates=len(candidates),
-                    met_threshold=True
+                    met_threshold=True,
                 )
             return candidates[:k]
 
@@ -507,7 +510,7 @@ class KNNProvider:
                 highest_similarity=highest_sim,
                 threshold_used=min_similarity,
                 total_candidates=total_cands,
-                met_threshold=met_threshold
+                met_threshold=met_threshold,
             )
         return filtered
 
@@ -518,7 +521,7 @@ class KNNProvider:
         k: int | None = None,
         has_expected_output: bool = False,
         user_input: str | None = None,
-        min_similarity: float | None = None
+        min_similarity: float | None = None,
     ) -> list[FewShotExample]:
         """
         Find k similar examples using semantic search.
@@ -533,7 +536,7 @@ class KNNProvider:
             has_expected_output: Filter for examples with expected_output
                               (CRITICAL for REFACTOR - MultiAIGCD Scenario III)
             user_input: Optional user input for better semantic matching
-            min_similarity: Minimum cosine similarity threshold (defaults to MIN_SIMILARITY_THRESHOLD)
+            min_similarity: Cosine similarity threshold (default: MIN_SIMILARITY_THRESHOLD)
 
         Returns:
             List of FewShotExample sorted by similarity
@@ -563,7 +566,7 @@ class KNNProvider:
         k: int | None = None,
         has_expected_output: bool = False,
         user_input: str | None = None,
-        min_similarity: float | None = None
+        min_similarity: float | None = None,
     ) -> FindExamplesResult:
         """
         Find k similar examples using semantic search with metadata.
@@ -590,7 +593,7 @@ class KNNProvider:
         Example:
             >>> result = provider.find_examples_with_metadata("debug", "simple", k=3)
             >>> if result.empty:
-            ...     print(f"No examples met threshold. Highest similarity: {result.highest_similarity}")
+            ...     print(f"No examples met threshold")  # noqa: T201
         """
         result = self._find_examples_impl(
             intent=intent,
@@ -605,7 +608,9 @@ class KNNProvider:
         assert isinstance(result, FindExamplesResult)
         return result
 
-    def _filter_candidates_by_expected_output(self, has_expected_output: bool) -> list[FewShotExample]:
+    def _filter_candidates_by_expected_output(
+        self, has_expected_output: bool
+    ) -> list[FewShotExample]:
         """Filter catalog by expected_output flag."""
         if not has_expected_output:
             return self.catalog
@@ -632,11 +637,13 @@ class KNNProvider:
         # Validate inputs (defense in depth - IntentClassifier already validates)
         if intent not in self.VALID_INTENTS:
             raise ValueError(
-                f"Invalid intent '{intent}'. Must be one of: {', '.join(sorted(self.VALID_INTENTS))}"
+                f"Invalid intent '{intent}'. "
+                f"Must be one of: {', '.join(sorted(self.VALID_INTENTS))}"
             )
         if complexity not in self.VALID_COMPLEXITIES:
             raise ValueError(
-                f"Invalid complexity '{complexity}'. Must be one of: {', '.join(sorted(self.VALID_COMPLEXITIES))}"
+                f"Invalid complexity '{complexity}'. "
+                f"Must be one of: {', '.join(sorted(self.VALID_COMPLEXITIES))}"
             )
 
         query_parts = [intent, complexity]
@@ -665,9 +672,7 @@ class KNNProvider:
         return self._vectorizer(candidate_texts)
 
     def _compute_cosine_similarities(
-        self,
-        candidate_vectors: np.ndarray,
-        query_vector: np.ndarray
+        self, candidate_vectors: np.ndarray, query_vector: np.ndarray
     ) -> np.ndarray:
         """Calculate cosine similarities using vectorized operations (7x faster).
 
@@ -697,7 +702,8 @@ class KNNProvider:
             dot_products,
             query_norm * candidate_norms,
             out=np.zeros_like(dot_products),
-            where=(query_norm > self.NORM_ZERO_THRESHOLD) & (candidate_norms > self.NORM_ZERO_THRESHOLD)
+            where=(query_norm > self.NORM_ZERO_THRESHOLD)
+            & (candidate_norms > self.NORM_ZERO_THRESHOLD),
         )
 
         # Log when zero-norm vectors are detected (silent failure prevention)
@@ -717,7 +723,7 @@ class KNNProvider:
         candidates: list[FewShotExample],
         similarities: np.ndarray,
         k: int,
-        min_similarity: float
+        min_similarity: float,
     ) -> tuple[list[FewShotExample], float, int, bool]:
         """
         Filter by threshold and return top-k examples with metadata.
@@ -755,9 +761,7 @@ class KNNProvider:
 
 
 def handle_knn_failure(
-    logger_instance: logging.Logger,
-    context: str,
-    exception: Exception
+    logger_instance: logging.Logger, context: str, exception: Exception
 ) -> tuple[bool, str]:
     """
     Handle KNN provider failures consistently.
@@ -782,8 +786,6 @@ def handle_knn_failure(
     """
     error_msg = f"KNN failure in {context}: {type(exception).__name__}: {exception}"
     logger_instance.error(
-        f"{error_msg}. "
-        f"Proceeding without few-shot examples "
-        f"(may reduce prompt quality)."
+        f"{error_msg}. Proceeding without few-shot examples (may reduce prompt quality)."
     )
     return True, error_msg

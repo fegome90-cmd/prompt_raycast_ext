@@ -4,11 +4,13 @@ Prompt History Entity - Domain entity for prompt improvement events.
 Immutable value object following Domain-Driven Design principles.
 Represents a single prompt improvement event with full audit trail.
 """
+
 import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
 logger = logging.getLogger(__name__)
+
 
 @dataclass(frozen=True)
 class PromptHistory:
@@ -56,9 +58,8 @@ class PromptHistory:
             )
 
         # Validate confidence range
-        if self.confidence is not None:
-            if not (0.0 <= self.confidence <= 1.0):
-                raise ValueError(f"Confidence must be 0-1, got {self.confidence}")
+        if self.confidence is not None and not (0.0 <= self.confidence <= 1.0):
+            raise ValueError(f"Confidence must be 0-1, got {self.confidence}")
 
         # Validate latency is non-negative
         if self.latency_ms is not None and self.latency_ms < 0:
@@ -77,7 +78,7 @@ class PromptHistory:
 
         # Set created_at if not provided
         if self.created_at is None:
-            object.__setattr__(self, 'created_at', datetime.now(UTC).isoformat())
+            object.__setattr__(self, "created_at", datetime.now(UTC).isoformat())
 
     @property
     def quality_score(self) -> float:
