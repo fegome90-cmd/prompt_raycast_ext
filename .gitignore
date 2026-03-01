@@ -54,3 +54,6 @@ data/
 coverage.json
 .backend.log
 .backend.pid
+.pi/
+_ctx/
+explore/
