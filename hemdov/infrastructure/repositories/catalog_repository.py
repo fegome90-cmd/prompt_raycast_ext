@@ -59,7 +59,7 @@ class FileSystemCatalogRepository(CatalogRepositoryInterface):
             )
 
         try:
-            with open(self.catalog_path, encoding='utf-8') as f:
+            with open(self.catalog_path, encoding="utf-8") as f:
                 data = json.load(f)
         except json.JSONDecodeError as e:
             raise ValueError(
@@ -73,8 +73,8 @@ class FileSystemCatalogRepository(CatalogRepositoryInterface):
             ) from e
 
         # Handle wrapper format: {"examples": [...]}
-        if isinstance(data, dict) and 'examples' in data:
-            return data['examples']
+        if isinstance(data, dict) and "examples" in data:
+            return data["examples"]
         elif isinstance(data, list):
             return data
         else:
