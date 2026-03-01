@@ -16,9 +16,7 @@ class PromptImproverSignature(dspy.Signature):
     """
 
     # Input fields
-    original_idea = dspy.InputField(
-        desc="User's raw idea or objective that needs improvement"
-    )
+    original_idea = dspy.InputField(desc="User's raw idea or objective that needs improvement")
 
     context = dspy.InputField(
         desc="Additional context about the use case, audience, or constraints (optional)",
@@ -33,16 +31,13 @@ class PromptImproverSignature(dspy.Signature):
         desc="Complete, structured SOTA prompt with role, directive, framework, and guardrails"
     )
 
-    role = dspy.OutputField(
-        desc="AI role description extracted from the improved prompt"
-    )
+    role = dspy.OutputField(desc="AI role description extracted from the improved prompt")
 
-    directive = dspy.OutputField(
-        desc="Core directive/mission extracted from the improved prompt"
-    )
+    directive = dspy.OutputField(desc="Core directive/mission extracted from the improved prompt")
 
     framework = dspy.OutputField(
-        desc="Recommended reasoning framework (chain-of-thought, tree-of-thoughts, decomposition, role-playing)"
+        desc="Recommended reasoning framework "
+        "(chain-of-thought, tree-of-thoughts, decomposition, role-playing)"
     )
 
     guardrails = dspy.OutputField(desc="List of 3-5 key constraints or guardrails")

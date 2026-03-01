@@ -14,8 +14,10 @@ from pydantic import BaseModel, Field, field_validator
 # Enums
 # ============================================================================
 
+
 class IntentType(str, Enum):
     """Intent classification for prompt routing."""
+
     GENERATE = "generate"
     DEBUG = "debug"
     REFACTOR = "refactor"
@@ -24,6 +26,7 @@ class IntentType(str, Enum):
 
 class TestType(str, Enum):
     """Test case types."""
+
     UNIT = "unit"
     INTEGRATION = "integration"
     E2E = "e2e"
@@ -32,6 +35,7 @@ class TestType(str, Enum):
 # ============================================================================
 # TypedDict Definitions (Type-safe dictionaries)
 # ============================================================================
+
 
 class StrategyMetadata(TypedDict):
     """
@@ -49,6 +53,7 @@ class StrategyMetadata(TypedDict):
         framework: NotRequired[str] - Framework or methodology used (optional)
         guardrails: NotRequired[list[str]] - Guardrails/constraints (optional)
     """
+
     strategy: str
     intent: str
     complexity: str
@@ -71,6 +76,7 @@ class PromptConstraints(TypedDict):
         include_examples: Whether to include examples in response
         include_explanation: Whether to include explanation
     """
+
     max_tokens: int
     format: NotRequired[str]
     include_examples: NotRequired[bool]
@@ -81,6 +87,7 @@ class PromptConstraints(TypedDict):
 # Input Models
 # ============================================================================
 
+
 class NLaCInputs(BaseModel):
     """
     Optional structured inputs for intent classification and routing.
@@ -88,25 +95,15 @@ class NLaCInputs(BaseModel):
     All fields are optional to maintain backward compatibility with
     simple text-based prompts.
     """
-    code_snippet: str | None = Field(
-        None,
-        description="Code snippet for debugging/refactoring"
-    )
-    error_log: str | None = Field(
-        None,
-        description="Error message or stack trace"
-    )
-    target_language: str | None = Field(
-        None,
-        description="Target programming language"
-    )
+
+    code_snippet: str | None = Field(None, description="Code snippet for debugging/refactoring")
+    error_log: str | None = Field(None, description="Error message or stack trace")
+    target_language: str | None = Field(None, description="Target programming language")
     target_framework: str | None = Field(
-        None,
-        description="Target framework (e.g., React, FastAPI)"
+        None, description="Target framework (e.g., React, FastAPI)"
     )
     context_files: list[str] | None = Field(
-        default_factory=list,
-        description="Related file paths for context"
+        default_factory=list, description="Related file paths for context"
     )
 
     @field_validator("context_files", mode="before")
@@ -127,37 +124,31 @@ class NLaCRequest(BaseModel):
     - Mode selector (legacy vs NLaC)
     - Optional optimization settings
     """
+
     idea: str = Field(..., description="User's raw idea or prompt text")
     context: str = Field(
         default="",
         max_length=5000,
-        description="Additional context or requirements (max 5000 chars)"
+        description="Additional context or requirements (max 5000 chars)",
     )
     inputs: NLaCInputs | None = Field(
-        default=None,
-        description="Structured inputs for intent classification"
+        default=None, description="Structured inputs for intent classification"
     )
     mode: Literal["legacy", "nlac"] = Field(
         default="legacy",
-        description="API mode: legacy (Strategy Pattern) or nlac (NLaC optimization)"
+        description="API mode: legacy (Strategy Pattern) or nlac (NLaC optimization)",
     )
 
     # OPRO optimization settings (only used in nlac mode)
     enable_optimization: bool = Field(
-        default=False,
-        description="Enable OPRO iterative optimization"
+        default=False, description="Enable OPRO iterative optimization"
     )
-    max_iterations: int = Field(
-        default=3,
-        ge=1,
-        le=5,
-        description="Max OPRO iterations (1-5)"
-    )
+    max_iterations: int = Field(default=3, ge=1, le=5, description="Max OPRO iterations (1-5)")
     target_score: float = Field(
         default=1.0,
         ge=0.0,
         le=1.0,
-        description="Target quality score (0-1), stops early if reached"
+        description="Target quality score (0-1), stops early if reached",
     )
 
     @field_validator("idea")
@@ -181,6 +172,7 @@ class NLaCRequest(BaseModel):
 # Domain Models
 # ============================================================================
 
+
 class PromptObject(BaseModel):
     """
     Structured prompt representation (NLaC core concept).
@@ -188,6 +180,7 @@ class PromptObject(BaseModel):
     A PromptObject is a structured, executable representation of a prompt
     with metadata, constraints, and versioning - not just a string.
     """
+
     id: str = Field(..., description="UUID v4 identifier")
     version: str = Field(default="1.0.0", description="Semantic version")
     intent_type: IntentType = Field(..., description="Classified intent")
@@ -198,13 +191,15 @@ class PromptObject(BaseModel):
     # Strategy metadata (should conform to StrategyMetadata TypedDict)
     strategy_meta: dict[str, Any] = Field(
         default_factory=dict,
-        description="Strategy used, complexity, routing decisions. Expected to conform to StrategyMetadata TypedDict."
+        description="Strategy used, complexity, routing decisions. "
+        "Expected to conform to StrategyMetadata TypedDict.",
     )
 
     # Constraints (should conform to PromptConstraints TypedDict)
     constraints: dict[str, Any] = Field(
         default_factory=dict,
-        description="Constraints like max_tokens, format requirements, etc. Expected to conform to PromptConstraints TypedDict."
+        description="Constraints like max_tokens, format requirements, etc. "
+        "Expected to conform to PromptConstraints TypedDict.",
     )
 
     # Metadata
@@ -213,7 +208,9 @@ class PromptObject(BaseModel):
     updated_at: str = Field(..., description="ISO timestamp")
 
     # KNN failure tracking (for monitoring and debugging)
-    knn_failed: bool = Field(default=False, description="Whether KNN provider failed to fetch examples")
+    knn_failed: bool = Field(
+        default=False, description="Whether KNN provider failed to fetch examples"
+    )
     knn_error: str | None = Field(None, description="Error message if KNN failed")
 
     @field_validator("template")
@@ -235,6 +232,7 @@ class PromptObject(BaseModel):
 
 class OPROIteration(BaseModel):
     """Single OPRO optimization iteration result."""
+
     iteration_number: int = Field(..., ge=1, description="Iteration number (1-indexed)")
     meta_prompt_used: str = Field(..., description="Meta-prompt template used")
     generated_instruction: str = Field(..., description="Generated instruction")
@@ -248,14 +246,14 @@ class OptimizeResponse(BaseModel):
 
     Contains the final optimized prompt and full trajectory history.
     """
+
     prompt_id: str = Field(..., description="PromptObject UUID")
     final_instruction: str = Field(..., description="Final optimized instruction")
     final_score: float = Field(..., ge=0.0, le=1.0, description="Final quality score")
     iteration_count: int = Field(..., ge=1, description="Total iterations executed")
     early_stopped: bool = Field(default=False, description="Stopped early due to target score")
     trajectory: list[OPROIteration] = Field(
-        default_factory=list,
-        description="Full optimization trajectory"
+        default_factory=list, description="Full optimization trajectory"
     )
 
     # Optional improved prompt (full rendered result)
@@ -268,8 +266,7 @@ class OptimizeResponse(BaseModel):
 
     # KNN failure tracking
     knn_failure: dict[str, Any] | None = Field(
-        None,
-        description="KNN failure metadata if few-shot examples were unavailable"
+        None, description="KNN failure metadata if few-shot examples were unavailable"
     )
 
 
@@ -277,12 +274,14 @@ class OptimizeResponse(BaseModel):
 # Response Models (Extended)
 # ============================================================================
 
+
 class NLaCResponse(BaseModel):
     """
     Complete response for NLaC API requests.
 
     Extends the legacy ImprovePromptResponse with NLaC-specific fields.
     """
+
     # Core fields (compatible with legacy)
     improved_prompt: str
     role: str
@@ -295,24 +294,17 @@ class NLaCResponse(BaseModel):
 
     # NLaC-specific fields
     prompt_object: PromptObject | None = Field(
-        None,
-        description="Structured PromptObject (only in nlac mode)"
+        None, description="Structured PromptObject (only in nlac mode)"
     )
     optimization_result: OptimizeResponse | None = Field(
-        None,
-        description="OPRO optimization result (if enable_optimization=True)"
+        None, description="OPRO optimization result (if enable_optimization=True)"
     )
     intent_type: IntentType | None = Field(
-        None,
-        description="Classified intent (only in nlac mode)"
+        None, description="Classified intent (only in nlac mode)"
     )
-    cache_hit: bool = Field(
-        default=False,
-        description="Whether result was served from cache"
-    )
+    cache_hit: bool = Field(default=False, description="Whether result was served from cache")
 
     # KNN failure tracking
     knn_failure: dict[str, Any] | None = Field(
-        None,
-        description="KNN failure metadata if few-shot examples were unavailable"
+        None, description="KNN failure metadata if few-shot examples were unavailable"
     )

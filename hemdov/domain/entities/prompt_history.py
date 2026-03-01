@@ -4,11 +4,13 @@ Prompt History Entity - Domain entity for prompt improvement events.
 Immutable value object following Domain-Driven Design principles.
 Represents a single prompt improvement event with full audit trail.
 """
+
 import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
 logger = logging.getLogger(__name__)
+
 
 @dataclass(frozen=True)
 class PromptHistory:
@@ -77,7 +79,7 @@ class PromptHistory:
 
         # Set created_at if not provided
         if self.created_at is None:
-            object.__setattr__(self, 'created_at', datetime.now(UTC).isoformat())
+            object.__setattr__(self, "created_at", datetime.now(UTC).isoformat())
 
     @property
     def quality_score(self) -> float:
