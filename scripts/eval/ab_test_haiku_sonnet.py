@@ -25,7 +25,7 @@ def test_provider(provider_config):
     import requests
     
     results = []
-    url = "http://localhost:8000/api/v1/improve-prompt"
+    url = "http://localhost:8001/api/v1/improve-prompt"
     
     for i, prompt in enumerate(TEST_PROMPTS, 1):
         print(f"  Testing prompt {i}/{len(TEST_PROMPTS)}...")

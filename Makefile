@@ -9,9 +9,10 @@ SHELL := /bin/bash
 
 # Configuration
 PYTHON := .venv/bin/python
+PM2_NAME := raycast-ext-api
 BACKEND_PID := .tmp/backend.pid
 BACKEND_LOG := .logs/backend.log
-BACKEND_PORT := 8000
+BACKEND_PORT := 8001
 RAYCAST_DIR := dashboard
 RAYCAST_PID := .raycast-dev.pid
 
@@ -27,12 +28,12 @@ help: ## Show this help message
 	@echo ""
 	@echo "Backend (DSPy + DeepSeek):"
 	@echo "  make backend        - Start DSPy backend server (foreground)"
-	@echo "  make dev            - Start backend in background (dev mode)"
-	@echo "  make stop           - Stop background backend"
-	@echo "  make restart        - Restart background backend"
+	@echo "  make dev            - Start backend in PM2 (background mode)"
+	@echo "  make stop           - Stop backend in PM2"
+	@echo "  make restart        - Restart backend in PM2"
 	@echo "  make health         - Check backend health"
-	@echo "  make logs           - Show backend logs (tail -f)"
-	@echo "  make status         - Show backend status"
+	@echo "  make logs           - Show backend logs from PM2"
+	@echo "  make status         - Show backend status from PM2"
 	@echo ""
 	@echo "Raycast Frontend:"
 	@echo "  make ray-check      - Check localhost permission in package.json"
@@ -63,7 +64,7 @@ help: ## Show this help message
 	@echo "  make history-search - Search prompts (usage: make history-search Q=query)"
 	@echo ""
 	@echo "Examples:"
-	@echo "  make dev            # Start backend in background"
+	@echo "  make dev            # Start backend in PM2"
 	@echo "  make ray-dev        # Start Raycast dev server"
 	@echo "  make health         # Check if backend is running"
 	@echo "  make stop           # Stop backend when done"
@@ -92,89 +93,34 @@ backend: ## Start DSPy backend server (foreground)
 	@printf "\033[34m→ Starting DSPy backend on port $(BACKEND_PORT)...\033[0m\n"
 	@$(PYTHON) api/main.py
 
-dev: ## Start backend in background (for development)
-	@printf "\033[34m→ Starting DSPy backend in background...\033[0m\n"
-	@running=0; \
-	if [ -f $(BACKEND_PID) ]; then \
-		pid=$$(cat $(BACKEND_PID)); \
-		if ps -p $$pid > /dev/null 2>&1; then \
-			printf "\033[33m⚠️  Backend already running (PID: $$pid)\033[0m\n"; \
-			running=1; \
-		fi; \
-	fi; \
-	if [ $$running -eq 0 ]; then \
-		listeners=$$(lsof -t -iTCP:$(BACKEND_PORT) -sTCP:LISTEN 2>/dev/null | tr '\n' ' '); \
-		if [ -n "$$listeners" ]; then \
-			printf "\033[33m⚠️  Port $(BACKEND_PORT) already in use (PID(s): $$listeners)\033[0m\n"; \
-			running=1; \
-		fi; \
-	fi; \
-	if [ $$running -eq 1 ]; then \
-		$(MAKE) --silent health; \
-	else \
-		nohup $(PYTHON) api/main.py > $(BACKEND_LOG) 2>&1 & echo $$! > $(BACKEND_PID); \
-		printf "\033[32m✓ Backend started in background\033[0m\n"; \
-		printf "\033[34m→ Logs: tail -f $(BACKEND_LOG)\033[0m\n"; \
-		sleep 2; \
-		$(MAKE) --silent health; \
-	fi
+dev: ## Start backend in PM2 (background)
+	@printf "\033[34m→ Starting DSPy backend in PM2...\033[0m\n"
+	@pm2 start $(PYTHON) --name $(PM2_NAME) -- api/main.py
+	@printf "\033[32m✓ Backend started in PM2\033[0m\n"
+	@printf "\033[34m→ Logs: pm2 logs $(PM2_NAME)\033[0m\n"
+	@sleep 2
+	@$(MAKE) --silent health
 
-stop: ## Stop background backend
-	@printf "\033[34m→ Stopping backend...\033[0m\n"
-	@if [ -f $(BACKEND_PID) ]; then \
-		pid=$$(cat $(BACKEND_PID)); \
-		if ps -p $$pid > /dev/null 2>&1; then \
-			kill $$pid; \
-			rm $(BACKEND_PID); \
-			printf "\033[32m✓ Backend stopped\033[0m\n"; \
-		else \
-			rm $(BACKEND_PID); \
-			printf "\033[33m⚠️  Backend was not running\033[0m\n"; \
-		fi; \
-	else \
-		printf "\033[33m⚠️  No PID file found\033[0m\n"; \
-	fi
+stop: ## Stop background backend in PM2
+	@printf "\033[34m→ Stopping backend in PM2...\033[0m\n"
+	@pm2 stop $(PM2_NAME) || true
+	@printf "\033[32m✓ Backend stopped\033[0m\n"
 
-restart: ## Restart backend
-	@$(MAKE) --silent stop
-	@$(MAKE) --silent dev
+restart: ## Restart backend in PM2
+	@pm2 restart $(PM2_NAME)
 
 health: ## Check backend health
 	@printf "\033[34m→ Checking backend health...\033[0m\n"
 	@curl -s http://localhost:$(BACKEND_PORT)/health | python3 -m json.tool 2>/dev/null || printf "\033[33m⚠️  Backend not responding\033[0m\n"
 
-logs: ## Show backend logs
-	@tail -f $(BACKEND_LOG)
+logs: ## Show backend logs from PM2
+	@pm2 logs $(PM2_NAME)
 
-status: ## Show backend status
-	@printf "\033[1mBackend Status:\033[0m\n"
-	@if [ -f $(BACKEND_PID) ]; then \
-		pid=$$(cat $(BACKEND_PID)); \
-		if ps -p $$pid > /dev/null 2>&1; then \
-			printf "\033[32m● Running\033[0m (PID: $$pid)\n"; \
-			echo ""; \
-			$(MAKE) --silent health; \
-		else \
-			listeners=$$(lsof -t -iTCP:$(BACKEND_PORT) -sTCP:LISTEN 2>/dev/null | tr '\n' ' '); \
-			if [ -n "$$listeners" ]; then \
-				printf "\033[32m● Running\033[0m (port $(BACKEND_PORT), PID(s): $$listeners)\n"; \
-				echo ""; \
-				$(MAKE) --silent health; \
-			else \
-				printf "\033[33m○ Stopped\033[0m (stale PID file)\n"; \
-				rm $(BACKEND_PID); \
-			fi; \
-		fi; \
-	else \
-		listeners=$$(lsof -t -iTCP:$(BACKEND_PORT) -sTCP:LISTEN 2>/dev/null | tr '\n' ' '); \
-		if [ -n "$$listeners" ]; then \
-			printf "\033[32m● Running\033[0m (port $(BACKEND_PORT), PID(s): $$listeners)\n"; \
-			echo ""; \
-			$(MAKE) --silent health; \
-		else \
-			printf "\033[33m○ Stopped\033[0m\n"; \
-		fi; \
-	fi
+status: ## Show backend status from PM2
+	@printf "\033[1mBackend Status (PM2):\033[0m\n"
+	@pm2 show $(PM2_NAME) | grep -E "status|uptime|restarts|pid"
+	@echo ""
+	@$(MAKE) --silent health
 
 # =============================================================================
 # Dataset Generation
@@ -226,7 +172,7 @@ ray-check: ## Check localhost permission in package.json
 	@printf "\033[34m→ Checking localhost permission...\033[0m\n"
 	@if grep -q '"localhost": true' $(RAYCAST_DIR)/package.json; then \
 		printf "\033[32m✓ Localhost permission is present\033[0m\n"; \
-		printf "   Extension can connect to http://localhost:8000\n"; \
+		printf "   Extension can connect to http://localhost:$(BACKEND_PORT)\n"; \
 	else \
 		printf "\033[31m✗ CRITICAL: Localhost permission MISSING from package.json\033[0m\n"; \
 		printf "\n"; \
