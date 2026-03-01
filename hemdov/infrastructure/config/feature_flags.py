@@ -4,11 +4,13 @@
 This module provides feature flags for controlling the rollout of NLaC Pipeline v3.0 features.
 Flags can be set via environment variables or JSON configuration file.
 """
+
 import json
 import logging
 from dataclasses import dataclass
 from os import getenv
 from pathlib import Path
+
 from typing_extensions import Self
 
 logger = logging.getLogger(__name__)
@@ -77,14 +79,18 @@ class FeatureFlags:
         try:
             path.parent.mkdir(exist_ok=True)
             with open(path, "w") as f:
-                json.dump({
-                    "enable_dspy_embeddings": flags.enable_dspy_embeddings,
-                    "enable_cache": flags.enable_cache,
-                    "enable_ifeval": flags.enable_ifeval,
-                    "enable_metrics": flags.enable_metrics,
-                    "enable_enhanced_rar": flags.enable_enhanced_rar,
-                    "embedding_provider": flags.embedding_provider,
-                }, f, indent=2)
+                json.dump(
+                    {
+                        "enable_dspy_embeddings": flags.enable_dspy_embeddings,
+                        "enable_cache": flags.enable_cache,
+                        "enable_ifeval": flags.enable_ifeval,
+                        "enable_metrics": flags.enable_metrics,
+                        "enable_enhanced_rar": flags.enable_enhanced_rar,
+                        "embedding_provider": flags.embedding_provider,
+                    },
+                    f,
+                    indent=2,
+                )
         except OSError as e:
             logger.error(
                 "Failed to save feature flags",
@@ -92,7 +98,7 @@ class FeatureFlags:
                     "error_type": type(e).__name__,
                     "error_message": str(e),
                     "target_path": str(path),
-                }
+                },
             )
             raise
         except (TypeError, ValueError) as e:
@@ -101,7 +107,7 @@ class FeatureFlags:
                 extra={
                     "error_type": type(e).__name__,
                     "error_message": str(e),
-                }
+                },
             )
             raise
 
@@ -134,7 +140,7 @@ class FeatureFlags:
                     "error_type": type(e).__name__,
                     "error_message": str(e),
                     "source_path": str(path),
-                }
+                },
             )
             raise
         except json.JSONDecodeError as e:
@@ -146,7 +152,7 @@ class FeatureFlags:
                     "source_path": str(path),
                     "line": e.lineno,
                     "column": e.colno,
-                }
+                },
             )
             raise
 
@@ -167,7 +173,7 @@ class FeatureFlags:
                     "error_type": type(e).__name__,
                     "error_message": str(e),
                     "loaded_data": data,
-                }
+                },
             )
             raise
 
@@ -185,8 +191,8 @@ class FeatureFlags:
 if __name__ == "__main__":
     # Test feature flags
     flags = FeatureFlags()
-    print(flags)
+    print(flags)  # noqa: T201
 
     # Save to file
     FeatureFlags.save()
-    print("\nFeature flags saved to config/feature_flags.json")
+    print("\nFeature flags saved to config/feature_flags.json")  # noqa: T201

@@ -13,11 +13,12 @@ CLAUDE.md compliance:
 """
 
 import asyncio
-import traceback
-from aiosqlite import Error as AiosqliteError, IntegrityError, OperationalError, DatabaseError
 import logging
+import traceback
 
-from hemdov.domain.errors import ErrorCategory, LLMProviderError, PersistenceError, CacheError
+from aiosqlite import DatabaseError, IntegrityError, OperationalError
+
+from hemdov.domain.errors import CacheError, ErrorCategory, LLMProviderError, PersistenceError
 from hemdov.infrastructure.errors.ids import ErrorIds
 
 logger = logging.getLogger(__name__)
@@ -40,7 +41,7 @@ class ExceptionMapper:
         operation: str,
         db_path: str,
         entity_type: str = "Unknown",
-        query_context: str = ""
+        query_context: str = "",
     ) -> PersistenceError:
         """Map aiosqlite errors to PersistenceError with specific types.
 
@@ -75,14 +76,12 @@ class ExceptionMapper:
             "db_path": str(db_path),  # Infrastructure detail in context
             "original_exception": error_type,
             "query_context": query_context[:200] if query_context else "",
-            "traceback": traceback.format_exc(limit=10)  # Stack trace for debugging
+            "traceback": traceback.format_exc(limit=10),  # Stack trace for debugging
         }
 
         # Log with structured context for Sentry
         logger.error(
-            f"Database error in {operation}: {error_type}: {e}. "
-            f"Error ID: {error_id}",
-            extra=context
+            f"Database error in {operation}: {error_type}: {e}. Error ID: {error_id}", extra=context
         )
 
         return PersistenceError(
@@ -91,15 +90,12 @@ class ExceptionMapper:
             error_id=error_id,
             context=context,
             entity_type=entity_type,  # Domain concept
-            operation=operation  # Domain concept
+            operation=operation,  # Domain concept
         )
 
     @staticmethod
     def map_llm_error(
-        e: Exception,
-        provider: str,
-        model: str,
-        prompt_length: int = 0
+        e: Exception, provider: str, model: str, prompt_length: int = 0
     ) -> LLMProviderError:
         """Map LLM provider errors to LLMProviderError.
 
@@ -135,14 +131,13 @@ class ExceptionMapper:
             "model": model,
             "prompt_length": str(prompt_length),
             "original_exception": error_type,
-            "traceback": traceback.format_exc(limit=10)
+            "traceback": traceback.format_exc(limit=10),
         }
 
         # Log with structured context
         logger.error(
-            f"LLM error for {provider}/{model}: {error_type}: {e}. "
-            f"Error ID: {error_id}",
-            extra=context
+            f"LLM error for {provider}/{model}: {error_type}: {e}. Error ID: {error_id}",
+            extra=context,
         )
 
         return LLMProviderError(
@@ -152,15 +147,12 @@ class ExceptionMapper:
             context=context,
             provider=provider,
             model=model,
-            original_exception=error_type
+            original_exception=error_type,
         )
 
     @staticmethod
     def map_cache_error(
-        e: Exception,
-        operation: str,
-        cache_key: str,
-        prompt_id: str = ""
+        e: Exception, operation: str, cache_key: str, prompt_id: str = ""
     ) -> CacheError:
         """Map cache operation errors to CacheError.
 
@@ -187,14 +179,14 @@ class ExceptionMapper:
             "cache_key": cache_key[:8],  # First 8 chars for logging
             "prompt_id": prompt_id,
             "original_exception": error_type,
-            "traceback": traceback.format_exc(limit=10)
+            "traceback": traceback.format_exc(limit=10),
         }
 
         # Log with structured context
         logger.error(
             f"Cache {operation} failed for {cache_key[:8]}: {error_type}: {e}. "
             f"Error ID: {error_id}",
-            extra=context
+            extra=context,
         )
 
         return CacheError(
@@ -203,5 +195,5 @@ class ExceptionMapper:
             error_id=error_id,
             context=context,
             cache_key=cache_key,
-            operation=operation
+            operation=operation,
         )

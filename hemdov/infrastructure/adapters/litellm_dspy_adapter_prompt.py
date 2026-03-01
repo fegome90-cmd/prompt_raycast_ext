@@ -148,9 +148,7 @@ def create_anthropic_adapter(
         PromptImproverLiteLLMAdapter configured for Anthropic
     """
     resolved_api_key = (
-        api_key
-        or os.getenv("ANTHROPIC_API_KEY")
-        or os.getenv("HEMDOV_ANTHROPIC_API_KEY")
+        api_key or os.getenv("ANTHROPIC_API_KEY") or os.getenv("HEMDOV_ANTHROPIC_API_KEY")
     )
 
     adapter_kwargs = {
