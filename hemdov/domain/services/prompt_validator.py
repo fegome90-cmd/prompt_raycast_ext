@@ -74,9 +74,7 @@ class PromptValidator:
         if max_tokens is not None:
             template_length = len(template)
             if template_length > max_tokens:
-                warnings.append(
-                    f"Template exceeds max_tokens: {template_length} > {max_tokens}"
-                )
+                warnings.append(f"Template exceeds max_tokens: {template_length} > {max_tokens}")
 
         # 2. Check format constraints
         format_req = constraints.get("format", "")
@@ -133,8 +131,13 @@ class PromptValidator:
     def _has_examples(self, template: str) -> bool:
         """Check if template contains examples."""
         example_indicators = [
-            "example", "for instance", "e.g.", "such as",
-            "ejemplo", "por ejemplo", "por ejemplo:"
+            "example",
+            "for instance",
+            "e.g.",
+            "such as",
+            "ejemplo",
+            "por ejemplo",
+            "por ejemplo:",
         ]
         template_lower = template.lower()
         return any(indicator in template_lower for indicator in example_indicators)
@@ -142,8 +145,15 @@ class PromptValidator:
     def _has_explanation(self, template: str) -> bool:
         """Check if template includes explanation/reasoning."""
         explanation_indicators = [
-            "explain", "because", "reason", "why", "how",
-            "explica", "porque", "razón", "cómo"
+            "explain",
+            "because",
+            "reason",
+            "why",
+            "how",
+            "explica",
+            "porque",
+            "razón",
+            "cómo",
         ]
         template_lower = template.lower()
         return any(indicator in template_lower for indicator in explanation_indicators)
@@ -159,7 +169,7 @@ class PromptValidator:
         Returns:
             True if correction succeeded, False otherwise
         """
-        llm_client = getattr(self, 'llm_client', None)
+        llm_client = getattr(self, "llm_client", None)
         if not llm_client:
             # No LLM client, perform simple autocorrections
             return self._simple_autocorrect(prompt_obj, warnings)
@@ -170,14 +180,12 @@ class PromptValidator:
             corrected = llm_client.correct(prompt_obj.template, correction_prompt)
             if corrected and corrected != prompt_obj.template:
                 # Update prompt object with corrected template
-                object.__setattr__(prompt_obj, 'template', corrected)
-                object.__setattr__(prompt_obj, 'updated_at', datetime.now(UTC).isoformat())
+                object.__setattr__(prompt_obj, "template", corrected)
+                object.__setattr__(prompt_obj, "updated_at", datetime.now(UTC).isoformat())
                 logger.info("Autocorrection successful")
                 return True
         except (ConnectionError, TimeoutError, RuntimeError, ValueError) as e:
-            logger.exception(
-                f"LLM autocorrection failed. Error: {type(e).__name__}"
-            )
+            logger.exception(f"LLM autocorrection failed. Error: {type(e).__name__}")
 
         return False
 
@@ -201,31 +209,31 @@ class PromptValidator:
         if any("markdown" in w.lower() and "missing" in w.lower() for w in warnings):
             if "def " in template or "function " in template:
                 # Add code blocks around function definitions
-                lines = template.split('\n')
+                lines = template.split("\n")
                 in_code_block = False
                 new_lines = []
                 for line in lines:
-                    if line.strip().startswith(('def ', 'function ', 'class ')):
+                    if line.strip().startswith(("def ", "function ", "class ")):
                         if not in_code_block:
-                            new_lines.append('```python')
+                            new_lines.append("```python")
                             in_code_block = True
                     new_lines.append(line)
                 if in_code_block:
-                    new_lines.append('```')
-                template = '\n'.join(new_lines)
+                    new_lines.append("```")
+                template = "\n".join(new_lines)
                 corrected = True
 
         # Fix 3: Remove code blocks if markdown is prohibited
         if any("markdown" in w.lower() and "prohibited" in w.lower() for w in warnings):
             # Remove markdown code blocks
-            template = template.replace('```', '')
-            template = template.replace('`', '"')
+            template = template.replace("```", "")
+            template = template.replace("`", '"')
             corrected = True
 
         # Apply corrections if any were made
         if corrected and template != original_template:
-            object.__setattr__(prompt_obj, 'template', template)
-            object.__setattr__(prompt_obj, 'updated_at', datetime.now(UTC).isoformat())
+            object.__setattr__(prompt_obj, "template", template)
+            object.__setattr__(prompt_obj, "updated_at", datetime.now(UTC).isoformat())
             logger.info("Simple autocorrection applied")
             return True
 
@@ -233,7 +241,7 @@ class PromptValidator:
 
     def _build_correction_prompt(self, prompt_obj: PromptObject, warnings: list[str]) -> str:
         """Build correction prompt for LLM."""
-        issues = '\n'.join(f'- {w}' for w in warnings)
+        issues = "\n".join(f"- {w}" for w in warnings)
 
         return f"""Your previous response had issues:
 {issues}

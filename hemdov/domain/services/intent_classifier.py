@@ -35,35 +35,64 @@ class IntentClassifier:
     INTENT_EXPLAIN = "explain"
 
     # Debug sub-types (for routing to different strategies)
-    DEBUG_RUNTIME = "debug_runtime"      # Scenario II: code + error_log
-    DEBUG_VAGUE = "debug_vague"          # Vague error description
+    DEBUG_RUNTIME = "debug_runtime"  # Scenario II: code + error_log
+    DEBUG_VAGUE = "debug_vague"  # Vague error description
 
     # Refactor sub-types
-    REFACTOR_LOGIC = "refactor_logic"    # Scenario III: incorrect outputs
+    REFACTOR_LOGIC = "refactor_logic"  # Scenario III: incorrect outputs
     REFACTOR_PERFORMANCE = "refactor_performance"
 
     def __init__(self):
         """Initialize classifier with keyword patterns."""
         # Debug keywords (negative sentiment + error indicators)
         self._debug_keywords = {
-            "error", "bug", "fix", "broken", "crash", "fail",
-            "incorrecto", "fallo", "rompe", "no funciona"
+            "error",
+            "bug",
+            "fix",
+            "broken",
+            "crash",
+            "fail",
+            "incorrecto",
+            "fallo",
+            "rompe",
+            "no funciona",
         }
 
         # Refactor/Optimization verbs
         self._refactor_verbs = {
-            "optimizar", "mejorar", "refactorizar", "optimise",
-            "improve", "refactor", "optimize", "clean up"
+            "optimizar",
+            "mejorar",
+            "refactorizar",
+            "optimise",
+            "improve",
+            "refactor",
+            "optimize",
+            "clean up",
         }
 
         # Explain keywords (includes review/analysis in Spanish)
         self._explain_keywords = {
-            "explain", "how does", "why", "qué es", "cómo funciona",
-            "explicar", "entender", "understand",
-            "revisión", "revisar", "revision", "review",  # Review/analyze
-            "auditoría", "auditoria", "audit",  # Audit
-            "analizar", "análisis", "analysis", "analyze",  # Analysis
-            "examinar", "examine",  # Examine
+            "explain",
+            "how does",
+            "why",
+            "qué es",
+            "cómo funciona",
+            "explicar",
+            "entender",
+            "understand",
+            "revisión",
+            "revisar",
+            "revision",
+            "review",  # Review/analyze
+            "auditoría",
+            "auditoria",
+            "audit",  # Audit
+            "analizar",
+            "análisis",
+            "analysis",
+            "analyze",  # Analysis
+            "examinar",
+            "examine",  # Examine
         }
 
         # Frustration indicators (negative sentiment)
@@ -172,8 +201,7 @@ class IntentClassifier:
         """
         # Check for frustration patterns
         has_frustration = any(
-            re.search(pattern, idea_lower, re.IGNORECASE)
-            for pattern in self._frustration_patterns
+            re.search(pattern, idea_lower, re.IGNORECASE) for pattern in self._frustration_patterns
         )
 
         # Check for negative emotion + error keywords
@@ -195,13 +223,29 @@ class IntentClassifier:
             "positive", "neutral", or "negative"
         """
         negative_words = {
-            "error", "fail", "broken", "wrong", "bad", "frustrating",
-            "fallo", "roto", "mal", "frustrante"
+            "error",
+            "fail",
+            "broken",
+            "wrong",
+            "bad",
+            "frustrating",
+            "fallo",
+            "roto",
+            "mal",
+            "frustrante",
         }
 
         positive_words = {
-            "good", "great", "perfect", "excellent", "thanks",
-            "bien", "genial", "perfecto", "excelente", "gracias"
+            "good",
+            "great",
+            "perfect",
+            "excellent",
+            "thanks",
+            "bien",
+            "genial",
+            "perfecto",
+            "excelente",
+            "gracias",
         }
 
         text_lower = text.lower()

@@ -46,6 +46,7 @@ class ValidationResult:
 # Constraint Implementations
 # ============================================================================
 
+
 def min_length_constraint(min_chars: int = 50) -> Constraint:
     """
     Constraint: Prompt must have minimum length.
@@ -56,6 +57,7 @@ def min_length_constraint(min_chars: int = 50) -> Constraint:
     Returns:
         Constraint function
     """
+
     def check(prompt: str) -> tuple[bool, str]:
         length = len(prompt.strip())
         passed = length >= min_chars
@@ -70,7 +72,7 @@ def action_verbs_constraint(verbs: list[str] | None = None) -> Constraint:
     Constraint: Prompt must contain at least one action verb.
 
     Args:
-        verbs: List of action verbs to check (default: create, implement, write, build, develop, add)
+        verbs: Action verbs to check (default: create, implement, write, build, develop, add)
 
     Returns:
         Constraint function
@@ -98,6 +100,7 @@ def json_format_constraint() -> Constraint:
     Returns:
         Constraint function
     """
+
     def check(prompt: str) -> tuple[bool, str]:
         try:
             json.loads(prompt)
@@ -106,7 +109,11 @@ def json_format_constraint() -> Constraint:
         except json.JSONDecodeError:
             # Try to see if it's a JSON-like structure
             prompt_stripped = prompt.strip()
-            if prompt_stripped.startswith(('{', '[', '"')) or prompt_stripped in ('true', 'false', 'null'):
+            if prompt_stripped.startswith(("{", "[", '"')) or prompt_stripped in (
+                "true",
+                "false",
+                "null",
+            ):
                 passed = False
                 reason = "Invalid JSON syntax"
             else:
@@ -130,6 +137,7 @@ CONSTRAINTS: list[Constraint] = [
 # ============================================================================
 # IFEval Validator
 # ============================================================================
+
 
 class IFEvalValidator:
     """
@@ -220,9 +228,9 @@ if __name__ == "__main__":
 
     for prompt in test_prompts:
         result = validator.validate(prompt)
-        print(f"\nPrompt: {prompt[:50]}...")
-        print(f"  Score: {result.score:.2f}")
-        print(f"  Passed: {result.passed} (threshold: {validator.threshold})")
+        print(f"\nPrompt: {prompt[:50]}...")  # noqa: T201
+        print(f"  Score: {result.score:.2f}")  # noqa: T201
+        print(f"  Passed: {result.passed} (threshold: {validator.threshold})")  # noqa: T201
         for name, (passed, reason) in result.details.items():
             status = "✅" if passed else "❌"
-            print(f"    {status} {name}: {reason}")
+            print(f"    {status} {name}: {reason}")  # noqa: T201
