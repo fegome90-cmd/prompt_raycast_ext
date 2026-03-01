@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ReflexionResult:
     """Result of Reflexion refinement loop."""
+
     code: str
     iteration_count: int
     success: bool
@@ -59,7 +60,7 @@ class ReflexionService:
         error_type: str,
         error_message: str | None = None,
         max_iterations: int = 2,
-        initial_context: str | None = None
+        initial_context: str | None = None,
     ) -> ReflexionResult:
         """
         Run Reflexion loop to fix/debug code.
@@ -92,10 +93,7 @@ class ReflexionService:
 
         error_history: list[str] = []
         current_prompt = self._build_initial_prompt(
-            prompt,
-            error_type,
-            error_message,
-            initial_context
+            prompt, error_type, error_message, initial_context
         )
 
         for iteration in range(1, max_iterations + 1):
@@ -119,20 +117,20 @@ class ReflexionService:
                     iteration_count=iteration,
                     success=False,
                     error_history=error_history + [str(e)],
-                    final_error=f"LLM generation failed: {e}"
+                    final_error=f"LLM generation failed: {e}",
                 )
 
             # Try to execute if executor provided
             if self.executor:
                 try:
-                    result = self.executor(code)
+                    self.executor(code)  # Execute to verify it works
                     # Success!
                     logger.info(f"Reflexion converged in {iteration} iterations")
                     return ReflexionResult(
                         code=code,
                         iteration_count=iteration,
                         success=True,
-                        error_history=error_history
+                        error_history=error_history,
                     )
                 except (RuntimeError, TimeoutError, ValueError, TypeError, KeyError) as e:
                     # Execution failed - add error to context
@@ -146,18 +144,13 @@ class ReflexionService:
                     # Build prompt with error feedback for next iteration
                     if iteration < max_iterations:
                         current_prompt = self._build_feedback_prompt(
-                            current_prompt,
-                            code,
-                            error_msg
+                            current_prompt, code, error_msg
                         )
             else:
                 # No executor - assume success after first iteration
                 logger.info("Reflexion generated code (no execution validation)")
                 return ReflexionResult(
-                    code=code,
-                    iteration_count=iteration,
-                    success=True,
-                    error_history=error_history
+                    code=code, iteration_count=iteration, success=True, error_history=error_history
                 )
 
         # Max iterations reached
@@ -167,7 +160,7 @@ class ReflexionService:
             iteration_count=max_iterations,
             success=False,
             error_history=error_history,
-            final_error=error_history[-1] if error_history else None
+            final_error=error_history[-1] if error_history else None,
         )
 
     def _build_initial_prompt(
@@ -175,7 +168,7 @@ class ReflexionService:
         prompt: str,
         error_type: str,
         error_message: str | None = None,
-        context: str | None = None
+        context: str | None = None,
     ) -> str:
         """Build initial debugging prompt."""
         parts = [
@@ -189,36 +182,39 @@ class ReflexionService:
         ]
 
         if error_message:
-            parts.extend([
-                "",
-                "# Error Details",
-                error_message,
-            ])
+            parts.extend(
+                [
+                    "",
+                    "# Error Details",
+                    error_message,
+                ]
+            )
 
         if context:
-            parts.extend([
-                "",
-                "# Code Context",
-                "```",
-                context,
-                "```",
-            ])
+            parts.extend(
+                [
+                    "",
+                    "# Code Context",
+                    "```",
+                    context,
+                    "```",
+                ]
+            )
 
-        parts.extend([
-            "",
-            "# Instructions",
-            "1. Identify the root cause",
-            "2. Provide a corrected version of the code",
-            "3. Include comments explaining the fix",
-        ])
+        parts.extend(
+            [
+                "",
+                "# Instructions",
+                "1. Identify the root cause",
+                "2. Provide a corrected version of the code",
+                "3. Include comments explaining the fix",
+            ]
+        )
 
         return "\n".join(parts)
 
     def _build_feedback_prompt(
-        self,
-        previous_prompt: str,
-        previous_code: str,
-        error_message: str
+        self, previous_prompt: str, previous_code: str, error_message: str
     ) -> str:
         """Build prompt with error feedback for next iteration."""
         return f"""{previous_prompt}

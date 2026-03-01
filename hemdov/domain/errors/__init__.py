@@ -19,6 +19,7 @@ class ErrorCategory(Enum):
     - FILE_IO → 400/503 (depends on error type)
     - VALIDATION → 400 (BadRequest)
     """
+
     LLM_PROVIDER = "llm_provider"
     CACHE_OPERATION = "cache_operation"
     DATA_CORRUPTION = "data_corruption"
@@ -41,6 +42,7 @@ class DomainError:
         error_id: Unique ID for Sentry tracking (from ErrorIds class)
         context: Structured logging context (key-value pairs for debugging)
     """
+
     category: ErrorCategory
     message: str
     error_id: str
@@ -56,13 +58,14 @@ class DomainError:
             "category": self.category.value,
             "message": self.message,
             "error_id": self.error_id,
-            **self.context
+            **self.context,
         }
 
 
 @dataclass(frozen=True)
 class LLMProviderError(DomainError):
     """Error from LLM provider (OpenAI, Anthropic, Ollama, etc.)."""
+
     provider: str  # "anthropic", "openai", "ollama"
     model: str  # "claude-haiku-4-5", "gpt-4"
     original_exception: str  # Exception type name (not the exception itself)
@@ -71,6 +74,7 @@ class LLMProviderError(DomainError):
 @dataclass(frozen=True)
 class CacheError(DomainError):
     """Error in cache operations (get, set, update, delete)."""
+
     cache_key: str  # The cache key being accessed
     operation: str  # "get", "set", "update", "delete"
 
@@ -87,6 +91,7 @@ class PersistenceError(DomainError):
         entity_type: The type of entity being persisted ("PromptHistory", "Metrics")
         operation: The persistence operation ("save", "find", "delete", "initialize")
     """
+
     entity_type: str  # "PromptHistory", "Metrics", "CacheEntry"
     operation: str  # "save", "find", "delete", "initialize"
     # db_path, connection details, etc. go in context dict

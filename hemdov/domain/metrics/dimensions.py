@@ -16,6 +16,7 @@ from enum import Enum
 
 class FrameworkType(Enum):
     """Allowed framework types."""
+
     CHAIN_OF_THOUGHT = "chain-of-thought"
     TREE_OF_THOUGHTS = "tree-of-thoughts"
     DECOMPOSITION = "decomposition"
@@ -25,6 +26,7 @@ class FrameworkType(Enum):
 # ============================================================================
 # QUALITY DIMENSIONS
 # ============================================================================
+
 
 @dataclass(frozen=True)
 class QualityMetrics:
@@ -59,10 +61,10 @@ class QualityMetrics:
         """Calculate composite score."""
         # Weighted average: coherence (30%) + relevance (30%) + completeness (20%) + clarity (20%)
         composite = (
-            self.coherence_score * 0.30 +
-            self.relevance_score * 0.30 +
-            self.completeness_score * 0.20 +
-            self.clarity_score * 0.20
+            self.coherence_score * 0.30
+            + self.relevance_score * 0.30
+            + self.completeness_score * 0.20
+            + self.clarity_score * 0.20
         )
 
         # Bonus for having guardrails (+5% per guardrail, max +15%)
@@ -72,7 +74,7 @@ class QualityMetrics:
         structure_bonus = 0.10 if self.has_required_structure else 0.0
 
         final_score = min(1.0, composite + guardrails_bonus + structure_bonus)
-        object.__setattr__(self, 'composite_score', final_score)
+        object.__setattr__(self, "composite_score", final_score)
 
     @property
     def grade(self) -> str:
@@ -92,6 +94,7 @@ class QualityMetrics:
 # ============================================================================
 # PERFORMANCE DIMENSIONS
 # ============================================================================
+
 
 @dataclass(frozen=True)
 class PerformanceMetrics:
@@ -136,7 +139,7 @@ class PerformanceMetrics:
 
         # Composite: latency (50%) + cost (30%) + tokens (20%)
         performance = latency_score * 0.50 + cost_score * 0.30 + token_score * 0.20
-        object.__setattr__(self, 'performance_score', performance)
+        object.__setattr__(self, "performance_score", performance)
 
     @property
     def grade(self) -> str:
@@ -156,6 +159,7 @@ class PerformanceMetrics:
 # ============================================================================
 # IMPACT DIMENSIONS
 # ============================================================================
+
 
 @dataclass(frozen=True)
 class ImpactMetrics:
@@ -188,7 +192,7 @@ class ImpactMetrics:
         # Success rate: first attempt success
         total_attempts = self.copy_count + self.regeneration_count
         success_rate = (self.copy_count / total_attempts) if total_attempts > 0 else 0.0
-        object.__setattr__(self, 'success_rate', success_rate)
+        object.__setattr__(self, "success_rate", success_rate)
 
         # Impact components
         copy_score = min(1.0, self.copy_count / 3)  # 3+ copies = max
@@ -198,12 +202,9 @@ class ImpactMetrics:
 
         # Composite: copy (30%) + success (30%) + feedback (25%) + reuse (15%)
         impact = (
-            copy_score * 0.30 +
-            success_score * 0.30 +
-            feedback_score * 0.25 +
-            reuse_score * 0.15
+            copy_score * 0.30 + success_score * 0.30 + feedback_score * 0.25 + reuse_score * 0.15
         )
-        object.__setattr__(self, 'impact_score', impact)
+        object.__setattr__(self, "impact_score", impact)
 
     @property
     def grade(self) -> str:
@@ -223,6 +224,7 @@ class ImpactMetrics:
 # ============================================================================
 # IMPROVEMENT DIMENSIONS
 # ============================================================================
+
 
 @dataclass(frozen=True)
 class ImprovementMetrics:
@@ -262,17 +264,17 @@ class ImprovementMetrics:
         performance_delta = self.current_performance - self.baseline_performance
         impact_delta = self.current_impact - self.baseline_impact
 
-        object.__setattr__(self, 'quality_delta', quality_delta)
-        object.__setattr__(self, 'performance_delta', performance_delta)
-        object.__setattr__(self, 'impact_delta', impact_delta)
+        object.__setattr__(self, "quality_delta", quality_delta)
+        object.__setattr__(self, "performance_delta", performance_delta)
+        object.__setattr__(self, "impact_delta", impact_delta)
 
         # Composite improvement: quality (40%) + performance (30%) + impact (30%)
         improvement = (
-            (quality_delta if quality_delta > 0 else quality_delta * 0.5) * 0.40 +
-            (performance_delta if performance_delta > 0 else performance_delta * 0.5) * 0.30 +
-            (impact_delta if impact_delta > 0 else impact_delta * 0.5) * 0.30
+            (quality_delta if quality_delta > 0 else quality_delta * 0.5) * 0.40
+            + (performance_delta if performance_delta > 0 else performance_delta * 0.5) * 0.30
+            + (impact_delta if impact_delta > 0 else impact_delta * 0.5) * 0.30
         )
-        object.__setattr__(self, 'improvement_score', improvement)
+        object.__setattr__(self, "improvement_score", improvement)
 
     @property
     def trend(self) -> str:
@@ -292,6 +294,7 @@ class ImprovementMetrics:
 # ============================================================================
 # COMPOSITE METRICS
 # ============================================================================
+
 
 @dataclass(frozen=True)
 class PromptMetrics:
@@ -326,11 +329,11 @@ class PromptMetrics:
         # Weighted: quality (50%) + performance (25%) + impact (25%)
         # Quality gets highest weight as it's the primary value
         overall = (
-            self.quality.composite_score * 0.50 +
-            self.performance.performance_score * 0.25 +
-            self.impact.impact_score * 0.25
+            self.quality.composite_score * 0.50
+            + self.performance.performance_score * 0.25
+            + self.impact.impact_score * 0.25
         )
-        object.__setattr__(self, 'overall_score', overall)
+        object.__setattr__(self, "overall_score", overall)
 
     @property
     def grade(self) -> str:
@@ -358,9 +361,9 @@ class PromptMetrics:
     def is_acceptable(self) -> bool:
         """Check if metrics meet minimum quality threshold."""
         return (
-            self.quality.composite_score >= 0.60 and  # C or better
-            self.performance.performance_score >= 0.40 and  # C or better
-            self.impact.success_rate >= 0.50  # 50% success rate
+            self.quality.composite_score >= 0.60  # C or better
+            and self.performance.performance_score >= 0.40  # C or better
+            and self.impact.success_rate >= 0.50  # 50% success rate
         )
 
     def to_dict(self) -> dict:
@@ -405,5 +408,5 @@ class PromptMetrics:
                 "provider": self.provider,
                 "model": self.model,
                 "backend": self.backend,
-            }
+            },
         }

@@ -74,15 +74,11 @@ class NLaCBuilder:
         intent_type = self.intent_classifier.get_intent_type(intent_str)
 
         logger.debug(
-            f"Building PromptObject | intent={intent_type} | "
-            f"idea_length={len(request.idea)}"
+            f"Building PromptObject | intent={intent_type} | idea_length={len(request.idea)}"
         )
 
         # Step 2: Analyze complexity
-        complexity = self.complexity_analyzer.analyze(
-            request.idea,
-            request.context
-        )
+        complexity = self.complexity_analyzer.analyze(request.idea, request.context)
 
         # Step 3: Select strategy
         strategy = self._select_strategy(complexity, intent_str)
@@ -108,14 +104,15 @@ class NLaCBuilder:
                     complexity=complexity.value,
                     k=k,
                     has_expected_output=has_expected_output,
-                    user_input=request.idea
+                    user_input=request.idea,
                 )
-                logger.info(f"Fetched {len(fewshot_examples)} KNN examples for {intent_str}/{complexity.value}")
+                logger.info(
+                    f"Fetched {len(fewshot_examples)} KNN examples "
+                    f"for {intent_str}/{complexity.value}"
+                )
             except (KNNProviderError, ConnectionError, TimeoutError) as e:
                 # Expected transient failures - degrade gracefully
-                knn_failed, knn_error = handle_knn_failure(
-                    logger, "NLaCBuilder.build", e
-                )
+                knn_failed, knn_error = handle_knn_failure(logger, "NLaCBuilder.build", e)
                 # Continue with empty examples list
             except (RuntimeError, KeyError, TypeError, ValueError) as e:
                 # Code bugs - should propagate to surface the issue
@@ -220,7 +217,9 @@ class NLaCBuilder:
             else:
                 return "Software Engineer"
 
-    def _build_simple_template(self, request: NLaCRequest, role: str, fewshot_examples: list[FewShotExample] | None = None) -> str:
+    def _build_simple_template(
+        self, request: NLaCRequest, role: str, fewshot_examples: list[FewShotExample] | None = None
+    ) -> str:
         """Build simple template without RaR, optionally with few-shot examples."""
         template_parts = [
             f"# Role\nYou are a {role}.",
@@ -233,59 +232,75 @@ class NLaCBuilder:
 
         # Add context if provided
         if request.context and request.context.strip():
-            template_parts.extend([
-                "",
-                "# Context",
-                request.context,
-            ])
+            template_parts.extend(
+                [
+                    "",
+                    "# Context",
+                    request.context,
+                ]
+            )
 
         # Add structured inputs (code snippet, error log)
         if request.inputs:
             if request.inputs.code_snippet:
-                template_parts.extend([
-                    "",
-                    "# Code",
-                    "```",
-                    request.inputs.code_snippet,
-                    "```",
-                ])
+                template_parts.extend(
+                    [
+                        "",
+                        "# Code",
+                        "```",
+                        request.inputs.code_snippet,
+                        "```",
+                    ]
+                )
 
             if request.inputs.error_log:
-                template_parts.extend([
-                    "",
-                    "# Error",
-                    request.inputs.error_log,
-                ])
+                template_parts.extend(
+                    [
+                        "",
+                        "# Error",
+                        request.inputs.error_log,
+                    ]
+                )
 
             if request.inputs.target_language:
-                template_parts.extend([
-                    "",
-                    f"# Target Language: {request.inputs.target_language}",
-                ])
+                template_parts.extend(
+                    [
+                        "",
+                        f"# Target Language: {request.inputs.target_language}",
+                    ]
+                )
 
         # Add few-shot examples if available
         if fewshot_examples:
-            template_parts.extend([
-                "",
-                "# Examples",
-                "Here are some similar examples to guide you:",
-                "",
-            ])
+            template_parts.extend(
+                [
+                    "",
+                    "# Examples",
+                    "Here are some similar examples to guide you:",
+                    "",
+                ]
+            )
             for i, ex in enumerate(fewshot_examples, 1):
-                template_parts.extend([
-                    f"## Example {i}",
-                    f"**Input:** {ex.input_idea}",
-                ])
+                template_parts.extend(
+                    [
+                        f"## Example {i}",
+                        f"**Input:** {ex.input_idea}",
+                    ]
+                )
                 if ex.input_context:
                     template_parts.append(f"**Context:** {ex.input_context}")
-                template_parts.extend([
-                    f"**Output:** {ex.improved_prompt}",
-                    "",
-                ])
+                template_parts.extend(
+                    [
+                        f"**Output:** {ex.improved_prompt}",
+                        "",
+                    ]
+                )
 
         return "\n".join(template_parts)
 
-    def _build_rar_template(self, request: NLaCRequest, role: str, fewshot_examples: list[FewShotExample] | None = None) -> str:
+    def _build_rar_template(
+        self, request: NLaCRequest, role: str, fewshot_examples: list[FewShotExample] | None = None
+    ) -> str:
         """
         Build template with RaR (Rephrase and Respond) and few-shot examples.
 
@@ -311,69 +326,85 @@ class NLaCBuilder:
         template_parts.append(f"**Rephrased Understanding:** {rephrase}")
 
         # Add the structured response section
-        template_parts.extend([
-            "",
-            "# Task",
-            "Based on the above understanding, please:",
-        ])
+        template_parts.extend(
+            [
+                "",
+                "# Task",
+                "Based on the above understanding, please:",
+            ]
+        )
 
         # Add context if provided
         if request.context and request.context.strip():
-            template_parts.extend([
-                "",
-                "## Additional Context",
-                request.context,
-            ])
+            template_parts.extend(
+                [
+                    "",
+                    "## Additional Context",
+                    request.context,
+                ]
+            )
 
         # Add structured inputs
         if request.inputs:
             if request.inputs.code_snippet:
-                template_parts.extend([
-                    "",
-                    "## Code to Work With",
-                    "```",
-                    request.inputs.code_snippet,
-                    "```",
-                ])
+                template_parts.extend(
+                    [
+                        "",
+                        "## Code to Work With",
+                        "```",
+                        request.inputs.code_snippet,
+                        "```",
+                    ]
+                )
 
             if request.inputs.error_log:
-                template_parts.extend([
-                    "",
-                    "## Error Information",
-                    request.inputs.error_log,
-                ])
+                template_parts.extend(
+                    [
+                        "",
+                        "## Error Information",
+                        request.inputs.error_log,
+                    ]
+                )
 
             if request.inputs.target_framework:
                 template_parts.append(f"\n**Framework:** {request.inputs.target_framework}")
 
         # Add few-shot examples if available
         if fewshot_examples:
-            template_parts.extend([
-                "",
-                "## Reference Examples",
-                "These examples may help guide your approach:",
-                "",
-            ])
+            template_parts.extend(
+                [
+                    "",
+                    "## Reference Examples",
+                    "These examples may help guide your approach:",
+                    "",
+                ]
+            )
             for i, ex in enumerate(fewshot_examples[:3], 1):  # Limit to 3 for RAR
-                template_parts.extend([
-                    f"### Example {i}",
-                    f"**Request:** {ex.input_idea}",
-                ])
+                template_parts.extend(
+                    [
+                        f"### Example {i}",
+                        f"**Request:** {ex.input_idea}",
+                    ]
+                )
                 if ex.input_context:
                     template_parts.append(f"**Context:** {ex.input_context}")
-                template_parts.extend([
-                    f"**Response:** {ex.improved_prompt}",
-                    "",
-                ])
+                template_parts.extend(
+                    [
+                        f"**Response:** {ex.improved_prompt}",
+                        "",
+                    ]
+                )
 
         # Add requirements
-        template_parts.extend([
-            "",
-            "## Requirements",
-            "- Provide a clear, well-structured response",
-            "- Include code examples where applicable",
-            "- Explain your reasoning",
-        ])
+        template_parts.extend(
+            [
+                "",
+                "## Requirements",
+                "- Provide a clear, well-structured response",
+                "- Include code examples where applicable",
+                "- Explain your reasoning",
+            ]
+        )
 
         return "\n".join(template_parts)
 
@@ -406,7 +437,9 @@ class NLaCBuilder:
         result = " ".join(rephrase_parts)
         return result[0].upper() + result[1:] if result else "Process the request"
 
-    def _build_constraints(self, request: NLaCRequest, complexity: ComplexityLevel) -> dict[str, object]:
+    def _build_constraints(
+        self, request: NLaCRequest, complexity: ComplexityLevel
+    ) -> dict[str, object]:
         """Build constraints dict for the prompt."""
         constraints: dict[str, object] = {}
 

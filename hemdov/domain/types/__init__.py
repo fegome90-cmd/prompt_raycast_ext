@@ -1,11 +1,11 @@
 """Domain type definitions."""
 
 from hemdov.domain.types.result import (
-    Success,
     Failure,
     Result,
-    is_success,
+    Success,
     is_failure,
+    is_success,
 )
 
 __all__ = ["Success", "Failure", "Result", "is_success", "is_failure"]

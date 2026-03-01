@@ -116,6 +116,7 @@ def estimate_tokens(text: str) -> int:
 # QUALITY EVALUATORS
 # ============================================================================
 
+
 class QualityEvaluator:
     """
     Evaluates quality metrics from improved prompt.
@@ -193,7 +194,9 @@ class QualityEvaluator:
 
         # Required structure check
         has_role = any(re.search(p, improved_prompt, re.IGNORECASE) for p in cls.ROLE_PATTERNS)
-        has_directive = any(re.search(p, improved_prompt, re.IGNORECASE) for p in cls.DIRECTIVE_PATTERNS)
+        has_directive = any(
+            re.search(p, improved_prompt, re.IGNORECASE) for p in cls.DIRECTIVE_PATTERNS
+        )
         has_required_structure = has_role and has_directive
 
         return QualityMetrics(
@@ -296,8 +299,14 @@ class QualityEvaluator:
 
         # Penalty for vague terms
         vague_terms = [
-            "etc", "etcetera", "and so on", "things like that",
-            "stuff", "whatever", "something", "somehow",
+            "etc",
+            "etcetera",
+            "and so on",
+            "things like that",
+            "stuff",
+            "whatever",
+            "something",
+            "somehow",
         ]
         for term in vague_terms:
             if re.search(r"\b" + term + r"\b", prompt, re.IGNORECASE):
@@ -328,9 +337,11 @@ class QualityEvaluator:
 # PERFORMANCE EVALUATORS
 # ============================================================================
 
+
 @dataclass
 class PromptImprovementResult:
     """Result of a prompt improvement operation."""
+
     improved_prompt: str
     role: str
     directive: str
@@ -397,9 +408,11 @@ class PerformanceEvaluator:
 # IMPACT EVALUATORS
 # ============================================================================
 
+
 @dataclass
 class ImpactData:
     """User interaction data for impact evaluation."""
+
     copy_count: int = 0
     regeneration_count: int = 0
     feedback_score: int | None = None
@@ -435,6 +448,7 @@ class ImpactEvaluator:
 # ============================================================================
 # MAIN CALCULATOR
 # ============================================================================
+
 
 class PromptMetricsCalculator:
     """
