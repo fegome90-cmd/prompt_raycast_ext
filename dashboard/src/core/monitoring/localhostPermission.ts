@@ -2,7 +2,7 @@
  * Localhost Permission Monitor
  *
  * Detects when Raycast's "localhost": true permission is missing from package.json
- * This causes silent failures when trying to connect to http://localhost:8000
+ * This causes silent failures when trying to connect to http://localhost:8001
  *
  * Usage: Wrap fetch calls with checkLocalhostPermission() to get helpful error messages
  */
@@ -27,8 +27,6 @@ export function checkLocalhostPermission(error: unknown, url: string): Localhost
 
   // Error is a TypeError with fetch-related message
   if (error instanceof TypeError) {
-    const errorMessage = error.message.toLowerCase();
-
     // Common patterns when localhost permission is missing:
     // - "fetch failed", "network error", "ECONNREFUSED" (without server running)
     // - But the key is: if curl works but Raycast doesn't, it's permissions

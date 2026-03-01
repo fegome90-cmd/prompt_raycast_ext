@@ -6,7 +6,6 @@ import { Mutex } from "async-mutex";
 import type { ChatSession, ChatMessage, WizardMode, IntentType, ComplexityLevel } from "./types";
 
 const SESSIONS_DIR = join(homedir(), ".raycast-prompt-improver", "sessions");
-const MAX_SESSIONS = 10;
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
 
 class SessionCache {
@@ -124,7 +123,8 @@ export class SessionManager {
     return confidence >= 0.7 && complexity !== "COMPLEX" && intent !== "generate";
   }
 
-  private static calculateMaxTurns(baseMaxTurns: number, complexity?: ComplexityLevel): number {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private static calculateMaxTurns(baseMaxTurns: number, _complexity?: ComplexityLevel): number {
     // Always use the user's configured maxTurns from preferences
     // Complexity is used in shouldEnableWizard() to decide IF wizard runs, not HOW LONG
     return baseMaxTurns;

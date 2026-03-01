@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { callOllamaChat } from "./ollamaChat";
-import { improvePromptWithDSPy, createDSPyClient } from "./dspyPromptImprover";
+import { createDSPyClient } from "./dspyPromptImprover";
 import { extractFirstJsonObject } from "./jsonExtractor";
 
 export type ImprovePromptOptions = {
@@ -102,7 +102,7 @@ export async function improvePromptWithHybrid(args: {
   };
 
   try {
-    const dspyBaseUrl = args.options.dspyBaseUrl ?? "http://localhost:8000";
+    const dspyBaseUrl = args.options.dspyBaseUrl ?? "http://localhost:8001";
     console.log(`[improvePromptWithDSPy] Creating DSPy client with baseUrl: ${dspyBaseUrl}`);
 
     const dspyClient = createDSPyClient({
